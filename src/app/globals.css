@@ -1,0 +1,191 @@
+/* Brew Buddy design tokens — Luna-derived dark theme (docs/brew-buddy-brief.md §2).
+   Accent themes are named after brewing metals; one variable set drives everything. */
+
+:root,
+[data-theme="copper"] {
+  --bg: #2f323b;
+  --bg-radial: radial-gradient(circle at 50% 0, #393b45 0%, #2d3039 70%);
+  --chrome: #24272e;
+  --border: #3b3f4a;
+  --border-row: #40444f;
+  --panel: rgba(68, 70, 79, 0.5);
+  --field: #2a2d35;
+  --text: #949ba2;
+  --text-bright: #ffffff;
+  --text-muted: #7c828b;
+  --text-faint: #6d747d;
+  --nav-link: #838b93;
+  --nav-link-active: #c6ccd2;
+
+  --accent: #c1703f;
+  --accent-hover: #a35a30;
+  --accent-tint: #ecc9ae;
+  --on-accent: #ffffff;
+
+  --success: #1bbf89;
+  --warning: #f7af3e;
+  --danger: #db524b;
+  --info: #56c0e0;
+  --primary: #0f83c9;
+}
+
+[data-theme="stainless"] {
+  --accent: #a9b7c6;
+  --accent-hover: #8fa0b2;
+  --accent-tint: #3d4650;
+  --on-accent: #24272e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--accent-hover);
+}
+
+h1,
+h2,
+h3 {
+  color: var(--text-bright);
+  font-weight: 300;
+  margin: 0;
+}
+
+/* --- shared components (vocabulary from the design canvas) --- */
+
+.panel {
+  background: var(--panel);
+  border-radius: 3px;
+}
+.panel-heading {
+  color: var(--text-bright);
+  font-size: 14px;
+  padding: 12px 15px 4px 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.panel-body {
+  padding: 8px 15px 15px 15px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  background: transparent;
+  cursor: pointer;
+}
+.btn:hover {
+  border-color: var(--accent-hover);
+  color: var(--accent-hover);
+}
+.btn-solid {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.btn-solid:hover {
+  background: var(--accent-hover);
+  color: var(--on-accent);
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+/* Measured vs estimate — never let a guess silently become a data point. */
+.chip-measured {
+  display: inline-block;
+  border: 1px solid var(--success);
+  color: var(--success);
+  font-size: 10px;
+  padding: 0 6px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+.chip-estimate {
+  display: inline-block;
+  border: 1px dashed var(--accent);
+  color: var(--accent);
+  font-size: 10px;
+  padding: 0 6px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+
+.field {
+  background: var(--field);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 9px 12px;
+  color: var(--nav-link-active);
+  font-size: 13px;
+  font-family: inherit;
+  width: 100%;
+}
+.field::placeholder {
+  color: var(--text-faint);
+}
+.field:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.field-label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+table.data {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+table.data th {
+  color: var(--text-bright);
+  text-align: left;
+  font-weight: 500;
+  padding: 8px 10px;
+  border-bottom: 1px solid #464b56;
+  font-size: 12px;
+}
+table.data td {
+  padding: 9px 10px;
+  border-top: 1px solid var(--border-row);
+  color: #a7adb5;
+  vertical-align: top;
+}

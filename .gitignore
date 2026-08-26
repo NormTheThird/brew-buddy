@@ -1,0 +1,31 @@
+# dependencies
+/node_modules
+
+# purchased Luna theme — design reference only, licensed asset, stays local
+/theme/
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+
+# production
+/build
+
+# local database — never commit brewing data
+/data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+.env
+.env.local
+.env.production
+
+# typescript
+*.tsbuildinfo

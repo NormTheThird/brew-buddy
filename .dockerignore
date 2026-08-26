@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+data
+theme
+docs
+*.md
+Dockerfile
+.dockerignore
