@@ -15,6 +15,31 @@ this area again.
 
 ---
 
+## 2026-08-26 — Milestone 2: equipment + ingredient lots
+
+Equipment and ingredient-lot CRUD, live and verified in the browser (create, list,
+filter, delete round-trip; real inventory seeded).
+
+- **Schema:** `equipment` (category enum, status active|wanted|retired, freeform `specs`
+  text, `flag` for badge-worthy warnings like "not calibrated") and `ingredients` (one
+  row per PURCHASE LOT; type enum; nullable type-specific columns for hop AA%/form,
+  fermentable PPG/°L, yeast strain/gen/temps/attenuation; `quantity` nullable because
+  kit contents can be unknown, `quantityOnHand` for live stock — batches decrement it in
+  M3). Wanted list = status filter, not a separate table.
+- **Every server action re-checks the session and scopes by userId** — ownership
+  enforced in the WHERE clause, not just the UI. Pattern to copy for all future actions.
+- **Seed extended (idempotent per table):** brief §7 equipment (14 active + 7 wanted,
+  costs null — receipts not itemized) and the 4 batch-1 lots (on-hand 0, "used").
+- **Bug fixed + tested: UTC date shift.** Date-only values stored at UTC midnight
+  rendered a day early in local time (07/2028 showed as 06/2028). All date formatters
+  now pass `timeZone: "UTC"`. Any new date display must do the same.
+- **Responsive rule:** data tables live inside `.table-wrap` (overflow-x: auto) so the
+  page never scrolls sideways on a phone. Copy for all future tables.
+- Delete uses window.confirm in a small client DeleteButton; forms are client
+  components on useActionState over server actions returning {error}.
+
+---
+
 ## 2026-08-26 — Milestone 1: scaffold, auth, shell (first code)
 
 First code in the repo. Next.js 15 (App Router, standalone output) + TypeScript,

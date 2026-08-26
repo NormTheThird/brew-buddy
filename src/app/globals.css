@@ -170,6 +170,11 @@ h3 {
   margin-bottom: 5px;
 }
 
+/* Tables scroll inside their own container — the page never scrolls sideways. */
+.table-wrap {
+  overflow-x: auto;
+}
+
 table.data {
   border-collapse: collapse;
   width: 100%;
