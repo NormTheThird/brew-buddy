@@ -15,6 +15,33 @@ this area again.
 
 ---
 
+## 2026-08-27 — Stock rolls up by product, lots nest underneath
+
+Trey's ask: 15 packs of US-05 shouldn't be 15 look-alike lines. The stock
+list now groups by product (type + exact name): one line with the lot count,
+total on hand (summed per unit), and the SOONEST best-by; clicking expands
+the per-lot rows (lot number, key numbers, purchase link, edit/delete). This
+is display-only — the per-lot data model is untouched, so batch snapshots,
+replication numbers, and brewability all still key off individual lots.
+Products with a single lot render flat (no pointless chevron). Pagination
+counts PRODUCTS, not lots (a group never straddles pages). Search returned
+to stock (it was removed earlier the same day, then wanted back once
+grouping made name-matching useful); a search auto-expands its matches via
+`defaultOpen` + a key that remounts the client table on q/filter/page change.
+
+New pieces: `components/stock-table.tsx` (client — expansion state lives
+here; imports the delete server action directly) and
+`lib/inventory/stock-labels.ts` (typeLabels/typeBadge shared by server page
+and client table — don't re-inline them in one side or they'll drift).
+Also removed the decorative top-bar "Search recipes, batches…" (mockup
+leftover, never functional — Trey doesn't want global search).
+
+Gotcha hit while verifying: clicks on a freshly hot-reloaded page did
+nothing because hydration hadn't caught up after several file writes — a
+plain reload fixed it. Not an app bug.
+
+---
+
 ## 2026-08-27 — Kit-apply duplicates merged into the seeded lots (data fix)
 
 Applying the Essential starter kit created stock rows for ingredients the
