@@ -177,30 +177,30 @@ lots* to produce the actual shopping list and brew-day amounts.
 ## 6. Feature scope
 
 ### v1 — the core loop
-- [ ] Accounts & login — single user at launch, per-user ownership on all records
-- [ ] Admin → Users page — list accounts, create, edit, reset password, deactivate
+- [x] Accounts & login — single user at launch, per-user ownership on all records
+- [x] Admin → Users page — list accounts, create, edit, reset password, deactivate
       (Admin role only; hidden from regular users)
-- [ ] Equipment inventory (CRUD, cost tracking, category grouping)
-- [ ] Ingredient inventory with lot numbers, AA%, best-by dates
-- [ ] Live stock levels — purchases minus usage; shopping list for a planned batch
-- [ ] Purchases & kits — a Purchase groups items bought together (a kit or one order)
+- [x] Equipment inventory (CRUD, cost tracking, category grouping)
+- [x] Ingredient inventory with lot numbers, AA%, best-by dates
+- [x] Live stock levels — purchases minus usage; shopping list for a planned batch
+- [x] Purchases & kits — a Purchase groups items bought together (a kit or one order)
       with one total cost and vendor; items in a kit show "part of kit", not a fake
       per-item price, and kit cost counts once in totals
-- [ ] Receipt import with AI — upload a receipt photo/PDF, Claude extracts the line
+- [x] Receipt import with AI — upload a receipt photo/PDF, Claude extracts the line
       items, user reviews the proposed equipment/ingredient rows before anything is
       written, receipt file stored on the Purchase for later viewing.
       Requires an Anthropic API key (env `ANTHROPIC_API_KEY`, never committed).
-- [ ] Recipe storage — brewed recipes *and* a to-brew backlog. Status per recipe:
+- [x] Recipe storage — brewed recipes *and* a to-brew backlog. Status per recipe:
       Idea / Want to brew / Brewed (has batches) / Keeper
-- [ ] Brewability check — resolve any recipe against my equipment profile and current
+- [x] Brewability check — resolve any recipe against my equipment profile and current
       stock: **"can brew now"**, **"need to buy: …"** (shopping list), or **"equipment
       can't do this yet"** (e.g. all-grain method, or volume exceeds kettle/fermenter)
-- [ ] BeerXML import/export (recipes in, data never trapped)
+- [x] BeerXML import/export (recipes in, data never trapped)
 - [ ] BJCP style ranges per style; batch plotted against its style's box
-- [ ] Batch records with all fields above
-- [ ] Gravity calculator (ABV, attenuation, temp correction, hydrometer offset)
-- [ ] Batch index / list view with sorting and comparison
-- [ ] System constants dashboard — my boil-off, kettle loss, chill time over time
+- [x] Batch records with all fields above
+- [x] Gravity calculator (ABV, attenuation, temp correction, hydrometer offset)
+- [x] Batch index / list view with sorting and comparison
+- [x] System constants dashboard — my boil-off, kettle loss, chill time over time
 
 ### v2 — brew day mode
 - [ ] Interactive checklist, persisted, phone-optimized

@@ -10,6 +10,12 @@ const roboto = Roboto({
 export const metadata: Metadata = {
   title: "Brew Buddy",
   description: "Homebrew, measured.",
+  manifest: "/manifest.webmanifest",
+  icons: { icon: "/icon-192.png", apple: "/icon-192.png" },
+};
+
+export const viewport = {
+  themeColor: "#24272e",
 };
 
 export default function RootLayout({

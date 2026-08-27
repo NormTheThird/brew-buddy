@@ -15,6 +15,41 @@ this area again.
 
 ---
 
+## 2026-08-26 — Milestones 3–5: brewing core, dashboard, deploy prep
+
+v1 feature set is code-complete except BJCP style ranges and batch diff (v4). All
+verified in the browser against seeded real data; 32 unit tests green.
+
+**M3 — recipes & batches.** recipes/recipe_items (spec, not shopping list; Brewed/
+Keeper display status DERIVES from batches — only idea/want_to_brew is stored),
+batches with recipeName snapshot (survives recipe deletion), per-vessel kettleId/
+fermenterId, `estimatedFields` JSON driving EST-vs-M chips per field, batch_ingredients
+lot-linked snapshot, gravity_readings with cubic temp correction on display. BeerXML
+import/export via fast-xml-parser with metric↔US conversion, round-trip tested.
+Batch detail derives boil-off/kettle loss inline and warns on pitch >72°F. Pasted
+order text is now a receipt (text/plain through the same AI review flow). Seeded both
+recipes + batch 1 (post-boil deliberately null — the famous gap).
+
+**M4 — the brains.** learnedConstants() averages MEASURED values only — a value listed
+in estimatedFields never feeds a constant (tested against batch 1's exact case: its
+estimates yield "no measured data", not fake numbers). nextActions() derives the
+schedule (day-4 temp raise, day-10/13 readings, bottling gate, 2/4/8-week tastings)
+from brewDate/bottledDate. checkBrewability() resolves recipe items against on-hand
+stock with loose name matching (documented as rough). Dashboard = active batch +
+next-up + setup + per-kettle constants + pipeline. Admin users page: create, reset
+password (kills sessions), deactivate (kills sessions; self-deactivation blocked).
+
+**M5 — deploy prep (code side done; AWS account steps are the user's).** PWA manifest
++ generated icons (charcoal/copper "BB") wired into metadata. docker-compose.yml =
+app + caddy:2 (auto-HTTPS via {$DOMAIN}); Caddyfile; scripts/backup-to-s3.sh does a
+proper `sqlite3 .backup` snapshot out of the docker volume, plus receipts, to S3.
+docs/deploy.md is the full Lightsail runbook incl. seeding path (standalone image has
+no tsx — seed from a Node checkout on the host against the volume path) and a
+go-live security checklist. Service worker / offline timers deliberately deferred to
+v2 brew-day work.
+
+---
+
 ## 2026-08-26 — Milestone 2.5: purchases, kits, receipt AI import
 
 Purchases group items bought together (kits/orders) with one total cost; receipts

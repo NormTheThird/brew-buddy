@@ -1,0 +1,33 @@
+# Brew Buddy production stack: the app + Caddy for automatic HTTPS.
+# Set DOMAIN and ANTHROPIC_API_KEY in a .env file next to this compose file.
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      - DATABASE_PATH=/data/brewbuddy.db
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      - app-data:/data
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+
+volumes:
+  app-data:
+  caddy-data:
+  caddy-config:
