@@ -1,4 +1,5 @@
 import type { Ingredient, RecipeItem } from "@/lib/db/schema";
+import { nameMatches } from "@/lib/inventory/match";
 
 /* Brewability (brief v1): resolve a recipe's items against live stock.
    Matching is deliberately rough — by type plus loose name overlap — and the
@@ -8,15 +9,6 @@ export type Brewability =
   | { verdict: "no_items" }
   | { verdict: "can_brew" }
   | { verdict: "need_to_buy"; missing: string[] };
-
-function nameMatches(itemName: string, stockName: string): boolean {
-  const a = itemName.toLowerCase();
-  const b = stockName.toLowerCase();
-  if (a.includes(b) || b.includes(a)) return true;
-  // token overlap: "Willamette" matches "Willamette, pellet"
-  const tokens = a.split(/[^a-z0-9]+/).filter((t) => t.length > 3);
-  return tokens.some((t) => b.includes(t));
-}
 
 export function checkBrewability(
   items: RecipeItem[],

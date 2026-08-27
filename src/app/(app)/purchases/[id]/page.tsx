@@ -1,3 +1,4 @@
+import React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
@@ -12,6 +13,7 @@ import { ReceiptIcon } from "@/components/icons";
 import { DeleteButton } from "@/components/delete-button";
 import { ExtractButton } from "@/components/extract-button";
 import { RemoveItemButton } from "@/components/remove-item-button";
+import { findLikelyMatch } from "@/lib/inventory/match";
 
 export default async function PurchaseDetailPage({
   params,
@@ -44,6 +46,26 @@ export default async function PurchaseDetailPage({
   const proposal: ReceiptProposal | null = p.proposalJson
     ? (JSON.parse(p.proposalJson) as ReceiptProposal)
     : null;
+
+  // For individually-priced lines (never kit components), look for an existing
+  // item the user added manually — they confirm same vs new in the table.
+  const allEquip = proposal
+    ? db.select().from(equipment).where(eq(equipment.userId, user.id)).all()
+    : [];
+  const allIng = proposal
+    ? db.select().from(ingredients).where(eq(ingredients.userId, user.id)).all()
+    : [];
+  const matches: Array<{ id: number; name: string } | undefined> = (proposal?.items ?? []).map(
+    (item) => {
+      if (item.partOfKit) return undefined;
+      const pool = (
+        item.kind === "equipment"
+          ? allEquip.filter((e) => e.purchaseId !== p.id)
+          : allIng.filter((i) => i.purchaseId !== p.id)
+      ).map((x) => ({ id: x.id, name: x.name }));
+      return findLikelyMatch(item.name, pool);
+    }
+  );
   const isImage = p.receiptMime?.startsWith("image/") ?? false;
 
   return (
@@ -121,7 +143,8 @@ export default async function PurchaseDetailPage({
                       </thead>
                       <tbody>
                         {proposal.items.map((item, idx) => (
-                          <tr key={idx}>
+                          <React.Fragment key={idx}>
+                          <tr>
                             <td>
                               <input type="checkbox" name="accept" value={idx} defaultChecked />
                             </td>
@@ -158,6 +181,28 @@ export default async function PurchaseDetailPage({
                             </td>
                             <td style={{ textAlign: "right" }}>{formatCost(item.cost ?? null)}</td>
                           </tr>
+                          {matches[idx] ? (
+                            <tr>
+                              <td></td>
+                              <td colSpan={5} style={{ borderTop: "none", paddingTop: 0 }}>
+                                <div style={{ background: "rgba(247,175,62,.1)", borderLeft: "3px solid var(--warning)", padding: "8px 10px", fontSize: 12, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+                                  <span>
+                                    Looks like <span style={{ color: "var(--text-bright)" }}>{matches[idx]!.name}</span>,
+                                    which you already added — same item?
+                                  </span>
+                                  <label style={{ display: "inline-flex", gap: 5, alignItems: "center", cursor: "pointer" }}>
+                                    <input type="radio" name={`same_${idx}`} value={matches[idx]!.id} required />
+                                    Same — update it with this price &amp; receipt
+                                  </label>
+                                  <label style={{ display: "inline-flex", gap: 5, alignItems: "center", cursor: "pointer" }}>
+                                    <input type="radio" name={`same_${idx}`} value="new" required />
+                                    Different — create a new item
+                                  </label>
+                                </div>
+                              </td>
+                            </tr>
+                          ) : null}
+                          </React.Fragment>
                         ))}
                       </tbody>
                     </table>

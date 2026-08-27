@@ -282,6 +282,34 @@ export async function applyProposal(formData: FormData): Promise<void> {
     // User-corrected quantity from the review table; at least 1 always.
     const editedQty = num(formData.get(`qty_${idx}`));
     const qty = editedQty ?? item.quantity ?? 1;
+
+    // User confirmed this line IS an item they added manually: update that
+    // row (price + provenance) instead of creating a duplicate. Kit
+    // components never go through this — they always create fresh rows.
+    const sameVal = str(formData.get(`same_${idx}`));
+    if (!item.partOfKit && sameVal && sameVal !== "new") {
+      const existingId = Number(sameVal);
+      if (Number.isInteger(existingId)) {
+        const patch = {
+          ...(item.cost != null ? { cost: item.cost } : {}),
+          purchaseId: p.id,
+          ...(p.purchaseDate ? { purchaseDate: p.purchaseDate } : {}),
+        };
+        if (item.kind === "equipment") {
+          await db
+            .update(equipment)
+            .set(patch)
+            .where(and(eq(equipment.id, existingId), eq(equipment.userId, user.id)));
+        } else {
+          await db
+            .update(ingredients)
+            .set(patch)
+            .where(and(eq(ingredients.id, existingId), eq(ingredients.userId, user.id)));
+        }
+        continue;
+      }
+    }
+
     if (item.kind === "equipment") {
       const category = equipmentCategories.includes(item.category as EquipmentCategory)
         ? (item.category as EquipmentCategory)
