@@ -70,9 +70,15 @@ export function EquipmentForm({
           </select>
         </div>
       </div>
-      <div>
-        <label className="field-label" htmlFor="specs">Key specs</label>
-        <input id="specs" name="specs" className="field" defaultValue={item?.specs ?? ""} placeholder='e.g. 7.5 gal · 110V · 1600W' />
+      <div style={{ display: "grid", gridTemplateColumns: "3fr 1fr", gap: 12 }}>
+        <div>
+          <label className="field-label" htmlFor="specs">Key specs</label>
+          <input id="specs" name="specs" className="field" defaultValue={item?.specs ?? ""} placeholder='e.g. 7.5 gal · 110V · 1600W' />
+        </div>
+        <div>
+          <label className="field-label" htmlFor="quantity">Quantity</label>
+          <input id="quantity" name="quantity" type="number" step="1" min="1" className="field" defaultValue={item?.quantity ?? 1} />
+        </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
         <div>

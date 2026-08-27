@@ -270,6 +270,43 @@ Return ONLY JSON: {"name": "combined name, main product first with accessories a
   };
 }
 
+/** After a mixed-order apply, rename the purchase for what was KEPT — the
+    sunglasses don't belong in the title of a brewing purchase. */
+export async function nameForAccepted(
+  originalName: string,
+  keptNames: string[],
+  vendor: string | null
+): Promise<string> {
+  const client = new Anthropic();
+  const response = await client.messages.create({
+    model: "claude-sonnet-5",
+    max_tokens: 200,
+    output_config: { effort: "low" },
+    messages: [
+      {
+        role: "user",
+        content: `A purchase was named "${originalName}"${vendor ? ` (vendor: ${vendor})` : ""}, but only some of its items were kept — the rest were excluded as non-brewing. Rename the purchase to describe ONLY the kept items, in the same concise style (a short title, not a list).
+
+Kept items:
+${keptNames.map((n) => `- ${n}`).join("\n")}
+
+Return ONLY JSON: {"name": "short purchase title"}`,
+      },
+    ],
+  });
+  let text = "";
+  for (const block of response.content) {
+    if (block.type === "text") text += block.text;
+  }
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("No JSON in rename response.");
+  const p = JSON.parse(jsonMatch[0]) as { name?: unknown };
+  if (typeof p.name !== "string" || !p.name.trim()) {
+    throw new Error("No name in rename response.");
+  }
+  return p.name.trim();
+}
+
 export function isSupportedReceiptType(mime: string): boolean {
   return (
     mime === "application/pdf" ||

@@ -27,6 +27,7 @@ import {
   EXTRACTION_RULES_VERSION,
   hasApiKey,
   isSupportedReceiptType,
+  nameForAccepted,
   normalizeVendor,
   type ReceiptProposal,
 } from "./receipt-ai";
@@ -543,18 +544,13 @@ export async function applyProposal(formData: FormData): Promise<void> {
       const category = equipmentCategories.includes(item.category as EquipmentCategory)
         ? (item.category as EquipmentCategory)
         : "other";
-      // Countable equipment (caps, bottles) keeps its count in specs.
-      const qtyNote = `${qty}${item.unit ? ` ${item.unit}` : qty > 1 ? " count" : ""}`;
-      const specs =
-        [item.specs, qty > 1 && !(item.specs ?? "").includes(qtyNote) ? qtyNote : null]
-          .filter(Boolean)
-          .join(" · ") || null;
       await db.insert(equipment).values({
         userId: user.id,
         name: item.name,
         category,
         status: "active",
-        specs,
+        specs: item.specs ?? null,
+        quantity: Math.max(1, Math.round(qty)),
         cost: item.cost ?? null,
         purchaseDate: p.purchaseDate,
         purchaseId: p.id,
@@ -580,11 +576,46 @@ export async function applyProposal(formData: FormData): Promise<void> {
     }
   }
 
+  // MIXED-ORDER TRIM: when lines were left unchecked (sunglasses on a
+  // brewing order), the purchase should describe only what was kept. The
+  // receipt total includes tax/fees, so the kept share is allocated
+  // proportionally: newTotal = receiptTotal × keptLines / allLines.
+  const costOf = (idxs: number[]) =>
+    idxs.reduce((s, i) => s + (proposal.items[i]?.cost ?? 0), 0);
+  const allIdxs = proposal.items.map((_, i) => i);
+  const allCost = costOf(allIdxs);
+  const keptCost = costOf(accepted);
+  let trimmed: { name?: string; totalCost?: number; notes?: string } = {};
+  if (
+    accepted.length < proposal.items.length &&
+    p.totalCost != null &&
+    allCost > 0 &&
+    keptCost < allCost - 0.005
+  ) {
+    const newTotal = Math.round(p.totalCost * (keptCost / allCost) * 100) / 100;
+    const note = `Mixed order trimmed to accepted items — receipt total $${p.totalCost.toFixed(2)}, kept $${newTotal.toFixed(2)} (tax & fees allocated proportionally).`;
+    trimmed = {
+      totalCost: newTotal,
+      notes: p.notes ? `${p.notes}\n${note}` : note,
+    };
+    const keptNames = accepted
+      .map((i) => proposal.items[i]?.name)
+      .filter((n): n is string => Boolean(n));
+    if (keptNames.length && hasApiKey()) {
+      try {
+        trimmed.name = await nameForAccepted(p.name, keptNames, p.vendor);
+      } catch {
+        // Keep the original name — the trim note still explains the total.
+      }
+    }
+  }
+
   await db
     .update(purchases)
-    .set({ proposalJson: null, proposalAppliedAt: new Date() })
+    .set({ proposalJson: null, proposalAppliedAt: new Date(), ...trimmed })
     .where(eq(purchases.id, id));
   revalidatePath(`/purchases/${p.id}`);
+  revalidatePath("/purchases");
   revalidatePath("/equipment");
   revalidatePath("/stock");
   redirect(`/purchases/${p.id}`);

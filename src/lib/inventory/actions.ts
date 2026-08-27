@@ -92,6 +92,7 @@ function equipmentValues(formData: FormData) {
       category,
       status: status as "active" | "wanted" | "retired",
       specs: str(formData.get("specs")),
+      quantity: Math.max(1, Math.round(num(formData.get("quantity")) ?? 1)),
       flag: str(formData.get("flag")),
       purchaseDate: date(formData.get("purchaseDate")),
       cost: num(formData.get("cost")),

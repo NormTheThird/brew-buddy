@@ -5,8 +5,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 /* Live search: starts filtering at 3+ characters (debounced), clears when
    emptied. Filtering happens server-side via the URL, so results stay
-   shareable and back-button friendly. */
-export function PurchaseSearch() {
+   shareable and back-button friendly. Other params (status, size) survive. */
+export function TableSearch({
+  basePath,
+  placeholder,
+}: {
+  basePath: string;
+  placeholder: string;
+}) {
   const router = useRouter();
   const params = useSearchParams();
   const [value, setValue] = useState(params.get("q") ?? "");
@@ -25,18 +31,18 @@ export function PurchaseSearch() {
       else sp.delete("q");
       sp.delete("page"); // new search starts at page 1
       const s = sp.toString();
-      router.replace(s ? `/purchases?${s}` : "/purchases");
+      router.replace(s ? `${basePath}?${s}` : basePath);
     }, 300);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [value, params, router]);
+  }, [value, params, router, basePath]);
 
   return (
     <input
       name="q"
       className="field"
-      placeholder="Type 3+ letters to filter — name, vendor, order #, notes…"
+      placeholder={placeholder}
       value={value}
       onChange={(e) => setValue(e.target.value)}
       style={{ maxWidth: 380 }}

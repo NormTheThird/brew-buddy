@@ -8,6 +8,7 @@ import { formatCost, formatDate } from "@/lib/inventory/format";
 import { PageHeader } from "@/components/page-header";
 import { BoxIcon } from "@/components/icons";
 import { DeleteButton } from "@/components/delete-button";
+import { TableSearch } from "@/components/table-search";
 
 const categoryLabels: Record<string, string> = {
   kettle: "Kettle",
@@ -20,6 +21,23 @@ const categoryLabels: Record<string, string> = {
   other: "Other",
 };
 const categoryOrder = Object.keys(categoryLabels);
+
+const PAGE_SIZES = ["10", "25", "50", "all"] as const;
+
+function pageHref(
+  status: string | null,
+  q: string,
+  size: string,
+  page: number
+): string {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  if (q) params.set("q", q);
+  if (size !== "10") params.set("size", size);
+  if (page > 1) params.set("page", String(page));
+  const s = params.toString();
+  return s ? `/equipment?${s}` : "/equipment";
+}
 
 function Chip({ href, label, active }: { href: string; label: string; active: boolean }) {
   return (
@@ -43,10 +61,15 @@ function Chip({ href, label, active }: { href: string; label: string; active: bo
 export default async function EquipmentPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; size?: string; page?: string }>;
 }) {
   const user = (await getCurrentUser())!;
-  const { status } = await searchParams;
+  const params = await searchParams;
+  const { status } = params;
+  const q = (params.q ?? "").trim();
+  const size = PAGE_SIZES.includes((params.size ?? "") as (typeof PAGE_SIZES)[number])
+    ? (params.size as (typeof PAGE_SIZES)[number])
+    : "10";
   // Active is what matters at a glance — it's the default view.
   const filter =
     status === "all"
@@ -54,6 +77,7 @@ export default async function EquipmentPage({
       : ["wanted", "retired"].includes(status ?? "")
         ? (status as "wanted" | "retired")
         : "active";
+  const statusParam = status === "all" ? "all" : filter === "active" ? null : filter;
 
   const all = db
     .select()
@@ -70,11 +94,25 @@ export default async function EquipmentPage({
       .map((p) => [p.id, p.name] as const)
   );
 
-  const shown = (filter ? all.filter((e) => e.status === filter) : all).sort(
-    (a, b) =>
-      categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category) ||
-      a.name.localeCompare(b.name)
-  );
+  const needle = q.toLowerCase();
+  const filtered = (filter ? all.filter((e) => e.status === filter) : all)
+    .filter(
+      (e) =>
+        !q ||
+        [e.name, e.specs, e.notes, e.flag, categoryLabels[e.category]]
+          .filter(Boolean)
+          .some((s) => s!.toLowerCase().includes(needle))
+    )
+    .sort(
+      (a, b) =>
+        categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category) ||
+        a.name.localeCompare(b.name)
+    );
+
+  const perPage = size === "all" ? filtered.length || 1 : Number(size);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / perPage));
+  const page = Math.min(Math.max(1, Number(params.page) || 1), pageCount);
+  const shown = filtered.slice((page - 1) * perPage, page * perPage);
 
   const enteredCosts = all
     .filter((e) => e.status === "active" && e.cost != null)
@@ -109,23 +147,34 @@ export default async function EquipmentPage({
           <div style={{ color: "var(--text-bright)", fontSize: 19, fontWeight: 300 }}>{wantedCount}</div>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
-        <Chip href="/equipment" label="Active" active={filter === "active"} />
-        <Chip href="/equipment?status=wanted" label="Wanted" active={filter === "wanted"} />
-        <Chip href="/equipment?status=retired" label="Retired" active={filter === "retired"} />
-        <Chip href="/equipment?status=all" label="All" active={filter === null} />
+      <div style={{ display: "flex", gap: 10, marginBottom: 18, alignItems: "center", flexWrap: "wrap" }}>
+        <Chip href={pageHref(null, q, size, 1)} label="Active" active={filter === "active"} />
+        <Chip href={pageHref("wanted", q, size, 1)} label="Wanted" active={filter === "wanted"} />
+        <Chip href={pageHref("retired", q, size, 1)} label="Retired" active={filter === "retired"} />
+        <Chip href={pageHref("all", q, size, 1)} label="All" active={filter === null} />
+        <div style={{ flex: 1, minWidth: 240, display: "flex", justifyContent: "flex-end" }}>
+          <TableSearch basePath="/equipment" placeholder="Type 3+ letters to filter — name, specs, category…" />
+        </div>
       </div>
       <div className="panel">
         <div className="panel-heading">
-          Inventory
-          <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 400 }}>
-            costs sum only what&apos;s been entered
+          {q ? `Matches for "${q}" — ${filtered.length}` : "Inventory"}
+          <span style={{ display: "flex", gap: 8, fontSize: 12, fontWeight: 400 }}>
+            {PAGE_SIZES.map((s) => (
+              <Link
+                key={s}
+                href={pageHref(statusParam, q, s, 1)}
+                style={{ color: s === size ? "var(--accent)" : "var(--nav-link)", textDecoration: s === size ? "underline" : "none" }}
+              >
+                {s}
+              </Link>
+            ))}
           </span>
         </div>
         <div className="panel-body">
           {shown.length === 0 ? (
             <div style={{ fontSize: 13, color: "var(--text-muted)", padding: "8px 0" }}>
-              Nothing here yet — add equipment or run <code>npm run db:seed</code>.
+              {q ? `Nothing matches "${q}".` : <>Nothing here yet — add equipment or run <code>npm run db:seed</code>.</>}
             </div>
           ) : (
             <div className="table-wrap">
@@ -135,6 +184,7 @@ export default async function EquipmentPage({
                   <th>Category</th>
                   <th>Item</th>
                   <th>Key specs</th>
+                  <th style={{ textAlign: "center" }}>Qty</th>
                   <th>Status</th>
                   <th>Purchased</th>
                   <th style={{ textAlign: "right" }}>Cost</th>
@@ -147,6 +197,7 @@ export default async function EquipmentPage({
                     <td>{categoryLabels[e.category]}</td>
                     <td style={{ color: "var(--text-bright)" }}>{e.name}</td>
                     <td>{e.specs ?? "—"}</td>
+                    <td style={{ textAlign: "center" }}>{e.quantity}</td>
                     <td>
                       <StatusCell item={e} />
                     </td>
@@ -191,6 +242,19 @@ export default async function EquipmentPage({
             </table>
             </div>
           )}
+          {pageCount > 1 ? (
+            <div style={{ display: "flex", gap: 14, alignItems: "center", paddingTop: 14, fontSize: 13 }}>
+              {page > 1 ? (
+                <Link href={pageHref(statusParam, q, size, page - 1)} className="btn" style={{ padding: "4px 12px" }}>← Prev</Link>
+              ) : null}
+              <span style={{ color: "var(--text-muted)" }}>
+                Page {page} of {pageCount} · {filtered.length} item{filtered.length === 1 ? "" : "s"}
+              </span>
+              {page < pageCount ? (
+                <Link href={pageHref(statusParam, q, size, page + 1)} className="btn" style={{ padding: "4px 12px" }}>Next →</Link>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
     </>
@@ -198,14 +262,23 @@ export default async function EquipmentPage({
 }
 
 function StatusCell({ item }: { item: Equipment }) {
+  // A flagged item isn't fully "Active" — the flag IS its status. It still
+  // lives under the Active filter (only Retired removes it from service).
+  if (item.status === "active") {
+    return item.flag ? (
+      <span className="badge" style={{ background: "var(--warning)" }} title="Needs attention — still in service">
+        {item.flag.toUpperCase()}
+      </span>
+    ) : (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--success)", display: "inline-block" }} />
+        Active
+      </span>
+    );
+  }
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-      {item.status === "active" ? (
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--success)", display: "inline-block" }} />
-          Active
-        </span>
-      ) : item.status === "wanted" ? (
+      {item.status === "wanted" ? (
         <span className="badge" style={{ background: "var(--info)" }}>WANTED</span>
       ) : (
         <span className="badge" style={{ background: "#44464f", color: "var(--text)" }}>RETIRED</span>

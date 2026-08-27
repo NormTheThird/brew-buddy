@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { formatCost, formatDate } from "@/lib/inventory/format";
 import { PageHeader } from "@/components/page-header";
 import { ReceiptIcon } from "@/components/icons";
-import { PurchaseSearch } from "@/components/purchase-search";
+import { TableSearch } from "@/components/table-search";
 
 const PAGE_SIZES = ["10", "25", "50", "all"] as const;
 
@@ -78,7 +78,7 @@ export default async function PurchasesPage({
       />
       <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap", marginBottom: 18 }}>
         <div style={{ display: "flex", gap: 8, flex: 1, minWidth: 260 }}>
-          <PurchaseSearch />
+          <TableSearch basePath="/purchases" placeholder="Type 3+ letters to filter — name, vendor, order #, notes…" />
         </div>
         <div className="panel" style={{ borderLeft: "3px solid var(--accent)", padding: "8px 14px" }}>
           <span className="field-label" style={{ marginBottom: 0 }}>

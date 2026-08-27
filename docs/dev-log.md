@@ -15,6 +15,37 @@ this area again.
 
 ---
 
+## 2026-08-27 — Equipment quantity, flag-as-status, equipment search, mixed-order trim
+
+Four refinements from Trey's testing:
+
+- **equipment.quantity** (int, default 1): counts were being stuffed into specs
+  text ("· 2 ct"). Real column now — form field, Qty column in the list, and
+  applyProposal writes the AI-read quantity instead of appending to specs.
+  Live ALTER + backfill parsed "N ct" out of existing specs (GoveeLife 2-pack,
+  hose adapters). Quantity > 1 is for countable gear only — vessels and
+  instruments stay one row per unit (see the Stock entry below).
+- **Flag IS the status**: an active item with a warning flag ("not calibrated")
+  now shows the flag as its status badge instead of "Active" + flag side by
+  side. It still lives under the Active filter — only Retired removes gear
+  from service. Trey's framing: "if it says not calibrated it's not active."
+- **Equipment search + pagination**, same pattern as purchases (3+ chars
+  debounced, 10/25/50/all). PurchaseSearch generalized into
+  `components/table-search.tsx` (basePath + placeholder props); status chips,
+  q, and size all survive each other via pageHref.
+- **Mixed-order trim** in applyProposal: when lines are left unchecked
+  (sunglasses on a brewing order), the purchase is renamed to the kept items
+  (Sonnet low-effort, `nameForAccepted`, falls back to old name on failure)
+  and totalCost becomes receiptTotal × keptLines/allLines — the receipt total
+  includes tax, so the kept share carries its proportional tax. A note on the
+  purchase records the math. The existing sunglasses order was fixed by hand:
+  "Veco Spray Bottles Order", $80.60 → $16.23 (kept $14.99 of $74.46 in
+  lines), spray bottles quantity 4.
+
+Item line costs stay pre-tax; only the purchase totalCost is tax-inclusive.
+
+---
+
 ## 2026-08-27 — Ingredients renamed to Stock; bottles are stock now
 
 Trey's framing, which the model already secretly agreed with: the real split is

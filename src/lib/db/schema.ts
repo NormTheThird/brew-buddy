@@ -89,6 +89,10 @@ export const equipment = sqliteTable("equipment", {
     .notNull()
     .default("active"),
   specs: text("specs"), // short human-readable: "7.5 gal · 110V · 1600W"
+  // How many units this row is (2-pack thermometers, 2 hose adapters).
+  // Vessels/instruments stay one row per unit — batches reference a specific
+  // vessel — so quantity > 1 is for countable gear only.
+  quantity: integer("quantity").notNull().default(1),
   flag: text("flag"), // badge-worthy warning: "not calibrated", "replace"
   purchaseId: text("purchase_id").references(() => purchases.id, {
     onDelete: "set null",
