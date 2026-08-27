@@ -69,6 +69,7 @@ export async function extractLabel(
   const response = await client.messages.create({
     model: "claude-opus-5",
     max_tokens: 8000,
+    output_config: { effort: "low" },
     messages: [
       {
         role: "user",

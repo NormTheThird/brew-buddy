@@ -109,9 +109,12 @@ export async function extractReceipt(
         ];
 
   const messages: Anthropic.MessageParam[] = [{ role: "user", content }];
+  // Extraction is mechanical — low effort cuts thinking time without
+  // changing the model.
   let response = await client.messages.create({
     model: "claude-opus-5",
     max_tokens: 16000,
+    output_config: { effort: "low" },
     // Web search lets the model look up a kit's actual contents.
     tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }],
     messages,
@@ -123,6 +126,7 @@ export async function extractReceipt(
     response = await client.messages.create({
       model: "claude-opus-5",
       max_tokens: 16000,
+      output_config: { effort: "low" },
       tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }],
       messages,
     });
