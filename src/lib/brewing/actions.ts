@@ -131,6 +131,66 @@ function ownedRecipe(id: string, userId: string) {
     .all()[0];
 }
 
+/** A brewed recipe's spec is history: batches were made from it, so the
+    ingredient bill locks. Tweaks happen on a duplicate. */
+function recipeIsBrewed(recipeId: string): boolean {
+  return (
+    db
+      .select({ id: batches.id })
+      .from(batches)
+      .where(eq(batches.recipeId, recipeId))
+      .all().length > 0
+  );
+}
+
+/** Copy a recipe + its ingredient bill so a brewed spec can be tweaked
+    without rewriting history. Lands on the copy's edit page for renaming. */
+export async function duplicateRecipe(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const id = str(formData.get("id"));
+  if (id == null) return;
+  const source = ownedRecipe(id, user.id);
+  if (!source) return;
+  const items = db
+    .select()
+    .from(recipeItems)
+    .where(eq(recipeItems.recipeId, source.id))
+    .all();
+  const inserted = await db
+    .insert(recipes)
+    .values({
+      userId: user.id,
+      name: `${source.name} (my version)`,
+      style: source.style,
+      status: "want_to_brew",
+      method: source.method,
+      targetVolumeGal: source.targetVolumeGal,
+      targetOG: source.targetOG,
+      targetFG: source.targetFG,
+      targetIBU: source.targetIBU,
+      targetSRM: source.targetSRM,
+      targetABV: source.targetABV,
+      boilMinutes: source.boilMinutes,
+      notes: source.notes,
+    })
+    .returning({ id: recipes.id });
+  const newId = inserted[0].id;
+  for (const it of items) {
+    await db.insert(recipeItems).values({
+      recipeId: newId,
+      ingredientType: it.ingredientType,
+      name: it.name,
+      amount: it.amount,
+      unit: it.unit,
+      timingMinutes: it.timingMinutes,
+      stage: it.stage,
+      sortOrder: it.sortOrder,
+    });
+  }
+  revalidatePath("/recipes");
+  redirect(`/recipes/${newId}/edit`);
+}
+
 export async function addRecipeItem(formData: FormData): Promise<void> {
   const user = await requireUser();
   const recipeId = str(formData.get("recipeId"));
@@ -138,6 +198,7 @@ export async function addRecipeItem(formData: FormData): Promise<void> {
   const type = str(formData.get("ingredientType")) as StockType | null;
   if (recipeId == null || !name || !type || !stockTypes.includes(type)) return;
   if (!ownedRecipe(recipeId, user.id)) return;
+  if (recipeIsBrewed(recipeId)) return;
   const count = db
     .select({ id: recipeItems.id })
     .from(recipeItems)
@@ -162,6 +223,7 @@ export async function deleteRecipeItem(formData: FormData): Promise<void> {
   const recipeId = str(formData.get("recipeId"));
   if (id == null || recipeId == null) return;
   if (!ownedRecipe(recipeId, user.id)) return;
+  if (recipeIsBrewed(recipeId)) return;
   await db
     .delete(recipeItems)
     .where(and(eq(recipeItems.id, id), eq(recipeItems.recipeId, recipeId)));

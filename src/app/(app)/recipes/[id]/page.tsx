@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { batches, recipeItems, recipes, stock } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
-import { addRecipeItem, deleteRecipeItem, deleteRecipe } from "@/lib/brewing/actions";
+import { addRecipeItem, deleteRecipeItem, deleteRecipe, duplicateRecipe } from "@/lib/brewing/actions";
 import { recipeDisplayStatus, statusBadge, methodLabels, batchStatusBadge } from "@/lib/brewing/display";
 import { checkBrewability } from "@/lib/brewing/brewability";
 import { formatMonth } from "@/lib/inventory/format";
@@ -44,6 +44,8 @@ export default async function RecipeDetailPage({
   const brewability = checkBrewability(items, stockRows);
   const status = recipeDisplayStatus(recipe, recipeBatches, brewability.verdict === "can_brew");
   const badge = statusBadge[status];
+  // Brewed once = the spec is history; tweaks happen on a duplicate.
+  const brewed = recipeBatches.length > 0;
 
   return (
     <>
@@ -57,6 +59,12 @@ export default async function RecipeDetailPage({
             <Link href={`/batches/new?recipe=${recipe.id}`} className="btn btn-solid">Brew this</Link>
             <Link href={`/recipes/${recipe.id}/edit`} className="btn">Edit</Link>
             <Link href={`/recipes/${recipe.id}/beerxml`} className="btn">Export BeerXML</Link>
+            <form action={duplicateRecipe} style={{ display: "inline-flex" }}>
+              <input type="hidden" name="id" value={recipe.id} />
+              <button type="submit" className="btn" title="Copy this recipe and its ingredients to tweak your own version">
+                Duplicate
+              </button>
+            </form>
             <DeleteButton
               action={deleteRecipe}
               id={recipe.id}
@@ -112,11 +120,13 @@ export default async function RecipeDetailPage({
                           <td>{it.stage ?? "—"}</td>
                           <td>{it.timingMinutes != null ? `${it.timingMinutes} min` : "—"}</td>
                           <td style={{ textAlign: "right" }}>
-                            <form action={deleteRecipeItem} style={{ display: "inline" }}>
-                              <input type="hidden" name="id" value={it.id} />
-                              <input type="hidden" name="recipeId" value={recipe.id} />
-                              <button type="submit" style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>remove</button>
-                            </form>
+                            {brewed ? null : (
+                              <form action={deleteRecipeItem} style={{ display: "inline" }}>
+                                <input type="hidden" name="id" value={it.id} />
+                                <input type="hidden" name="recipeId" value={recipe.id} />
+                                <button type="submit" style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>remove</button>
+                              </form>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -124,6 +134,12 @@ export default async function RecipeDetailPage({
                   </table>
                 </div>
               )}
+              {brewed ? (
+                <div style={{ fontSize: 12, color: "var(--text-muted)", borderTop: "1px solid var(--border-row)", paddingTop: 10 }}>
+                  This spec is locked: batches were brewed from it, so it is
+                  history now. Duplicate the recipe to make your own version.
+                </div>
+              ) : (
               <form action={addRecipeItem} style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr 0.8fr 0.8fr 1fr 0.9fr auto", gap: 8, alignItems: "end" }}>
                 <input type="hidden" name="recipeId" value={recipe.id} />
                 <div>
@@ -163,6 +179,7 @@ export default async function RecipeDetailPage({
                 </div>
                 <button type="submit" className="btn" style={{ height: 38 }}>Add</button>
               </form>
+              )}
             </div>
           </div>
           <div className="panel">

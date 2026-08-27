@@ -15,6 +15,23 @@ this area again.
 
 ---
 
+## 2026-08-27 — Brewed specs lock; Duplicate makes the tweakable copy
+
+Once a recipe has batches its ingredient bill is HISTORY (batch snapshots
+and miss analysis reference it), so the spec locks: remove links and the
+add form disappear (a note explains why) and addRecipeItem /
+deleteRecipeItem refuse server-side when recipeIsBrewed(). Tweaks happen on
+a copy: the Duplicate button (recipe header) copies the recipe + items as
+"<name> (my version)", status want_to_brew, and lands on the copy's edit
+page for renaming. Targets/notes on brewed recipes stay editable (Trey may
+correct a typo); only the ingredient bill is frozen.
+
+Also: recipes gained the READY TO BREW status (want_to_brew + all
+ingredients in stock, derived live from brewability, never stored) and the
+recipe Delete became a real button.
+
+---
+
 ## 2026-08-27 — Admin users: search/pagination, inline edit, real buttons
 
 Users page gets the standard treatment (TableSearch + 10/25/50/all) and an
