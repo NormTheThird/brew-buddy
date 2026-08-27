@@ -1,10 +1,19 @@
 /* Seeds the initial admin account. Idempotent — safe to run again.
    Override with ADMIN_EMAIL / ADMIN_NAME / ADMIN_PASSWORD env vars.
    The default password is for local dev only — change it before deploying. */
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { db } from "../src/lib/db";
-import { equipment, ingredients, users } from "../src/lib/db/schema";
+import {
+  batches,
+  batchIngredients,
+  equipment,
+  gravityReadings,
+  ingredients,
+  recipeItems,
+  recipes,
+  users,
+} from "../src/lib/db/schema";
 
 const email = (process.env.ADMIN_EMAIL ?? "normthethird@protonmail.com").toLowerCase();
 const name = process.env.ADMIN_NAME ?? "Trey";
@@ -143,10 +152,121 @@ async function seedIngredients(userId: number) {
   console.log("Seeded 4 batch-1 ingredient lots (all consumed).");
 }
 
+// Recipes from brief §6/§12 and batch 1 from §8.
+async function seedRecipesAndBatch1(userId: number) {
+  const existing = db
+    .select({ id: recipes.id })
+    .from(recipes)
+    .where(eq(recipes.userId, userId))
+    .all();
+  if (existing.length > 0) {
+    console.log("Recipes already seeded.");
+    return;
+  }
+
+  const [blockParty] = await db
+    .insert(recipes)
+    .values({
+      userId,
+      name: "Block Party Amber Ale",
+      style: "Amber Ale",
+      method: "extract",
+      status: "want_to_brew",
+      targetVolumeGal: 5,
+      targetOG: 1.044,
+      targetIBU: 18,
+      boilMinutes: 60,
+      notes: "Northern Brewer extract kit. Batch 1 missed OG low — see miss analysis.",
+    })
+    .returning({ id: recipes.id });
+
+  await db.insert(recipeItems).values([
+    { recipeId: blockParty.id, ingredientType: "fermentable", name: "Gold LME", amount: 6, unit: "lb", stage: "boil", sortOrder: 0 },
+    { recipeId: blockParty.id, ingredientType: "fermentable", name: "Kit steeping grains", amount: null, unit: "lb", stage: "steep", timingMinutes: 20, sortOrder: 1 },
+    { recipeId: blockParty.id, ingredientType: "hop", name: "Willamette", amount: 1, unit: "oz", stage: "boil", timingMinutes: 60, sortOrder: 2 },
+    { recipeId: blockParty.id, ingredientType: "yeast", name: "SafAle US-05", amount: 1, unit: "pk", stage: "fermentation", sortOrder: 3 },
+  ]);
+
+  await db.insert(recipes).values({
+    userId,
+    name: "Pete's Wicked Ale clone",
+    style: "American Brown",
+    method: "extract",
+    status: "want_to_brew",
+    targetVolumeGal: 5,
+    notes: "Replication target — the reason this app exists. Targets TBD.",
+  });
+
+  const kettle = db
+    .select({ id: equipment.id })
+    .from(equipment)
+    .where(and(eq(equipment.userId, userId), eq(equipment.category, "kettle")))
+    .all()[0];
+  const fermenter = db
+    .select({ id: equipment.id })
+    .from(equipment)
+    .where(and(eq(equipment.userId, userId), eq(equipment.name, "Fermenter with spigot")))
+    .all()[0];
+
+  const [b1] = await db
+    .insert(batches)
+    .values({
+      userId,
+      recipeId: blockParty.id,
+      recipeName: "Block Party Amber Ale",
+      batchNumber: 1,
+      brewDate: new Date("2026-08-23"),
+      method: "extract",
+      status: "fermenting",
+      kettleId: kettle?.id ?? null,
+      fermenterId: fermenter?.id ?? null,
+      preBoilVolumeGal: 6.25,
+      postBoilVolumeGal: null, // the famous gap — feeds nothing until batch 2
+      intoFermenterGal: 5.5,
+      og: 1.036,
+      ogTempF: 95,
+      steepTempF: 155,
+      steepMinutes: 20,
+      boilMinutes: 60,
+      timeToChillMinutes: 30,
+      pitchTempF: 75,
+      estimatedFields: JSON.stringify(["preBoilVolumeGal", "intoFermenterGal", "pitchTempF"]),
+      notes: "Full-volume boil. Estimated ~22 IBU vs recipe ~18 (6.8% AA + full boil).",
+      deviations:
+        "No finings — kit had no Whirlfloc. Foam hit the 7-gal line at hot break; spray bottle collapsed it. Chill stalled ~95–100°F after ~30 min; fridge handoff took 4+ hrs; pitched ~75°F (above the 72°F limit). Fermenting 66°F days 1–3, then 70°F.",
+    })
+    .returning({ id: batches.id });
+
+  const lot = (name: string) =>
+    db
+      .select({ id: ingredients.id })
+      .from(ingredients)
+      .where(and(eq(ingredients.userId, userId), eq(ingredients.name, name)))
+      .all()[0]?.id ?? null;
+
+  await db.insert(batchIngredients).values([
+    { batchId: b1.id, ingredientId: lot("Gold LME"), description: "Gold LME (36 PPG)", amount: 6, unit: "lb" },
+    { batchId: b1.id, ingredientId: lot("Kit steeping grains"), description: "Kit steeping grains — 155°F steep", timingMinutes: 20 },
+    { batchId: b1.id, ingredientId: lot("Willamette, pellet"), description: "Willamette pellet · 6.8% AA · lot HP15", amount: 1, unit: "oz", timingMinutes: 60 },
+    { batchId: b1.id, ingredientId: lot("SafAle US-05"), description: "SafAle US-05 · lot 250573 · gen 1", amount: 11.5, unit: "g" },
+  ]);
+
+  await db.insert(gravityReadings).values({
+    batchId: b1.id,
+    takenAt: new Date("2026-08-23"),
+    value: 1.034,
+    tempF: 95,
+    stage: "og",
+  });
+
+  console.log("Seeded 2 recipes, batch #1 with ingredient snapshot and OG reading.");
+}
+
 async function main() {
   const userId = await seedAdmin();
   await seedEquipment(userId);
   await seedIngredients(userId);
+  await seedRecipesAndBatch1(userId);
 }
 
 main();

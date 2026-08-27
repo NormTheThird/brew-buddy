@@ -71,6 +71,7 @@ export async function createPurchase(
   if (!name) return { error: "Name is required — e.g. 'Block Party Amber kit'." };
 
   const receipt = formData.get("receipt");
+  const pastedText = str(formData.get("receiptText"));
   let receiptBytes: Buffer | null = null;
   let receiptMime: string | null = null;
   if (receipt instanceof File && receipt.size > 0) {
@@ -82,6 +83,10 @@ export async function createPurchase(
     }
     receiptBytes = Buffer.from(await receipt.arrayBuffer());
     receiptMime = receipt.type;
+  } else if (pastedText) {
+    // Pasted order text (email/order page) is a receipt too — same review flow.
+    receiptBytes = Buffer.from(pastedText, "utf8");
+    receiptMime = "text/plain";
   }
 
   const inserted = await db
@@ -99,7 +104,12 @@ export async function createPurchase(
 
   if (receiptBytes && receiptMime) {
     fs.mkdirSync(RECEIPTS_DIR, { recursive: true });
-    const ext = receiptMime === "application/pdf" ? "pdf" : receiptMime.split("/")[1];
+    const ext =
+      receiptMime === "application/pdf"
+        ? "pdf"
+        : receiptMime === "text/plain"
+          ? "txt"
+          : receiptMime.split("/")[1];
     const rel = `${id}.${ext}`;
     fs.writeFileSync(path.join(RECEIPTS_DIR, rel), receiptBytes);
     await db

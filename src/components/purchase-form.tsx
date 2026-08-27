@@ -37,8 +37,18 @@ export function PurchaseForm() {
       <div>
         <label className="field-label" htmlFor="receipt">Receipt (photo or PDF, optional)</label>
         <input id="receipt" name="receipt" type="file" accept="image/*,application/pdf" className="field" style={{ padding: 8 }} />
+      </div>
+      <div>
+        <label className="field-label" htmlFor="receiptText">…or paste order text (email / order page)</label>
+        <textarea
+          id="receiptText"
+          name="receiptText"
+          className="field"
+          rows={5}
+          placeholder="Paste the order confirmation here — line items, prices, totals. Ignored if a file is chosen above."
+        />
         <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
-          Stored privately with the purchase. AI can read it and propose items — you
+          Stored privately with the purchase. AI can read either and propose items — you
           review everything before it&apos;s saved.
         </div>
       </div>

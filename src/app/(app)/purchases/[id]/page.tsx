@@ -79,7 +79,9 @@ export default async function PurchaseDetailPage({
                     style={{ maxWidth: "100%", borderRadius: 3, border: "1px solid var(--border)" }}
                   />
                 ) : (
-                  <div style={{ fontSize: 13 }}>PDF receipt stored.</div>
+                  <div style={{ fontSize: 13 }}>
+                    {p.receiptMime === "text/plain" ? "Pasted order text stored." : "PDF receipt stored."}
+                  </div>
                 )}
                 <Link href={`/purchases/${p.id}/receipt`} target="_blank" style={{ fontSize: 13 }}>
                   Open full receipt

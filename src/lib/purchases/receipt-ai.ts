@@ -64,7 +64,14 @@ export async function extractReceipt(
 
   const data = fileBytes.toString("base64");
   const content: Anthropic.ContentBlockParam[] =
-    mime === "application/pdf"
+    mime === "text/plain"
+      ? [
+          {
+            type: "text",
+            text: `${PROMPT}\n\nReceipt text (pasted by the user):\n\n${fileBytes.toString("utf8")}`,
+          },
+        ]
+      : mime === "application/pdf"
       ? [
           {
             type: "document",
@@ -133,5 +140,9 @@ export async function extractReceipt(
 }
 
 export function isSupportedReceiptType(mime: string): boolean {
-  return mime === "application/pdf" || (IMAGE_TYPES as readonly string[]).includes(mime);
+  return (
+    mime === "application/pdf" ||
+    mime === "text/plain" ||
+    (IMAGE_TYPES as readonly string[]).includes(mime)
+  );
 }
