@@ -166,8 +166,15 @@ export default async function DashboardPage() {
           </div>
         </div>
         <div className="panel">
-          <div className="panel-heading">{kettle ? `${kettle.name.split(",")[0]} — learned constants` : "Learned constants"}</div>
+          <div className="panel-heading">Learned constants</div>
           <div className="panel-body">
+            {kettle ? (
+              <Row label="Kettle">
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 260 }} title={kettle.name}>
+                  {kettle.name}
+                </span>
+              </Row>
+            ) : null}
             <Row label="Boil-off">
               {constants.boilOffGalPerHr ? `${constants.boilOffGalPerHr.value.toFixed(2)} gal/hr · ${constants.boilOffGalPerHr.batches} batch${constants.boilOffGalPerHr.batches > 1 ? "es" : ""}` : <span style={{ color: "var(--danger)" }}>no measured data</span>}
             </Row>
