@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { formatCost, formatDate } from "@/lib/inventory/format";
 import { PageHeader } from "@/components/page-header";
 import { ReceiptIcon } from "@/components/icons";
+import { PurchaseSearch } from "@/components/purchase-search";
 
 const PAGE_SIZES = ["10", "25", "50", "all"] as const;
 
@@ -76,18 +77,9 @@ export default async function PurchasesPage({
         actions={<Link href="/purchases/new" className="btn btn-solid">+ New purchase</Link>}
       />
       <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap", marginBottom: 18 }}>
-        <form method="get" action="/purchases" style={{ display: "flex", gap: 8, flex: 1, minWidth: 260 }}>
-          {size !== "10" ? <input type="hidden" name="size" value={size} /> : null}
-          <input
-            name="q"
-            className="field"
-            placeholder="Search name, vendor, order #, notes…"
-            defaultValue={q}
-            style={{ maxWidth: 360 }}
-          />
-          <button type="submit" className="btn">Search</button>
-          {q ? <Link href={pageHref("", size, 1)} className="btn" style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}>Clear</Link> : null}
-        </form>
+        <div style={{ display: "flex", gap: 8, flex: 1, minWidth: 260 }}>
+          <PurchaseSearch />
+        </div>
         <div className="panel" style={{ borderLeft: "3px solid var(--accent)", padding: "8px 14px" }}>
           <span className="field-label" style={{ marginBottom: 0 }}>
             {q ? "Total (matches)" : "Total across purchases"}{" "}
