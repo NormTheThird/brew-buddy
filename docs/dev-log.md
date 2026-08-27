@@ -15,6 +15,33 @@ this area again.
 
 ---
 
+## 2026-08-27 — Lookup ratings, equipment check, and saved history
+
+Trey's follow-ups to the recipe lookup, all live-tested with a Sonnet
+"Old Speckled Hen clone" run:
+
+- **Clone-meaningful ratings** per candidate, judged by the model and
+  clamped 1-5 server-side: "True to the real pint" (fidelity + a one-clause
+  why, e.g. yeast authenticity), "Easy brew day (your setup)" (simplicity),
+  and a source-provenance badge: PUBLISHED SOURCE (green, named book/
+  brewery data) / COMMUNITY RECIPE (blue) / AI CONSTRUCTED (orange). The
+  prompt demands differentiated scores.
+- **Equipment check**: the prompt now includes Trey's ACTIVE equipment list
+  (name + category); ingredients are always buyable, so the model judges
+  only gear: {ready, missing[], notes} → "✓ Your gear covers this" or
+  "⚠ Needs: …" per card.
+- **Lookup history** (`recipe_lookups` table: query + full suggestions
+  JSON): every lookup is saved; "Past lookups" chips on /recipes/new reopen
+  a run via ?lookup=id, server-rendered from the stored JSON — no second AI
+  call, no cost. Cards were extracted to components/suggestion-cards.tsx
+  (hook-free, renders server- AND client-side; the adopt form works in both).
+- Adoption appends the ratings line and equipment note to the recipe notes
+  so they survive past the lookup screen.
+- Model is **Sonnet, permanently, by Trey's instruction** ("Always use
+  sonnet do not change that").
+
+---
+
 ## 2026-08-27 — AI recipe lookup: "Caffrey's clone" → top 3 candidates
 
 New recipe page gained a lookup box (components/recipe-lookup.tsx +

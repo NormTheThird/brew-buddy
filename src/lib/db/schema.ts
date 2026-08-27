@@ -308,6 +308,20 @@ export const gravityReadings = sqliteTable("gravity_readings", {
   stage: text("stage"), // og | fermentation | fg
 });
 
+// Every AI recipe lookup is kept: the query and the full suggestions JSON,
+// so past candidates are revisitable without asking (or paying) Claude again.
+export const recipeLookups = sqliteTable("recipe_lookups", {
+  id: text("id").primaryKey().$defaultFn(uuid),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  query: text("query").notNull(),
+  suggestionsJson: text("suggestions_json").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 // Schedule tasks (raise temp day 4, readings day 10/13…) are DERIVED from
 // batch dates — only their done-ness is stored, keyed by a stable task key.
 export const taskCompletions = sqliteTable("task_completions", {

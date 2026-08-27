@@ -8,10 +8,12 @@ import {
   batches,
   batchIngredients,
   batchStatuses,
+  equipment,
   gravityReadings,
   stock,
   stockTypes,
   recipeItems,
+  recipeLookups,
   recipes,
   taskCompletions,
   type StockItem,
@@ -216,8 +218,24 @@ export async function lookupRecipes(
   if (!hasApiKey()) {
     return { error: "No Anthropic API key configured. Add ANTHROPIC_API_KEY to .env." };
   }
+  const user = await requireUser();
+  // Ingredients are buyable; equipment decides brewability, so the model
+  // judges each candidate against what the brewer actually owns.
+  const gear = db
+    .select({ name: equipment.name, category: equipment.category })
+    .from(equipment)
+    .where(and(eq(equipment.userId, user.id), eq(equipment.status, "active")))
+    .all()
+    .map((g) => `${g.name} (${g.category})`);
   try {
-    const suggestions = await suggestRecipes(query);
+    const suggestions = await suggestRecipes(query, gear);
+    // Keep every lookup: revisitable later without asking Claude again.
+    await db.insert(recipeLookups).values({
+      userId: user.id,
+      query,
+      suggestionsJson: JSON.stringify(suggestions),
+    });
+    revalidatePath("/recipes/new");
     return { suggestions };
   } catch (e) {
     return { error: `Lookup failed: ${e instanceof Error ? e.message : "unknown error"}` };
@@ -236,6 +254,17 @@ export async function adoptSuggestedRecipe(formData: FormData): Promise<void> {
     return;
   }
   if (!s?.name) return;
+  // The ratings and equipment verdict ride along in the notes so they
+  // survive past the lookup screen.
+  const ratingLine = s.ratings
+    ? `Clone ratings: fidelity ${s.ratings.fidelity}/5${s.ratings.fidelityWhy ? ` (${s.ratings.fidelityWhy})` : ""}; brew-day simplicity ${s.ratings.simplicity}/5; source: ${s.ratings.source}${s.ratings.sourceName ? ` (${s.ratings.sourceName})` : ""}.`
+    : null;
+  const equipLine = s.equipment
+    ? s.equipment.notes ??
+      (!s.equipment.ready && s.equipment.missing?.length
+        ? `Needs gear: ${s.equipment.missing.join(", ")}.`
+        : null)
+    : null;
   const inserted = await db
     .insert(recipes)
     .values({
@@ -253,7 +282,7 @@ export async function adoptSuggestedRecipe(formData: FormData): Promise<void> {
       targetSRM: s.targetSRM,
       targetABV: s.targetABV,
       boilMinutes: s.boilMinutes,
-      notes: s.notes,
+      notes: [s.notes, ratingLine, equipLine].filter(Boolean).join("\n"),
     })
     .returning({ id: recipes.id });
   const recipeId = inserted[0].id;
