@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { batches, recipes } from "@/lib/db/schema";
+import { batches, recipeItems, recipes, stock } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { recipeDisplayStatus, statusBadge, methodLabels } from "@/lib/brewing/display";
+import { checkBrewability } from "@/lib/brewing/brewability";
+import { inArray } from "drizzle-orm";
 import { PageHeader } from "@/components/page-header";
 import { BookIcon } from "@/components/icons";
 
@@ -24,6 +26,15 @@ export default async function RecipesPage() {
     .from(batches)
     .where(eq(batches.userId, user.id))
     .all();
+  const allItems =
+    all.length > 0
+      ? db
+          .select()
+          .from(recipeItems)
+          .where(inArray(recipeItems.recipeId, all.map((r) => r.id)))
+          .all()
+      : [];
+  const stockRows = db.select().from(stock).where(eq(stock.userId, user.id)).all();
 
   return (
     <>
@@ -46,7 +57,8 @@ export default async function RecipesPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
           {all.map((r) => {
             const rb = allBatches.filter((b) => b.recipeId === r.id);
-            const status = recipeDisplayStatus(r, rb);
+            const brewability = checkBrewability(allItems.filter((i) => i.recipeId === r.id), stockRows);
+            const status = recipeDisplayStatus(r, rb, brewability.verdict === "can_brew");
             const badge = statusBadge[status];
             return (
               <Link

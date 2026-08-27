@@ -2,10 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { batches, recipeItems, recipes } from "@/lib/db/schema";
+import { batches, recipeItems, recipes, stock } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { addRecipeItem, deleteRecipeItem, deleteRecipe } from "@/lib/brewing/actions";
 import { recipeDisplayStatus, statusBadge, methodLabels, batchStatusBadge } from "@/lib/brewing/display";
+import { checkBrewability } from "@/lib/brewing/brewability";
 import { formatMonth } from "@/lib/inventory/format";
 import { PageHeader } from "@/components/page-header";
 import { BookIcon } from "@/components/icons";
@@ -39,7 +40,9 @@ export default async function RecipeDetailPage({
     .all()
     .sort((a, b) => b.batchNumber - a.batchNumber);
 
-  const status = recipeDisplayStatus(recipe, recipeBatches);
+  const stockRows = db.select().from(stock).where(eq(stock.userId, user.id)).all();
+  const brewability = checkBrewability(items, stockRows);
+  const status = recipeDisplayStatus(recipe, recipeBatches, brewability.verdict === "can_brew");
   const badge = statusBadge[status];
 
   return (
@@ -58,6 +61,7 @@ export default async function RecipeDetailPage({
               action={deleteRecipe}
               id={recipe.id}
               label="Delete"
+              variant="button"
               confirmText={`Delete recipe "${recipe.name}"? Batches keep their snapshot of it.`}
             />
           </>

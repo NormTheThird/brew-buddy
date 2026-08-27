@@ -208,9 +208,9 @@ export default async function DashboardPage() {
             ) : (
               allRecipes.slice(0, 4).map((r) => {
                 const rb = allBatches.filter((b) => b.recipeId === r.id);
-                const st = recipeDisplayStatus(r, rb);
-                const badge = statusBadge[st];
                 const brewability = checkBrewability(allItems.filter((i) => i.recipeId === r.id), stockRows);
+                const st = recipeDisplayStatus(r, rb, brewability.verdict === "can_brew");
+                const badge = statusBadge[st];
                 // What matters depends on where the recipe is in its life:
                 // brewing now → the batch; brewed before → outcome + re-brew;
                 // never brewed → can I start, and what's missing.
