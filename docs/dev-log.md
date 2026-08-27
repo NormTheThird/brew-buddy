@@ -15,6 +15,26 @@ this area again.
 
 ---
 
+## 2026-08-27 — AI recipe lookup: "Caffrey's clone" → top 3 candidates
+
+New recipe page gained a lookup box (components/recipe-lookup.tsx +
+lib/brewing/recipe-ai.ts): describe a beer, Claude returns the top 3
+candidate recipes (differentiated: true-to-source / simplest / elevated),
+each a full spec + ingredient bill rendered as a card with "Use this
+recipe" — adoption creates the recipe + items (adoptSuggestedRecipe, JSON
+through a hidden input, validated/clamped server-side) and lands on it as
+want_to_brew.
+
+Model: **claude-sonnet-5** by Trey's explicit call (recipe hunting is
+exploratory and reviewed before adoption; contrast receipts, which stay on
+Opus because they're read once and cached). Web search stays on (max 5) so
+clones use published numbers; the prompt tells the model the brewer runs an
+extract setup. Live test with Opus produced "Caffrey's Clone (true to
+tap)" / "Easy Pint" / "Velvet" with 12 items on the first — took ~3 min;
+Sonnet should be faster. Takes 30s-3min either way; the pending copy says so.
+
+---
+
 ## 2026-08-27 — ROOT CAUSE: React 19 strips inline styles from action forms
 
 Trey's "edit pages look broken until I refresh, then break again when I

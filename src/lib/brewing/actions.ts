@@ -19,8 +19,10 @@ import {
 } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { parseBeerXml } from "./beerxml";
+import { hasApiKey, suggestRecipes, type SuggestedRecipe } from "./recipe-ai";
 
 export type FormState = { error?: string };
+export type RecipeLookupState = { error?: string; suggestions?: SuggestedRecipe[] };
 
 function str(v: FormDataEntryValue | null): string | null {
   const s = String(v ?? "").trim();
@@ -200,6 +202,80 @@ export async function duplicateRecipe(formData: FormData): Promise<void> {
   }
   revalidatePath("/recipes");
   redirect(`/recipes/${newId}/edit`);
+}
+
+/** "I want to brew a Caffrey's clone" → top 3 candidate recipes. Nothing is
+    saved; the user adopts one (or none) from the results. */
+export async function lookupRecipes(
+  _prev: RecipeLookupState,
+  formData: FormData
+): Promise<RecipeLookupState> {
+  await requireUser();
+  const query = str(formData.get("query"));
+  if (!query) return { error: "Describe the beer first, e.g. \"Caffrey's clone\"." };
+  if (!hasApiKey()) {
+    return { error: "No Anthropic API key configured. Add ANTHROPIC_API_KEY to .env." };
+  }
+  try {
+    const suggestions = await suggestRecipes(query);
+    return { suggestions };
+  } catch (e) {
+    return { error: `Lookup failed: ${e instanceof Error ? e.message : "unknown error"}` };
+  }
+}
+
+/** Adopt one suggestion: create the recipe + its ingredient bill, land on it. */
+export async function adoptSuggestedRecipe(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const raw = str(formData.get("suggestion"));
+  if (!raw) return;
+  let s: SuggestedRecipe;
+  try {
+    s = JSON.parse(raw) as SuggestedRecipe;
+  } catch {
+    return;
+  }
+  if (!s?.name) return;
+  const inserted = await db
+    .insert(recipes)
+    .values({
+      userId: user.id,
+      name: String(s.name).slice(0, 200),
+      style: s.style ?? null,
+      status: "want_to_brew",
+      method: ["extract", "partial_mash", "all_grain"].includes(s.method)
+        ? s.method
+        : "extract",
+      targetVolumeGal: s.targetVolumeGal,
+      targetOG: s.targetOG,
+      targetFG: s.targetFG,
+      targetIBU: s.targetIBU,
+      targetSRM: s.targetSRM,
+      targetABV: s.targetABV,
+      boilMinutes: s.boilMinutes,
+      notes: s.notes,
+    })
+    .returning({ id: recipes.id });
+  const recipeId = inserted[0].id;
+  const items = Array.isArray(s.items) ? s.items.slice(0, 30) : [];
+  for (const [idx, it] of items.entries()) {
+    const type = stockTypes.includes(it.ingredientType) ? it.ingredientType : "adjunct";
+    await db.insert(recipeItems).values({
+      recipeId,
+      ingredientType: type,
+      name: String(it.name ?? "Ingredient").slice(0, 200),
+      amount: typeof it.amount === "number" && Number.isFinite(it.amount) ? it.amount : null,
+      unit: String(it.unit ?? "oz").slice(0, 10),
+      timingMinutes:
+        typeof it.timingMinutes === "number" && Number.isFinite(it.timingMinutes)
+          ? Math.trunc(it.timingMinutes)
+          : null,
+      stage: it.stage ? String(it.stage).slice(0, 20) : null,
+      sortOrder: idx,
+    });
+  }
+  revalidatePath("/recipes");
+  redirect(`/recipes/${recipeId}`);
 }
 
 export async function addRecipeItem(formData: FormData): Promise<void> {
