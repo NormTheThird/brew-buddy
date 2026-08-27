@@ -187,14 +187,15 @@ export default async function EquipmentPage({
               <tbody>
                 {shown.map((e: Equipment) => (
                   <tr key={e.id}>
-                    <td>{categoryLabels[e.category]}</td>
-                    <td style={{ color: "var(--text-bright)" }}>{e.name}</td>
+                    <td style={{ whiteSpace: "nowrap" }}>{categoryLabels[e.category]}</td>
+                    <td style={{ color: "var(--text-bright)", whiteSpace: "nowrap" }}>{e.name}</td>
+                    {/* Key specs is the ONE column allowed to wrap. */}
                     <td>{e.specs ?? "—"}</td>
                     <td style={{ textAlign: "center" }}>{e.quantity}</td>
-                    <td>
+                    <td style={{ whiteSpace: "nowrap" }}>
                       <StatusCell item={e} />
                     </td>
-                    <td>
+                    <td style={{ whiteSpace: "nowrap" }}>
                       {e.purchaseId && purchaseNames.has(e.purchaseId) ? (
                         <Link
                           href={`/purchases/${e.purchaseId}`}
@@ -206,15 +207,16 @@ export default async function EquipmentPage({
                         formatDate(e.purchaseDate)
                       )}
                     </td>
-                    <td style={{ textAlign: "right" }}>
+                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                       {e.cost != null ? (
                         formatCost(e.cost)
                       ) : e.purchaseId && purchaseNames.has(e.purchaseId) ? (
                         <Link
                           href={`/purchases/${e.purchaseId}`}
                           style={{ fontSize: 12, color: "var(--text-muted)" }}
+                          title={`Part of ${purchaseNames.get(e.purchaseId)!} — open the purchase for the cost`}
                         >
-                          part of {purchaseNames.get(e.purchaseId)!}
+                          part of kit
                         </Link>
                       ) : (
                         "—"
