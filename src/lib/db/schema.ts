@@ -102,13 +102,15 @@ export const equipment = sqliteTable("equipment", {
     .$defaultFn(() => new Date()),
 });
 
-// "chemical" is the home for consumable supplies — cleaners, sanitizers,
-// water treatment. They deplete like ingredients but never gate brewability.
+// "chemical" (cleaners, sanitizers, water treatment) and "supply" (countable
+// consumables: bottle caps, bags, filters, corks) deplete like ingredients
+// but never gate brewability. Restocking adds to their quantity.
 export const ingredientTypes = [
   "fermentable",
   "hop",
   "yeast",
   "adjunct",
+  "supply",
   "water",
   "chemical",
 ] as const;

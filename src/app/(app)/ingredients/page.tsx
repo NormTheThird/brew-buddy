@@ -14,6 +14,7 @@ const typeLabels: Record<IngredientType, string> = {
   hop: "Hop",
   yeast: "Yeast",
   adjunct: "Adjunct",
+  supply: "Supply",
   water: "Water",
   chemical: "Chemical",
 };
@@ -23,6 +24,7 @@ const typeBadge: Record<IngredientType, string> = {
   hop: "var(--success)",
   yeast: "var(--info)",
   adjunct: "#8a6db1",
+  supply: "#7a8a5b",
   water: "#5b8aa6",
   chemical: "#a6725b",
 };

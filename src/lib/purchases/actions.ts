@@ -515,13 +515,15 @@ export async function applyProposal(formData: FormData): Promise<void> {
             .where(and(eq(ingredients.id, existingId), eq(ingredients.userId, user.id)))
             .all()[0];
           if (existing) {
+            // Restock: buying more of the same ingredient/supply tops up the
+            // existing row's quantities instead of creating a new line.
             await db
               .update(ingredients)
               .set({
                 ...patch,
-                ...(existing.quantity == null && item.quantity != null
-                  ? { quantity: qty, quantityOnHand: qty, unit: item.unit ?? existing.unit }
-                  : {}),
+                quantity: (existing.quantity ?? 0) + qty,
+                quantityOnHand: existing.quantityOnHand + qty,
+                unit: existing.unit ?? item.unit ?? "ct",
               })
               .where(eq(ingredients.id, existing.id));
           }

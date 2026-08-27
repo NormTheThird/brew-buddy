@@ -15,7 +15,10 @@ export function checkBrewability(
   stock: Ingredient[]
 ): Brewability {
   const gating = items.filter(
-    (i) => i.ingredientType !== "water" && i.ingredientType !== "chemical"
+    (i) =>
+      i.ingredientType !== "water" &&
+      i.ingredientType !== "chemical" &&
+      i.ingredientType !== "supply"
   );
   if (gating.length === 0) return { verdict: "no_items" };
 

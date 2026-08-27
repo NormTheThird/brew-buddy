@@ -208,7 +208,11 @@ export default async function PurchaseDetailPage({
                                   </span>
                                   <label style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer", minHeight: 24 }}>
                                     <input type="radio" name={`same_${idx}`} value={matches[idx]!.id} required style={{ margin: 0, flexShrink: 0, accentColor: "var(--accent)" }} />
-                                    <span>Same — update it with this price &amp; receipt</span>
+                                    <span>
+                                      {item.kind === "ingredient"
+                                        ? "Same — restock it (adds this quantity) with this price & receipt"
+                                        : "Same — update it with this price & receipt"}
+                                    </span>
                                   </label>
                                   <label style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer", minHeight: 24 }}>
                                     <input type="radio" name={`same_${idx}`} value="new" required style={{ margin: 0, flexShrink: 0, accentColor: "var(--accent)" }} />

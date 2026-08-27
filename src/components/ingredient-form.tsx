@@ -11,6 +11,7 @@ const typeLabels: Record<IngredientType, string> = {
   hop: "Hop",
   yeast: "Yeast",
   adjunct: "Adjunct",
+  supply: "Supply",
   water: "Water",
   chemical: "Chemical",
 };
