@@ -90,7 +90,7 @@ export default async function PurchaseDetailPage({
               id={p.id}
               label="Delete purchase"
               variant="button"
-              confirmText={`Really delete "${p.name}"?\n\nThe stored receipt AND the items its import created are removed permanently. Items that existed before and were merged/linked are kept (link cleared).`}
+              confirmText={`Really delete "${p.name}"?\n\nThe stored receipt AND the items its import created are removed permanently. Kept safe: items that existed before (link cleared), and anything a batch has used — brew history is never touched.`}
             />
           </>
         }

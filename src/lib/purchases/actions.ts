@@ -8,6 +8,8 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { db } from "@/lib/db";
 import {
+  batches,
+  batchIngredients,
   equipment,
   equipmentCategories,
   extractions,
@@ -17,6 +19,7 @@ import {
   type EquipmentCategory,
   type IngredientType,
 } from "@/lib/db/schema";
+import { notInArray } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth/session";
 import {
   combineItems,
@@ -313,12 +316,49 @@ export async function deletePurchase(formData: FormData): Promise<void> {
   }
   // Items CREATED by this purchase's receipt import go with it; items that
   // existed before and were merely linked survive (FK clears the link).
+  // BREW-HISTORY PROTECTION: anything a batch references — ingredient lots in
+  // a batch snapshot, vessels a batch used — is never deleted, only unlinked.
+  const userBatches = db
+    .select({ kettleId: batches.kettleId, fermenterId: batches.fermenterId })
+    .from(batches)
+    .where(eq(batches.userId, user.id))
+    .all();
+  const usedEquipIds = [
+    ...new Set(
+      userBatches.flatMap((b) => [b.kettleId, b.fermenterId]).filter((v): v is number => v != null)
+    ),
+  ];
+  const usedIngIds = [
+    ...new Set(
+      db
+        .select({ ingredientId: batchIngredients.ingredientId })
+        .from(batchIngredients)
+        .innerJoin(batches, eq(batchIngredients.batchId, batches.id))
+        .where(eq(batches.userId, user.id))
+        .all()
+        .map((r) => r.ingredientId)
+        .filter((v): v is number => v != null)
+    ),
+  ];
+
   await db
     .delete(equipment)
-    .where(and(eq(equipment.purchaseId, id), eq(equipment.createdByImport, true)));
+    .where(
+      and(
+        eq(equipment.purchaseId, id),
+        eq(equipment.createdByImport, true),
+        usedEquipIds.length ? notInArray(equipment.id, usedEquipIds) : undefined
+      )
+    );
   await db
     .delete(ingredients)
-    .where(and(eq(ingredients.purchaseId, id), eq(ingredients.createdByImport, true)));
+    .where(
+      and(
+        eq(ingredients.purchaseId, id),
+        eq(ingredients.createdByImport, true),
+        usedIngIds.length ? notInArray(ingredients.id, usedIngIds) : undefined
+      )
+    );
   await db.delete(purchases).where(eq(purchases.id, id));
   revalidatePath("/purchases");
   revalidatePath("/equipment");
