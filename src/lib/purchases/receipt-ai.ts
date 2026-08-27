@@ -112,7 +112,7 @@ export async function extractReceipt(
   // Extraction is mechanical — low effort cuts thinking time without
   // changing the model.
   let response = await client.messages.create({
-    model: "claude-opus-5",
+    model: "claude-sonnet-5",
     max_tokens: 16000,
     output_config: { effort: "low" },
     // Web search lets the model look up a kit's actual contents.
@@ -124,7 +124,7 @@ export async function extractReceipt(
   for (let i = 0; i < 3 && response.stop_reason === "pause_turn"; i++) {
     messages.push({ role: "assistant", content: response.content });
     response = await client.messages.create({
-      model: "claude-opus-5",
+      model: "claude-sonnet-5",
       max_tokens: 16000,
       output_config: { effort: "low" },
       tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }],

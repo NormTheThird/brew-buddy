@@ -67,7 +67,7 @@ export async function extractLabel(
 ): Promise<LabelProposal> {
   const client = new Anthropic();
   const response = await client.messages.create({
-    model: "claude-opus-5",
+    model: "claude-sonnet-5",
     max_tokens: 8000,
     output_config: { effort: "low" },
     messages: [
