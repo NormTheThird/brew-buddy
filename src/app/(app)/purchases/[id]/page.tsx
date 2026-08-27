@@ -185,18 +185,18 @@ export default async function PurchaseDetailPage({
                             <tr>
                               <td></td>
                               <td colSpan={5} style={{ borderTop: "none", paddingTop: 0 }}>
-                                <div style={{ background: "rgba(247,175,62,.1)", borderLeft: "3px solid var(--warning)", padding: "8px 10px", fontSize: 12, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+                                <div style={{ background: "rgba(247,175,62,.1)", borderLeft: "3px solid var(--warning)", padding: "10px 12px", fontSize: 12, display: "flex", flexDirection: "column", gap: 8 }}>
                                   <span>
                                     Looks like <span style={{ color: "var(--text-bright)" }}>{matches[idx]!.name}</span>,
                                     which you already added — same item?
                                   </span>
-                                  <label style={{ display: "inline-flex", gap: 5, alignItems: "center", cursor: "pointer" }}>
-                                    <input type="radio" name={`same_${idx}`} value={matches[idx]!.id} required />
-                                    Same — update it with this price &amp; receipt
+                                  <label style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer", minHeight: 24 }}>
+                                    <input type="radio" name={`same_${idx}`} value={matches[idx]!.id} required style={{ margin: 0, flexShrink: 0, accentColor: "var(--accent)" }} />
+                                    <span>Same — update it with this price &amp; receipt</span>
                                   </label>
-                                  <label style={{ display: "inline-flex", gap: 5, alignItems: "center", cursor: "pointer" }}>
-                                    <input type="radio" name={`same_${idx}`} value="new" required />
-                                    Different — create a new item
+                                  <label style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer", minHeight: 24 }}>
+                                    <input type="radio" name={`same_${idx}`} value="new" required style={{ margin: 0, flexShrink: 0, accentColor: "var(--accent)" }} />
+                                    <span>Different — create a new item</span>
                                   </label>
                                 </div>
                               </td>
