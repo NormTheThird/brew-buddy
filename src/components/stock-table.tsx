@@ -66,6 +66,7 @@ function BestBy({ d }: { d: Date | null }) {
 
 /** Sum on-hand per unit: 15 pkg across lots → "15 pkg"; mixed units join. */
 function onHandRollup(lots: StockLot[]): string {
+  if (lots.every((l) => l.type === "water")) return "unlimited";
   const byUnit = new Map<string, number>();
   for (const l of lots) {
     const u = l.unit ?? "ct";
@@ -81,6 +82,12 @@ function soonestBestBy(lots: StockLot[]): Date | null {
 }
 
 function OnHandCell({ lot }: { lot: StockLot }) {
+  // Water is untracked — the RO system makes it effectively unlimited, and
+  // every batch uses it, so a quantity or "used in" here is just noise.
+  // The batch snapshot records the actual gallons.
+  if (lot.type === "water") {
+    return <span style={{ color: "var(--text-muted)" }}>unlimited</span>;
+  }
   // Fully consumed by a batch: the zero says nothing — the batch link is
   // the whole story. Partially used lots keep quantity AND the link.
   const depleted = lot.quantityOnHand <= 0;
@@ -115,6 +122,7 @@ function OnHandCell({ lot }: { lot: StockLot }) {
     adjustments, not purchases — fix the number where you see it. */
 function OnHandEditor({ lot }: { lot: StockLot }) {
   const [editing, setEditing] = useState(false);
+  if (lot.type === "water") return null;
   if (!editing) {
     return (
       <button
