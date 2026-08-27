@@ -24,7 +24,7 @@ export default async function EditRecipePage({
 
   return (
     <>
-      <PageHeader icon={<BookIcon size={40} />} title={`Edit — ${item.name}`} />
+      <PageHeader icon={<BookIcon size={40} />} title={`Edit · ${item.name}`} />
       <RecipeForm action={updateRecipe} item={item} />
     </>
   );

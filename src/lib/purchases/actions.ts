@@ -149,7 +149,7 @@ export async function analyzeReceipt(
       return { error: "Receipt must be an image (JPG/PNG/WebP/GIF) or a PDF." };
     }
     if (receipt.size > MAX_RECEIPT_BYTES) {
-      return { error: "Receipt file is over 12 MB — resize the photo and retry." };
+      return { error: "Receipt file is over 12 MB. Resize the photo and retry." };
     }
     bytes = Buffer.from(await receipt.arrayBuffer());
     mime = receipt.type;
@@ -161,7 +161,7 @@ export async function analyzeReceipt(
     return { error: "Attach a receipt or paste order text first." };
   }
   if (!hasApiKey()) {
-    return { error: "No Anthropic API key configured — add ANTHROPIC_API_KEY to .env." };
+    return { error: "No Anthropic API key configured. Add ANTHROPIC_API_KEY to .env." };
   }
   try {
     const proposal = await extractOnce(user.id, bytes, mime);
@@ -220,7 +220,7 @@ export async function createPurchase(
 ): Promise<FormState> {
   const user = await requireUser();
   const name = str(formData.get("name"));
-  if (!name) return { error: "Name is required — e.g. 'Block Party Amber kit'." };
+  if (!name) return { error: "Name is required, e.g. 'Block Party Amber kit'." };
 
   const receipt = formData.get("receipt");
   const pastedText = str(formData.get("receiptText"));
@@ -231,7 +231,7 @@ export async function createPurchase(
       return { error: "Receipt must be an image (JPG/PNG/WebP/GIF) or a PDF." };
     }
     if (receipt.size > MAX_RECEIPT_BYTES) {
-      return { error: "Receipt file is over 12 MB — resize the photo and retry." };
+      return { error: "Receipt file is over 12 MB. Resize the photo and retry." };
     }
     receiptBytes = Buffer.from(await receipt.arrayBuffer());
     receiptMime = receipt.type;
@@ -439,7 +439,7 @@ export async function rescanReceipt(
     return { error: "This purchase has no stored receipt." };
   }
   if (!hasApiKey()) {
-    return { error: "No Anthropic API key configured — add ANTHROPIC_API_KEY to .env." };
+    return { error: "No Anthropic API key configured. Add ANTHROPIC_API_KEY to .env." };
   }
 
   const hint = str(formData.get("hint")) ?? undefined;
@@ -598,7 +598,7 @@ export async function applyProposal(formData: FormData): Promise<void> {
     keptCost < allCost - 0.005
   ) {
     const newTotal = Math.round(p.totalCost * (keptCost / allCost) * 100) / 100;
-    const note = `Mixed order trimmed to accepted items — receipt total $${p.totalCost.toFixed(2)}, kept $${newTotal.toFixed(2)} (tax & fees allocated proportionally).`;
+    const note = `Mixed order trimmed to accepted items: receipt total $${p.totalCost.toFixed(2)}, kept $${newTotal.toFixed(2)} (tax & fees allocated proportionally).`;
     trimmed = {
       totalCost: newTotal,
       notes: p.notes ? `${p.notes}\n${note}` : note,

@@ -60,7 +60,7 @@ export function LoginForm() {
         {pending ? "Signing in…" : "Sign in"}
       </button>
       <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-        Sessions last 90 days — brew-day friendly.
+        Sessions last 90 days, brew-day friendly.
       </div>
     </form>
   );

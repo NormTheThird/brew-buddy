@@ -37,7 +37,7 @@ export default async function EditBatchPage({
     <>
       <PageHeader
         icon={<LayersIcon size={40} />}
-        title={`Edit — Batch #${item.batchNumber} · ${item.recipeName}`}
+        title={`Edit Batch #${item.batchNumber} · ${item.recipeName}`}
       />
       <BatchForm
         action={updateBatch}

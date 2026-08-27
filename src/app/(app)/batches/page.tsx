@@ -22,19 +22,19 @@ export default async function BatchesPage() {
       <PageHeader
         icon={<LayersIcon size={40} />}
         title="Batches"
-        subtitle="Every brew, measured — the data your system constants learn from"
+        subtitle="Every brew, measured: the data your system constants learn from"
         actions={<Link href="/batches/new" className="btn btn-solid">+ Log a batch</Link>}
       />
       <div style={{ display: "flex", gap: 14, alignItems: "center", fontSize: 12, color: "var(--text-muted)", marginBottom: 18 }}>
         <span className="chip-measured">MEASURED</span><span>captured on the day</span>
-        <span className="chip-estimate" style={{ marginLeft: 10 }}>EST</span><span>estimate — never silently a data point</span>
+        <span className="chip-estimate" style={{ marginLeft: 10 }}>EST</span><span>estimate: never silently a data point</span>
       </div>
       <div className="panel">
         <div className="panel-heading">All batches</div>
         <div className="panel-body">
           {all.length === 0 ? (
             <div style={{ fontSize: 13, color: "var(--text-muted)", padding: "8px 0" }}>
-              No batches yet — log one, or &quot;Brew this&quot; from a recipe.
+              No batches yet. Log one, or &quot;Brew this&quot; from a recipe.
             </div>
           ) : (
             <div className="table-wrap">

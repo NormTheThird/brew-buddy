@@ -9,7 +9,7 @@ export default function NewRecipePage() {
       <PageHeader
         icon={<BookIcon size={40} />}
         title="New recipe"
-        subtitle="Store the spec — gravity points, IBU, color — not a shopping list"
+        subtitle="Store the spec (gravity points, IBU, color), not a shopping list"
       />
       <RecipeForm action={createRecipe} />
     </>

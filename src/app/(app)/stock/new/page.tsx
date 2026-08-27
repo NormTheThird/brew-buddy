@@ -20,7 +20,7 @@ export default async function NewStockItemPage() {
       <PageHeader
         icon={<DropletIcon size={40} />}
         title="Add a purchase lot"
-        subtitle="One row per packet — capture the lot number and its real numbers"
+        subtitle="One row per packet: capture the lot number and its real numbers"
       />
       <StockForm action={createStockItem} purchaseOptions={purchaseOptions} />
     </>

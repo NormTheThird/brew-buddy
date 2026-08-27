@@ -38,14 +38,14 @@ export function nextActions(batch: Batch, now = new Date()): NextAction[] {
     mark("raise-temp-d4", "Raise fridge to 70°F (day 4)", addDays(d, 4));
     mark("reading-d10", "First gravity reading (day 10)", addDays(d, 10));
     mark("reading-d13", "Confirming reading (day 13)", addDays(d, 13));
-    mark("bottling-gate", "Bottling — gate: two matching readings", addDays(d, 14));
+    mark("bottling-gate", "Bottling (needs two matching readings)", addDays(d, 14));
   }
 
   if (batch.status === "conditioning" && batch.bottledDate) {
     const d = batch.bottledDate;
-    mark("tasting-2w", "Tasting notes — 2 weeks in bottle", addDays(d, 14));
-    mark("tasting-4w", "Tasting notes — 4 weeks", addDays(d, 28));
-    mark("tasting-8w", "Tasting notes — 8 weeks", addDays(d, 56));
+    mark("tasting-2w", "Tasting notes: 2 weeks in bottle", addDays(d, 14));
+    mark("tasting-4w", "Tasting notes: 4 weeks", addDays(d, 28));
+    mark("tasting-8w", "Tasting notes: 8 weeks", addDays(d, 56));
   }
 
   return actions.filter((a) => a.due.getTime() > now.getTime() - 30 * DAY);

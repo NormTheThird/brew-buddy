@@ -73,7 +73,7 @@ export default async function DashboardPage() {
       <PageHeader
         icon={<GridIcon size={40} />}
         title="Dashboard"
-        subtitle="Your brewery at a glance — what's fermenting, what's next, what you're set up to brew"
+        subtitle="Your brewery at a glance: what's fermenting, what's next, what you're set up to brew"
         actions={<Link href="/batches/new" className="btn btn-solid">+ Log a batch</Link>}
       />
       <div className="dash-grid">
@@ -81,7 +81,7 @@ export default async function DashboardPage() {
           <div className="panel-heading">Active batch<Link href="/batches" style={{ fontSize: 12 }}>All batches</Link></div>
           <div className="panel-body" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             {!active ? (
-              <div style={{ fontSize: 13, color: "var(--text-muted)" }}>Nothing fermenting — pick a recipe and brew.</div>
+              <div style={{ fontSize: 13, color: "var(--text-muted)" }}>Nothing fermenting. Pick a recipe and brew.</div>
             ) : (
               <>
                 <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
@@ -195,7 +195,7 @@ export default async function DashboardPage() {
               </Row>
             </div>
             <div style={{ fontSize: 12, color: "var(--text-muted)", paddingTop: 10, borderTop: "1px solid var(--border-row)", marginTop: 4 }}>
-              Learned only from measured values — estimates never feed a constant. Batch
+              Learned only from measured values; estimates never feed a constant. Batch
               1&apos;s volumes were estimates; batch 2 starts the real numbers.
             </div>
           </div>

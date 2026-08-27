@@ -33,7 +33,7 @@ export default async function EditEquipmentPage({
     <>
       <PageHeader
         icon={<BoxIcon size={40} />}
-        title={`Edit — ${item.name}`}
+        title={`Edit · ${item.name}`}
       />
       <EquipmentForm action={updateEquipment} item={item} purchaseOptions={purchaseOptions} />
     </>

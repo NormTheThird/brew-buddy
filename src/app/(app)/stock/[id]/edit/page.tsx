@@ -33,7 +33,7 @@ export default async function EditStockItemPage({
     <>
       <PageHeader
         icon={<DropletIcon size={40} />}
-        title={`Edit — ${item.name}`}
+        title={`Edit · ${item.name}`}
         subtitle={item.lotNumber ? `Lot ${item.lotNumber}` : undefined}
       />
       <StockForm action={updateStockItem} item={item} purchaseOptions={purchaseOptions} />

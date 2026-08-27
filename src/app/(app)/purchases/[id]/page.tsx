@@ -88,7 +88,7 @@ export default async function PurchaseDetailPage({
               id={p.id}
               label="Delete purchase"
               variant="button"
-              confirmText={`Really delete "${p.name}"?\n\nThe stored receipt AND the items its import created are removed permanently. Kept safe: items that existed before (link cleared), and anything a batch has used — brew history is never touched.`}
+              confirmText={`Really delete "${p.name}"?\n\nThe stored receipt AND the items its import created are removed permanently. Kept safe: items that existed before (link cleared), and anything a batch has used; brew history is never touched.`}
             />
           </>
         }
@@ -213,19 +213,19 @@ export default async function PurchaseDetailPage({
                                 <div style={{ background: "rgba(247,175,62,.1)", borderLeft: "3px solid var(--warning)", padding: "10px 12px", fontSize: 12, display: "flex", flexDirection: "column", gap: 8 }}>
                                   <span>
                                     Looks like <span style={{ color: "var(--text-bright)" }}>{matches[idx]!.name}</span>,
-                                    which you already added — same item?
+                                    which you already added. Same item?
                                   </span>
                                   <label style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer", minHeight: 24 }}>
                                     <input type="radio" name={`same_${idx}`} value={matches[idx]!.id} required style={{ margin: 0, flexShrink: 0, accentColor: "var(--accent)" }} />
                                     <span>
                                       {item.kind === "ingredient"
-                                        ? "Same — restock it (adds this quantity) with this price & receipt"
-                                        : "Same — update it with this price & receipt"}
+                                        ? "Same: restock it (adds this quantity) with this price & receipt"
+                                        : "Same: update it with this price & receipt"}
                                     </span>
                                   </label>
                                   <label style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer", minHeight: 24 }}>
                                     <input type="radio" name={`same_${idx}`} value="new" required style={{ margin: 0, flexShrink: 0, accentColor: "var(--accent)" }} />
-                                    <span>Different — create a new item</span>
+                                    <span>Different: create a new item</span>
                                   </label>
                                 </div>
                               </td>
@@ -242,7 +242,7 @@ export default async function PurchaseDetailPage({
                       Combine merge-checked into one (AI)
                     </button>
                     <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                      tick 2+ in the Merge column to fuse them — name and summed cost handled for you
+                      tick 2+ in the Merge column to fuse them; name and summed cost handled for you
                     </span>
                   </div>
                 </form>
@@ -261,7 +261,7 @@ export default async function PurchaseDetailPage({
           ) : p.proposalAppliedAt && equipItems.length + ingItems.length > 0 ? (
             <div className="panel" style={{ borderLeft: "3px solid var(--success)", padding: "12px 16px", fontSize: 13 }}>
               Items imported from this receipt on{" "}
-              {formatDate(p.proposalAppliedAt)} — this happens once. Remove items below
+              {formatDate(p.proposalAppliedAt)}. This happens once. Remove items below
               if something&apos;s wrong (removing everything re-enables the import).
             </div>
           ) : p.receiptPath ? (
@@ -270,7 +270,7 @@ export default async function PurchaseDetailPage({
               <div className="panel-body" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ fontSize: 13 }}>
                   Claude reads the receipt once and proposes equipment and ingredient
-                  rows — you set quantities and review every line before anything is
+                  rows; you set quantities and review every line before anything is
                   written.
                 </div>
                 <ExtractButton purchaseId={p.id} />
@@ -282,7 +282,7 @@ export default async function PurchaseDetailPage({
             <div className="panel-body">
               {equipItems.length + ingItems.length === 0 ? (
                 <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                  Nothing linked yet — apply an AI proposal above, or set this purchase
+                  Nothing linked yet. Apply an AI proposal above, or set this purchase
                   on an item&apos;s edit form.
                 </div>
               ) : (

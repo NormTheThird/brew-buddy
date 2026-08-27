@@ -20,7 +20,7 @@ export default async function NewEquipmentPage() {
       <PageHeader
         icon={<BoxIcon size={40} />}
         title="Add equipment"
-        subtitle="Wanted items belong here too — set status to Wanted"
+        subtitle="Wanted items belong here too: set status to Wanted"
       />
       <EquipmentForm action={createEquipment} purchaseOptions={purchaseOptions} />
     </>

@@ -8,7 +8,7 @@ export default function ImportRecipePage() {
       <PageHeader
         icon={<BookIcon size={40} />}
         title="Import BeerXML"
-        subtitle="From BeerSmith, Brewfather, kit publishers — most recipe tools export it"
+        subtitle="From BeerSmith, Brewfather, kit publishers; most recipe tools export it"
       />
       <BeerXmlImportForm />
     </>

@@ -205,10 +205,10 @@ export async function analyzeLabel(
     return { error: "Photo must be JPG/PNG/WebP/GIF." };
   }
   if (photo.size > MAX_PHOTO_BYTES) {
-    return { error: "Photo is over 12 MB — resize and retry." };
+    return { error: "Photo is over 12 MB. Resize and retry." };
   }
   if (!hasApiKey()) {
-    return { error: "No Anthropic API key configured — add ANTHROPIC_API_KEY to .env." };
+    return { error: "No Anthropic API key configured. Add ANTHROPIC_API_KEY to .env." };
   }
   try {
     const proposal = await extractLabel(

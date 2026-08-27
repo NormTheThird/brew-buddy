@@ -73,12 +73,12 @@ export default async function PurchasesPage({
       <PageHeader
         icon={<ReceiptIcon size={40} />}
         title="Purchases"
-        subtitle="Kits and orders — one total cost, receipt attached, items linked"
+        subtitle="Kits and orders: one total cost, receipt attached, items linked"
         actions={<Link href="/purchases/new" className="btn btn-solid">+ New purchase</Link>}
       />
       <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap", marginBottom: 18 }}>
         <div style={{ display: "flex", gap: 8, flex: 1, minWidth: 260 }}>
-          <TableSearch basePath="/purchases" placeholder="Type 3+ letters to filter — name, vendor, order #, notes…" />
+          <TableSearch basePath="/purchases" placeholder="Type 3+ letters to filter: name, vendor, order #, notes…" />
         </div>
         <div className="panel" style={{ borderLeft: "3px solid var(--accent)", padding: "8px 14px" }}>
           <span className="field-label" style={{ marginBottom: 0 }}>
@@ -91,7 +91,7 @@ export default async function PurchasesPage({
       </div>
       <div className="panel">
         <div className="panel-heading">
-          {q ? `Matches for "${q}" — ${filtered.length}` : "All purchases"}
+          {q ? `Matches for "${q}" (${filtered.length})` : "All purchases"}
           <span style={{ display: "flex", gap: 8, fontSize: 12, fontWeight: 400 }}>
             {PAGE_SIZES.map((s) => (
               <Link
@@ -107,7 +107,7 @@ export default async function PurchasesPage({
         <div className="panel-body">
           {shown.length === 0 ? (
             <div style={{ fontSize: 13, color: "var(--text-muted)", padding: "8px 0" }}>
-              {q ? `Nothing matches "${q}".` : "No purchases yet. A purchase groups items bought together — a kit or one order — and can hold a receipt for AI import."}
+              {q ? `Nothing matches "${q}".` : "No purchases yet. A purchase groups items bought together (a kit or one order) and can hold a receipt for AI import."}
             </div>
           ) : (
             <div className="table-wrap">

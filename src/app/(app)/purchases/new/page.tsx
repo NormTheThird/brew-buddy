@@ -8,7 +8,7 @@ export default function NewPurchasePage() {
       <PageHeader
         icon={<ReceiptIcon size={40} />}
         title="New purchase"
-        subtitle="A kit or one order — attach the receipt and let AI propose the items"
+        subtitle="A kit or one order: attach the receipt and let AI propose the items"
       />
       <PurchaseForm />
     </>

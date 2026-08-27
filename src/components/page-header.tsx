@@ -40,7 +40,7 @@ export function Placeholder({ milestone }: { milestone: string }) {
         fontSize: 13,
       }}
     >
-      This screen lands in {milestone} — the shell you&apos;re looking at is milestone 1.
+      This screen lands in {milestone}; the shell you&apos;re looking at is milestone 1.
     </div>
   );
 }

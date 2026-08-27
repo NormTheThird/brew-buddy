@@ -25,12 +25,8 @@ export async function updateProfile(
   const name = str(formData.get("name"));
   const email = str(formData.get("email"))?.toLowerCase() ?? null;
   const phone = str(formData.get("phone"));
-  const theme = str(formData.get("theme"));
   if (!name) return { error: "Name is required." };
   if (!email || !email.includes("@")) return { error: "A valid email is required." };
-  if (theme !== "copper" && theme !== "stainless") {
-    return { error: "Pick a theme." };
-  }
 
   const taken = db
     .select({ id: users.id })
@@ -41,11 +37,22 @@ export async function updateProfile(
 
   await db
     .update(users)
-    .set({ name, email, phone, theme })
+    .set({ name, email, phone })
     .where(eq(users.id, user.id));
-  // Name in the top bar and the theme on <html> both live in layouts.
+  // The name in the top bar lives in the layout.
   revalidatePath("/", "layout");
   return { message: "Profile saved." };
+}
+
+/** Theme applies the moment it's picked; no Save button involved. */
+export async function setTheme(formData: FormData): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+  const theme = str(formData.get("theme"));
+  if (theme !== "copper" && theme !== "stainless") return;
+  await db.update(users).set({ theme }).where(eq(users.id, user.id));
+  // data-theme sits on <html> in the root layout.
+  revalidatePath("/", "layout");
 }
 
 export async function changePassword(

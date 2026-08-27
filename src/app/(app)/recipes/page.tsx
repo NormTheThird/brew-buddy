@@ -30,7 +30,7 @@ export default async function RecipesPage() {
       <PageHeader
         icon={<BookIcon size={40} />}
         title="Recipes"
-        subtitle="Specs, not shopping lists — resolved against your kettle and your current lots"
+        subtitle="Specs, not shopping lists: resolved against your kettle and your current lots"
         actions={
           <>
             <Link href="/recipes/import" className="btn">Import BeerXML</Link>
@@ -40,7 +40,7 @@ export default async function RecipesPage() {
       />
       {all.length === 0 ? (
         <div className="panel" style={{ padding: "14px 16px", fontSize: 13 }}>
-          No recipes yet — create one or import a BeerXML file.
+          No recipes yet. Create one or import a BeerXML file.
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>

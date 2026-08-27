@@ -37,7 +37,7 @@ export default async function NewBatchPage({
       <PageHeader
         icon={<LayersIcon size={40} />}
         title="Log a batch"
-        subtitle="Capture in the moment — volumes and temps are unrecoverable later"
+        subtitle="Capture in the moment: volumes and temps are unrecoverable later"
       />
       <BatchForm
         action={createBatch}

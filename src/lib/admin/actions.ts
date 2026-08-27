@@ -45,7 +45,7 @@ export async function createUser(
     role: role as "admin" | "user",
   });
   revalidatePath("/admin/users");
-  return { message: `Created ${name} — share the password with them privately.` };
+  return { message: `Created ${name}. Share the password with them privately.` };
 }
 
 export async function setUserActive(formData: FormData): Promise<void> {

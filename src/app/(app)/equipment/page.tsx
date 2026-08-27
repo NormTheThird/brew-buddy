@@ -146,12 +146,12 @@ export default async function EquipmentPage({
         <Chip href={pageHref("retired", q, size, 1)} label="Retired" active={filter === "retired"} />
         <Chip href={pageHref("all", q, size, 1)} label="All" active={filter === null} />
         <div style={{ flex: 1, minWidth: 240, display: "flex", justifyContent: "flex-end" }}>
-          <TableSearch basePath="/equipment" placeholder="Type 3+ letters to filter — name, specs, category…" />
+          <TableSearch basePath="/equipment" placeholder="Type 3+ letters to filter: name, specs, category…" />
         </div>
       </div>
       <div className="panel">
         <div className="panel-heading">
-          {q ? `Matches for "${q}" — ${filtered.length}` : "Inventory"}
+          {q ? `Matches for "${q}" (${filtered.length})` : "Inventory"}
           <span style={{ display: "flex", gap: 8, fontSize: 12, fontWeight: 400 }}>
             {PAGE_SIZES.map((s) => (
               <Link
@@ -167,7 +167,7 @@ export default async function EquipmentPage({
         <div className="panel-body">
           {shown.length === 0 ? (
             <div style={{ fontSize: 13, color: "var(--text-muted)", padding: "8px 0" }}>
-              {q ? `Nothing matches "${q}".` : <>Nothing here yet — add equipment or run <code>npm run db:seed</code>.</>}
+              {q ? `Nothing matches "${q}".` : <>Nothing here yet. Add equipment or run <code>npm run db:seed</code>.</>}
             </div>
           ) : (
             <div className="table-wrap">
@@ -214,7 +214,7 @@ export default async function EquipmentPage({
                         <Link
                           href={`/purchases/${e.purchaseId}`}
                           style={{ fontSize: 12, color: "var(--text-muted)" }}
-                          title={`Part of ${purchaseNames.get(e.purchaseId)!} — open the purchase for the cost`}
+                          title={`Part of ${purchaseNames.get(e.purchaseId)!}. Open the purchase for the cost`}
                         >
                           part of kit
                         </Link>
@@ -261,7 +261,7 @@ function StatusCell({ item }: { item: Equipment }) {
   // lives under the Active filter (only Retired removes it from service).
   if (item.status === "active") {
     return item.flag ? (
-      <span className="badge" style={{ background: "var(--warning)" }} title="Needs attention — still in service">
+      <span className="badge" style={{ background: "var(--warning)" }} title="Needs attention: still in service">
         {item.flag.toUpperCase()}
       </span>
     ) : (

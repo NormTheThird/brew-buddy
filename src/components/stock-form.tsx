@@ -118,13 +118,13 @@ export function StockForm({
         <input id="photo" name="photo" type="file" accept="image/*" capture="environment" className="field" style={{ padding: 8 }} />
         <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
           <button type="button" onClick={readLabel} className="btn" disabled={reading || pending}>
-            {reading ? "Reading label…" : "Read label with AI — fill the form for me"}
+            {reading ? "Reading label…" : "Read label with AI (fills the form for me)"}
           </button>
           {reading ? <span style={{ fontSize: 12, color: "var(--text-muted)" }}>usually 10–30 seconds</span> : null}
           {labelState.error ? <span style={{ color: "var(--danger)", fontSize: 13 }}>{labelState.error}</span> : null}
           {labelState.proposal ? (
             <span style={{ color: "var(--success)", fontSize: 13 }}>
-              Label read — check the fields, especially lot and best-by.
+              Label read. Check the fields, especially lot and best-by.
             </span>
           ) : null}
         </div>
@@ -157,7 +157,7 @@ export function StockForm({
           <input id="name" name="name" className="field" defaultValue={item?.name} required />
           <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12, color: "var(--text-muted)", marginTop: 6, cursor: "pointer" }}>
             <input type="checkbox" name="preserveName" defaultChecked={item?.preserveName ?? false} style={{ accentColor: "var(--accent)" }} />
-            Preserve this name — receipt imports that match won&apos;t rename it
+            Preserve this name: receipt imports that match won&apos;t rename it
           </label>
         </div>
       </Row>

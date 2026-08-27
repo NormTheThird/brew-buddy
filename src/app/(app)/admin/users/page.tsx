@@ -19,10 +19,10 @@ export default async function AdminUsersPage() {
       <PageHeader
         icon={<UsersIcon size={40} />}
         title="Users"
-        subtitle="Accounts on this brewery — admins manage them, everyone else just brews"
+        subtitle="Accounts on this brewery: admins manage them, everyone else just brews"
       />
       <div className="panel" style={{ borderLeft: "3px solid var(--info)", padding: "12px 16px", fontSize: 13, marginBottom: 18 }}>
-        Every account sees everything except this page — their own equipment, lots,
+        Every account sees everything except this page: their own equipment, lots,
         recipes, batches, and timers. Deactivated accounts keep their data but can&apos;t
         sign in (and are signed out immediately).
       </div>

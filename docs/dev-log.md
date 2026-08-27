@@ -15,6 +15,23 @@ this area again.
 
 ---
 
+## 2026-08-27 — No em dashes in UI copy; theme applies on click
+
+Trey's style call: no em dashes in interface text ("Bottling — gate: two
+matching readings" reads wrong to him). Swept EVERY user-facing string —
+labels, subtitles, placeholders, error messages, confirm texts — replacing
+" — " with colons, periods, commas, semicolons, or parentheses as fits.
+Kept: "—" as the empty-value placeholder in table cells, em dashes in code
+comments, and in AI prompts (the model reads those, not Trey). Edit page
+titles became "Edit · Name". Write UI copy without em dashes from now on.
+
+Theme moved out of the Profile form into its own Settings panel and applies
+THE MOMENT a swatch is clicked (radio onChange → form.requestSubmit → a
+dedicated setTheme action) — no Save button. updateProfile no longer
+touches theme.
+
+---
+
 ## 2026-08-27 — User menu, self-service settings, theme selector lands
 
 The Copper/Stainless themes existed as CSS (`[data-theme=…]` variables)
@@ -275,11 +292,16 @@ Code sweep: all actions take string ids, `[id]` pages dropped their
 id prop is string-typed. Typecheck clean, 36/36 tests pass, all pages verified
 in the browser on GUID URLs.
 
-Mid-sweep, six component files turned up corrupted on disk with systematic
-character substitutions (every "p"→"u" in one, "t"→"y" in another, stripped
-braces elsewhere) — cause unknown, possibly a disk/sync glitch. Restored from
-HEAD via git checkout and re-applied the sweep edits. If files look mangled
-again, check git first.
+Mid-sweep, six component files turned up corrupted with systematic character
+substitutions (every "p"→"u" in one, "t"→"y" in another). SOLVED later the
+same day: it was the sweep script itself, not the disk. PowerShell flattens a
+hashtable value of ONE nested pair — @(@('old','new')) becomes @('old','new')
+— so the loop iterated the two strings, $pair[0] indexed the first CHARACTER,
+and String.Replace(char, char) rewrote that character file-wide. Lesson for
+future sessions: never use @(@(...)) with a single element for replace maps;
+use [pscustomobject] lists, verify Contains() before replacing, and typecheck
+immediately after scripted writes. Recovery both times: git checkout the
+files, re-apply via the Edit tool.
 
 Also from Trey's feedback:
 - **Purchases list Status column**: "Needs review" (accent badge, links to the

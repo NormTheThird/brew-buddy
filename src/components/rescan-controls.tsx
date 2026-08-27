@@ -26,7 +26,7 @@ export function RescanControls({ purchaseId }: { purchaseId: string }) {
       <input
         name="hint"
         className="field"
-        placeholder='Not quite right? Tell it what to fix — e.g. "you missed the bottle capper and caps"'
+        placeholder='Not quite right? Tell it what to fix, e.g. "you missed the bottle capper and caps"'
         style={{ flex: 1, minWidth: 240 }}
       />
       <button type="submit" className="btn" disabled={pending}>

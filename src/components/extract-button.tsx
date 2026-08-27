@@ -17,7 +17,7 @@ export function ExtractButton({ purchaseId }: { purchaseId: string }) {
       </button>
       {pending ? (
         <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-          Claude is reading the receipt — usually 10–30 seconds.
+          Claude is reading the receipt, usually 10–30 seconds.
         </div>
       ) : null}
       {state.error ? (

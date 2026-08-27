@@ -76,7 +76,7 @@ export function PurchaseForm() {
       style={{ maxWidth: 640, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}
     >
       <div>
-        <label className="field-label" htmlFor="receipt">Receipt (photo or PDF) — reads automatically</label>
+        <label className="field-label" htmlFor="receipt">Receipt (photo or PDF, reads automatically)</label>
         <input
           id="receipt"
           name="receipt"
@@ -96,7 +96,7 @@ export function PurchaseForm() {
           name="receiptText"
           className="field"
           rows={5}
-          placeholder="Paste the order confirmation — line items, prices, totals. Ignored if a file is chosen above."
+          placeholder="Paste the order confirmation: line items, prices, totals. Ignored if a file is chosen above."
         />
       </div>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
@@ -105,7 +105,7 @@ export function PurchaseForm() {
         </button>
         {analyzing ? (
           <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-            usually 10–60 seconds — kits get looked up to expand their contents
+            usually 10–60 seconds; kits get looked up to expand their contents
           </span>
         ) : null}
         {analysis.error ? (
@@ -115,7 +115,7 @@ export function PurchaseForm() {
       {analysis.duplicateOf ? (
         <div className="panel" style={{ borderLeft: "3px solid var(--danger)", padding: "12px 14px", fontSize: 13, display: "flex", flexDirection: "column", gap: 6 }}>
           <span style={{ color: "var(--danger)", fontWeight: 500 }}>
-            This looks like a duplicate — you already have this purchase:
+            This looks like a duplicate. You already have this purchase:
           </span>
           <span>
             <Link href={`/purchases/${analysis.duplicateOf.id}`} style={{ color: "var(--text-bright)" }}>
@@ -138,9 +138,9 @@ export function PurchaseForm() {
             ? `: ${proposal.items.slice(0, 3).map((i) => i.name).join(", ")}${proposal.items.length > 3 ? "…" : ""}`
             : ""}
           {proposal.discountCode
-            ? `. Discount code ${proposal.discountCode} spotted — it'll be noted on the purchase`
+            ? `. Discount code ${proposal.discountCode} spotted, it'll be noted on the purchase`
             : ""}
-          . Fields below are filled from the order — fix anything it misread, then
+          . Fields below are filled from the order. Fix anything it misread, then
           create; you&apos;ll review the items before they&apos;re saved.
           <input type="hidden" name="proposalJson" value={JSON.stringify(proposal)} />
         </div>

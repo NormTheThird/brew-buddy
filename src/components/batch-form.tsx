@@ -134,7 +134,7 @@ export function BatchForm({
         </div>
       </Section>
 
-      <Section title="Volumes (gal) — these feed your per-kettle constants" cols={3}>
+      <Section title="Volumes (gal): these feed your per-kettle constants" cols={3}>
         <NumField name="preBoilVolumeGal" label="Pre-boil" item={item} estimable />
         <NumField name="postBoilVolumeGal" label="Post-boil" item={item} estimable />
         <NumField name="intoFermenterGal" label="Into fermenter" item={item} estimable />
@@ -167,7 +167,7 @@ export function BatchForm({
         <div>
           <label className="field-label" htmlFor="keeper" style={{ display: "flex", gap: 6, alignItems: "center" }}>
             <input type="checkbox" id="keeper" name="keeper" defaultChecked={item?.keeper ?? false} />
-            Keeper — brew again
+            Keeper (brew again)
           </label>
           <input id="verdict" name="verdict" className="field" defaultValue={item?.verdict ?? ""} placeholder="verdict in a sentence" />
         </div>

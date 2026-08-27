@@ -145,7 +145,7 @@ export default async function StockPage({
       <PageHeader
         icon={<DropletIcon size={40} />}
         title="Stock"
-        subtitle="Ingredients, supplies, chemicals, water — tracked per purchase lot, in and out on quantity"
+        subtitle="Ingredients, supplies, chemicals, water: tracked per purchase lot, in and out on quantity"
         actions={<Link href="/stock/new" className="btn btn-solid">+ Add purchase</Link>}
       />
       <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap", alignItems: "center" }}>
@@ -163,7 +163,7 @@ export default async function StockPage({
           />
         ))}
         <div style={{ flex: 1, minWidth: 240, display: "flex", justifyContent: "flex-end" }}>
-          <TableSearch basePath="/stock" placeholder="Type 3+ letters to filter — name, vendor, lot…" />
+          <TableSearch basePath="/stock" placeholder="Type 3+ letters to filter: name, vendor, lot…" />
         </div>
       </div>
       {emptyStock ? (
@@ -171,13 +171,13 @@ export default async function StockPage({
           className="panel"
           style={{ borderLeft: "3px solid var(--accent)", padding: "12px 16px", fontSize: 13, marginBottom: 18 }}
         >
-          Stock is empty — everything on hand was used. Add a purchase when the next
+          Stock is empty. Everything on hand was used. Add a purchase when the next
           order arrives; the shopping list comes with recipes in milestone 3.
         </div>
       ) : null}
       <div className="panel">
         <div className="panel-heading">
-          {q ? `Matches for "${q}" — ${groups.length}` : "On hand"}
+          {q ? `Matches for "${q}" (${groups.length})` : "On hand"}
           <span style={{ display: "flex", gap: 8, fontSize: 12, fontWeight: 400 }}>
             {PAGE_SIZES.map((s) => (
               <Link
@@ -196,7 +196,7 @@ export default async function StockPage({
               {q
                 ? `Nothing matches "${q}".`
                 : avail === "available"
-                  ? "Nothing available on hand — switch to All lots to see what was used."
+                  ? "Nothing available on hand. Switch to All lots to see what was used."
                   : `No lots${filter ? ` of type ${typeLabels[filter]}` : ""} yet.`}
             </div>
           ) : (
@@ -216,7 +216,7 @@ export default async function StockPage({
             </div>
           ) : null}
           <div style={{ fontSize: 12, color: "var(--text-faint)", paddingTop: 12 }}>
-            Replication uses the lot&apos;s numbers, not the label&apos;s — a new Willamette
+            Replication uses the lot&apos;s numbers, not the label&apos;s; a new Willamette
             packet at 4.3% AA means weighing ~1.6 oz, not 1 oz, to hit the same IBU.
           </div>
         </div>

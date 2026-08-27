@@ -92,7 +92,7 @@ export default async function RecipeDetailPage({
             <div className="panel-heading">Ingredients (spec)</div>
             <div className="panel-body">
               {items.length === 0 ? (
-                <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 10 }}>No items yet — add the bill below.</div>
+                <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 10 }}>No items yet. Add the bill below.</div>
               ) : (
                 <div className="table-wrap" style={{ marginBottom: 12 }}>
                   <table className="data">
@@ -165,7 +165,7 @@ export default async function RecipeDetailPage({
             <div className="panel-heading">Batches of this recipe</div>
             <div className="panel-body">
               {recipeBatches.length === 0 ? (
-                <div style={{ fontSize: 13, color: "var(--text-muted)" }}>None yet — &quot;Brew this&quot; starts one.</div>
+                <div style={{ fontSize: 13, color: "var(--text-muted)" }}>None yet. &quot;Brew this&quot; starts one.</div>
               ) : (
                 <table className="data">
                   <tbody>

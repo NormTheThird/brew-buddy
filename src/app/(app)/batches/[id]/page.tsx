@@ -128,7 +128,7 @@ export default async function BatchDetailPage({
     .filter((l) => l.quantityOnHand > 0 || l.type === "water")
     .sort((a, c) => a.type.localeCompare(c.type) || a.name.localeCompare(c.name));
   const lotLabel = (l: (typeof usableLots)[number]) =>
-    `${l.name}${l.lotNumber ? ` · lot ${l.lotNumber}` : ""} — ${
+    `${l.name}${l.lotNumber ? ` · lot ${l.lotNumber}` : ""} · ${
       l.type === "water" ? "unlimited" : `${l.quantityOnHand} ${l.unit ?? "ct"} on hand`
     }`;
 
@@ -162,7 +162,7 @@ export default async function BatchDetailPage({
     <>
       <PageHeader
         icon={<LayersIcon size={40} />}
-        title={`Batch #${b.batchNumber} — ${b.recipeName}`}
+        title={`Batch #${b.batchNumber} · ${b.recipeName}`}
         subtitle={[
           b.brewDate ? `Brewed ${b.brewDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}` : null,
           methodLabels[b.method],
@@ -188,7 +188,7 @@ export default async function BatchDetailPage({
             </Row>
             {b.postBoilVolumeGal == null ? (
               <div style={{ background: "rgba(219,82,75,.1)", borderLeft: "3px solid var(--danger)", padding: "8px 10px", fontSize: 12, margin: "6px 0" }}>
-                Post-boil volume feeds boil-off and kettle loss — capture it next brew.
+                Post-boil volume feeds boil-off and kettle loss. Capture it next brew.
               </div>
             ) : null}
             <Row label="Into fermenter">
@@ -247,7 +247,7 @@ export default async function BatchDetailPage({
                           {c.prorated ? " of lot" : ""}
                         </span>
                       ) : c.kind === "kit" ? (
-                        <span style={{ color: "var(--text-faint)", fontSize: 12 }} title={`Part of ${c.kit} — no line price`}>
+                        <span style={{ color: "var(--text-faint)", fontSize: 12 }} title={`Part of ${c.kit}: no line price`}>
                           kit
                         </span>
                       ) : null}
@@ -256,7 +256,7 @@ export default async function BatchDetailPage({
                         <input type="hidden" name="batchId" value={b.id} />
                         <button
                           type="submit"
-                          title="Remove this line — stock is NOT refunded; fix counts on the Stock page"
+                          title="Remove this line. Stock is NOT refunded; fix counts on the Stock page"
                           style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 11, padding: 0, fontFamily: "inherit" }}
                         >
                           remove
@@ -287,7 +287,7 @@ export default async function BatchDetailPage({
               >
                 <input type="hidden" name="batchId" value={b.id} />
                 <div>
-                  <label className="field-label" htmlFor="use-lot">Use from stock — deducts on hand</label>
+                  <label className="field-label" htmlFor="use-lot">Use from stock (deducts on hand)</label>
                   <select id="use-lot" name="lotId" className="field" required>
                     {usableLots.map((l) => (
                       <option key={l.id} value={l.id}>{lotLabel(l)}</option>
@@ -305,7 +305,7 @@ export default async function BatchDetailPage({
               <form action={useBottlingSupplies} style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
                 <input type="hidden" name="batchId" value={b.id} />
                 <div className="field-label" style={{ marginBottom: 0 }}>
-                  Bottling day — one submit deducts it all (clear a row to skip it)
+                  Bottling day: one submit deducts it all (clear a row to skip it)
                 </div>
                 {bottlingGuesses.map((g) => (
                   <div key={g.key} style={{ display: "grid", gridTemplateColumns: "90px 2fr auto", gap: 8, alignItems: "center" }}>

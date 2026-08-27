@@ -1,13 +1,38 @@
 "use client";
 
 import { useActionState } from "react";
-import { changePassword, updateProfile, type FormState } from "@/lib/account/actions";
+import { changePassword, setTheme, updateProfile, type FormState } from "@/lib/account/actions";
 import type { User } from "@/lib/db/schema";
 
 const themes = [
   { value: "copper", label: "Copper", swatch: "#c1703f" },
   { value: "stainless", label: "Stainless", swatch: "#a9b7c6" },
 ] as const;
+
+/** Picking a theme applies it immediately; there is nothing to save. */
+export function ThemePicker({ user }: { user: User }) {
+  return (
+    <form action={setTheme} style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+      {themes.map((t) => (
+        <label
+          key={t.value}
+          style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer", border: "1px solid var(--border)", borderRadius: 3, padding: "10px 16px" }}
+        >
+          <input
+            type="radio"
+            name="theme"
+            value={t.value}
+            defaultChecked={user.theme === t.value}
+            onChange={(e) => e.currentTarget.form?.requestSubmit()}
+            style={{ accentColor: t.swatch }}
+          />
+          <span style={{ width: 14, height: 14, borderRadius: "50%", background: t.swatch, display: "inline-block" }} />
+          {t.label}
+        </label>
+      ))}
+    </form>
+  );
+}
 
 export function ProfileForm({ user }: { user: User }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(updateProfile, {});
@@ -27,27 +52,6 @@ export function ProfileForm({ user }: { user: User }) {
       <div>
         <label className="field-label" htmlFor="p-email">Email</label>
         <input id="p-email" name="email" type="email" className="field" defaultValue={user.email} required />
-      </div>
-      <div>
-        <div className="field-label">Theme</div>
-        <div style={{ display: "flex", gap: 14 }}>
-          {themes.map((t) => (
-            <label
-              key={t.value}
-              style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer", border: "1px solid var(--border)", borderRadius: 3, padding: "8px 14px" }}
-            >
-              <input
-                type="radio"
-                name="theme"
-                value={t.value}
-                defaultChecked={user.theme === t.value}
-                style={{ accentColor: t.swatch }}
-              />
-              <span style={{ width: 14, height: 14, borderRadius: "50%", background: t.swatch, display: "inline-block" }} />
-              {t.label}
-            </label>
-          ))}
-        </div>
       </div>
       {state.error ? <div style={{ color: "var(--danger)", fontSize: 13 }}>{state.error}</div> : null}
       {state.message ? <div style={{ color: "var(--success)", fontSize: 13 }}>{state.message}</div> : null}
