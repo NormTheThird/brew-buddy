@@ -70,9 +70,7 @@ export default async function DashboardPage() {
         subtitle="Your brewery at a glance — what's fermenting, what's next, what you're set up to brew"
         actions={<Link href="/batches/new" className="btn btn-solid">+ Log a batch</Link>}
       />
-      {/* auto-fit + minmax: cards sit side by side when there's room and
-          stack to full width when there isn't — no crushed columns. */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 20, marginBottom: 20, alignItems: "start" }}>
+      <div className="dash-row-main">
         <div className="panel">
           <div className="panel-heading">Active batch<Link href="/batches" style={{ fontSize: 12 }}>All batches</Link></div>
           <div className="panel-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -151,7 +149,7 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20, alignItems: "start" }}>
+      <div className="dash-row-three">
         <div className="panel">
           <div className="panel-heading">My setup<Link href="/equipment" style={{ fontSize: 12 }}>Equipment</Link></div>
           <div className="panel-body">

@@ -1,5 +1,4 @@
-import { logout } from "@/lib/auth/actions";
-import { LogoutIcon } from "./icons";
+import { UserMenu } from "./user-menu";
 
 export function TopBar({ userName }: { userName: string }) {
   return (
@@ -37,44 +36,10 @@ export function TopBar({ userName }: { userName: string }) {
           marginLeft: "auto",
           display: "flex",
           alignItems: "center",
-          gap: 12,
           paddingRight: 22,
-          fontSize: 13,
         }}
       >
-        <span>{userName}</span>
-        <div
-          style={{
-            width: 30,
-            height: 30,
-            borderRadius: "50%",
-            background: "var(--accent)",
-            color: "var(--on-accent)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 13,
-            fontWeight: 500,
-          }}
-        >
-          {userName.charAt(0).toUpperCase()}
-        </div>
-        <form action={logout} style={{ display: "flex" }}>
-          <button
-            type="submit"
-            title="Sign out"
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--text-muted)",
-              cursor: "pointer",
-              display: "flex",
-              padding: 4,
-            }}
-          >
-            <LogoutIcon size={18} />
-          </button>
-        </form>
+        <UserMenu userName={userName} />
       </div>
     </header>
   );

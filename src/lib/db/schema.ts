@@ -10,6 +10,10 @@ export const users = sqliteTable("users", {
   id: text("id").primaryKey().$defaultFn(uuid),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
+  phone: text("phone"),
+  theme: text("theme", { enum: ["copper", "stainless"] })
+    .notNull()
+    .default("copper"),
   passwordHash: text("password_hash").notNull(),
   role: text("role", { enum: ["admin", "user"] }).notNull().default("user"),
   active: integer("active", { mode: "boolean" }).notNull().default(true),

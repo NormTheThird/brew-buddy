@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
+import { getCurrentUser } from "@/lib/auth/session";
 import "./globals.css";
 
 const roboto = Roboto({
@@ -18,11 +19,14 @@ export const viewport = {
   themeColor: "#24272e",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // The signed-in user's theme drives the accent variables site-wide;
+  // logged-out pages get the Copper default.
+  const user = await getCurrentUser();
   return (
-    <html lang="en" data-theme="copper">
+    <html lang="en" data-theme={user?.theme ?? "copper"}>
       <body className={roboto.className}>{children}</body>
     </html>
   );

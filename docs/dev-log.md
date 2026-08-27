@@ -15,6 +15,31 @@ this area again.
 
 ---
 
+## 2026-08-27 — User menu, self-service settings, theme selector lands
+
+The Copper/Stainless themes existed as CSS (`[data-theme=…]` variables)
+since the design phase but had NO switcher. Now:
+
+- **users.phone + users.theme** columns (live ALTER). Root layout reads the
+  signed-in user's theme onto `<html data-theme>`; logged-out pages default
+  Copper.
+- **/settings** — self-service for EVERY user (regular users can't see the
+  admin section, so this is their only account door): name/email/phone +
+  theme swatch radios in one form (`updateProfile`, email-uniqueness
+  checked, layout-scope revalidate so the top bar name and theme update
+  immediately), change-password with current-password verification
+  (`changePassword`, bcrypt 12 rounds, in lib/account/actions.ts).
+  Phone is stored for the future text-alert feature — nothing uses it yet.
+- **Top bar**: name + avatar is now a dropdown (user-menu.tsx) → My
+  settings / Sign out. The standalone logout icon went away with it.
+- **Dashboard cards de-wonked**: the auto-fit experiment made proportions
+  worse; replaced with explicit CSS classes (.dash-row-main 2fr/1fr,
+  .dash-row-three) + media queries stacking at 900/1200px, and default
+  grid stretch so side-by-side cards are EQUAL HEIGHT (alignItems:start
+  was the raggedness culprit).
+
+---
+
 ## 2026-08-27 — Due-task notifications: banner on login, mark-done, undo
 
 Trey: "when I log in something should pop up to say raise fridge to 70
