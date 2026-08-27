@@ -27,7 +27,18 @@ import {
 import { receiptsDir } from "./storage";
 
 export type FormState = { error?: string };
-export type AnalyzeState = { error?: string; proposal?: ReceiptProposal };
+export type AnalyzeState = {
+  error?: string;
+  proposal?: ReceiptProposal;
+  /** An existing purchase this receipt appears to duplicate — user decides. */
+  duplicateOf?: {
+    id: number;
+    name: string;
+    totalCost: number | null;
+    date: string | null;
+    orderNumber: string | null;
+  };
+};
 
 const RECEIPTS_DIR = receiptsDir();
 const MAX_RECEIPT_BYTES = 12 * 1024 * 1024;
@@ -140,7 +151,49 @@ export async function analyzeReceipt(
     return { error: "No Anthropic API key configured — add ANTHROPIC_API_KEY to .env." };
   }
   try {
-    return { proposal: await extractOnce(user.id, bytes, mime) };
+    const proposal = await extractOnce(user.id, bytes, mime);
+
+    // Duplicate check: same order number, or same vendor + same total, as an
+    // existing purchase. Flag it — the user decides.
+    const existing = db
+      .select()
+      .from(purchases)
+      .where(eq(purchases.userId, user.id))
+      .all();
+    const dup = existing.find(
+      (ep) =>
+        (proposal.orderNumber &&
+          ep.orderNumber &&
+          ep.orderNumber === proposal.orderNumber) ||
+        (proposal.totalCost != null &&
+          ep.totalCost != null &&
+          Math.abs(ep.totalCost - proposal.totalCost) < 0.005 &&
+          proposal.vendor &&
+          ep.vendor &&
+          ep.vendor.toLowerCase() === proposal.vendor.toLowerCase())
+    );
+
+    return {
+      proposal,
+      ...(dup
+        ? {
+            duplicateOf: {
+              id: dup.id,
+              name: dup.name,
+              totalCost: dup.totalCost,
+              date: dup.purchaseDate
+                ? dup.purchaseDate.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                    timeZone: "UTC",
+                  })
+                : null,
+              orderNumber: dup.orderNumber,
+            },
+          }
+        : {}),
+    };
   } catch (e) {
     return {
       error: `Reading failed: ${e instanceof Error ? e.message : "unknown error"}`,

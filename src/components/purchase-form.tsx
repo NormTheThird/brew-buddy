@@ -102,6 +102,25 @@ export function PurchaseForm() {
           <span style={{ color: "var(--danger)", fontSize: 13 }}>{analysis.error}</span>
         ) : null}
       </div>
+      {analysis.duplicateOf ? (
+        <div className="panel" style={{ borderLeft: "3px solid var(--danger)", padding: "12px 14px", fontSize: 13, display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ color: "var(--danger)", fontWeight: 500 }}>
+            This looks like a duplicate — you already have this purchase:
+          </span>
+          <span>
+            <Link href={`/purchases/${analysis.duplicateOf.id}`} style={{ color: "var(--text-bright)" }}>
+              {analysis.duplicateOf.name}
+            </Link>
+            {analysis.duplicateOf.totalCost != null ? ` · $${analysis.duplicateOf.totalCost.toFixed(2)}` : ""}
+            {analysis.duplicateOf.date ? ` · ${analysis.duplicateOf.date}` : ""}
+            {analysis.duplicateOf.orderNumber ? ` · Order ${analysis.duplicateOf.orderNumber}` : ""}
+          </span>
+          <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
+            If it&apos;s the same order, cancel and open the existing purchase. If this is
+            genuinely a separate order, go ahead and create it.
+          </span>
+        </div>
+      ) : null}
       {proposal ? (
         <div className="panel" style={{ borderLeft: "3px solid var(--success)", padding: "10px 14px", fontSize: 13 }}>
           Read {proposal.items.length} line item{proposal.items.length === 1 ? "" : "s"}
