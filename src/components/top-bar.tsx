@@ -1,5 +1,5 @@
 import { logout } from "@/lib/auth/actions";
-import { SearchIcon, LogoutIcon } from "./icons";
+import { LogoutIcon } from "./icons";
 
 export function TopBar({ userName }: { userName: string }) {
   return (
@@ -31,19 +31,6 @@ export function TopBar({ userName }: { userName: string }) {
         <span style={{ fontSize: 11, letterSpacing: 0, color: "var(--accent-tint)" }}>
           v1
         </span>
-      </div>
-      <div
-        style={{
-          marginLeft: 18,
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          color: "var(--text-muted)",
-          fontSize: 13,
-        }}
-      >
-        <SearchIcon size={15} />
-        Search recipes, batches…
       </div>
       <div
         style={{
