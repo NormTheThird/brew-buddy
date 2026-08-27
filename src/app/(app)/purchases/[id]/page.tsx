@@ -6,7 +6,7 @@ import { equipment, ingredients, purchases } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { applyProposal, deletePurchase, discardProposal } from "@/lib/purchases/actions";
 import type { ReceiptProposal } from "@/lib/purchases/receipt-ai";
-import { formatCost, formatMonth } from "@/lib/inventory/format";
+import { formatCost, formatDate } from "@/lib/inventory/format";
 import { PageHeader } from "@/components/page-header";
 import { ReceiptIcon } from "@/components/icons";
 import { DeleteButton } from "@/components/delete-button";
@@ -50,7 +50,7 @@ export default async function PurchaseDetailPage({
       <PageHeader
         icon={<ReceiptIcon size={40} />}
         title={p.name}
-        subtitle={[p.vendor, formatMonth(p.purchaseDate), formatCost(p.totalCost)]
+        subtitle={[p.vendor, formatDate(p.purchaseDate), formatCost(p.totalCost)]
           .filter((s) => s && s !== "—")
           .join(" · ")}
         actions={
@@ -132,7 +132,14 @@ export default async function PurchaseDetailPage({
                                 {item.kind.toUpperCase()}
                               </span>
                             </td>
-                            <td style={{ color: "var(--text-bright)" }}>{item.name}</td>
+                            <td style={{ color: "var(--text-bright)" }}>
+                              {item.name}
+                              {item.partOfKit ? (
+                                <span className="chip-estimate" style={{ marginLeft: 8, borderStyle: "solid" }}>
+                                  FROM KIT
+                                </span>
+                              ) : null}
+                            </td>
                             <td>{item.category ?? item.type ?? "—"}</td>
                             <td>{item.quantity != null ? `${item.quantity} ${item.unit ?? ""}` : "—"}</td>
                             <td style={{ textAlign: "right" }}>{formatCost(item.cost ?? null)}</td>

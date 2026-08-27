@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { equipment, ingredients, purchases } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
-import { formatCost, formatMonth } from "@/lib/inventory/format";
+import { formatCost, formatDate } from "@/lib/inventory/format";
 import { PageHeader } from "@/components/page-header";
 import { ReceiptIcon } from "@/components/icons";
 
@@ -72,7 +72,7 @@ export default async function PurchasesPage() {
                         <Link href={`/purchases/${p.id}`}>{p.name}</Link>
                       </td>
                       <td>{p.vendor ?? "—"}</td>
-                      <td>{formatMonth(p.purchaseDate)}</td>
+                      <td>{formatDate(p.purchaseDate)}</td>
                       <td>{itemCount(p.id)}</td>
                       <td>{p.receiptPath ? <Link href={`/purchases/${p.id}/receipt`} target="_blank">view</Link> : "—"}</td>
                       <td style={{ textAlign: "right" }}>{formatCost(p.totalCost)}</td>

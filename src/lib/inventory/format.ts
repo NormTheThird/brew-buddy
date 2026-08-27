@@ -11,6 +11,16 @@ export function formatMonth(d: Date | null): string {
   });
 }
 
+export function formatDate(d: Date | null): string {
+  if (!d) return "—";
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 export function formatMonthYearNumeric(d: Date): string {
   return d.toLocaleDateString("en-US", {
     month: "2-digit",

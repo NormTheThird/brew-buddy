@@ -14,6 +14,7 @@ export type ProposedItem = {
   unit?: string;
   cost?: number;
   specs?: string;
+  partOfKit?: string; // set when this row is a component expanded from a kit
 };
 
 export type ReceiptProposal = {
@@ -34,9 +35,11 @@ export function hasApiKey(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
-const PROMPT = `This is a receipt or order confirmation for homebrewing supplies. Extract the line items.
+function buildPrompt(): string {
+  const today = new Date().toISOString().slice(0, 10);
+  return `This is a receipt or order confirmation for homebrewing supplies (today is ${today}). Extract the line items.
 
-Return ONLY a JSON object, no other text, with this shape:
+Return ONLY a JSON object as your final answer, no other text around it, with this shape:
 {
   "suggestedName": "a short human name for this purchase, from its main item or kit — e.g. 'Essential Homebrew Starter Kit'",
   "vendor": "store name if visible",
@@ -52,7 +55,8 @@ Return ONLY a JSON object, no other text, with this shape:
       "type": one of ${JSON.stringify(ingredientTypes)} (ingredients only),
       "quantity": 6, "unit": "lb" (ingredients, if stated),
       "cost": 12.34 (this line's price, if itemized),
-      "specs": "short spec string (equipment, if stated)"
+      "specs": "short spec string (equipment, if stated)",
+      "partOfKit": "kit name — only on rows expanded from a kit"
     }
   ]
 }
@@ -60,8 +64,10 @@ Return ONLY a JSON object, no other text, with this shape:
 Rules:
 - kind: consumables that go into beer (malt, extract, hops, yeast, sugar, finings, chemicals like Star San) are "ingredient"; durable goods are "equipment".
 - Only include real line items — skip shipping, tax, and subtotals (they belong in totalCost context, not items).
-- Omit any field you cannot read. Never invent a price or quantity.
-- If the year is not shown, omit purchaseDate entirely — never guess a year.`;
+- Omit any field you cannot read. Never invent a price or quantity for a receipt line.
+- purchaseDate: if the year is missing, infer it — receipts are from the past, so use the most recent year that puts the date at or before today.
+- KITS: if a line item is a kit, bundle, or starter set, determine its contents — use web search on the vendor + kit name if you don't know them — and expand it into one row per component with the right kind/category/type and "partOfKit" set to the kit's name. Do NOT emit a row for the kit container itself, and do NOT invent per-component prices (the kit's price stays at the purchase level). If you cannot determine the contents, fall back to a single row for the kit with no partOfKit.`;
+}
 
 export async function extractReceipt(
   fileBytes: Buffer,
@@ -69,13 +75,14 @@ export async function extractReceipt(
 ): Promise<ReceiptProposal> {
   const client = new Anthropic();
 
+  const prompt = buildPrompt();
   const data = fileBytes.toString("base64");
   const content: Anthropic.ContentBlockParam[] =
     mime === "text/plain"
       ? [
           {
             type: "text",
-            text: `${PROMPT}\n\nReceipt text (pasted by the user):\n\n${fileBytes.toString("utf8")}`,
+            text: `${prompt}\n\nReceipt text (pasted by the user):\n\n${fileBytes.toString("utf8")}`,
           },
         ]
       : mime === "application/pdf"
@@ -84,7 +91,7 @@ export async function extractReceipt(
             type: "document",
             source: { type: "base64", media_type: "application/pdf", data },
           },
-          { type: "text", text: PROMPT },
+          { type: "text", text: prompt },
         ]
       : [
           {
@@ -95,14 +102,28 @@ export async function extractReceipt(
               data,
             },
           },
-          { type: "text", text: PROMPT },
+          { type: "text", text: prompt },
         ];
 
-  const response = await client.messages.create({
+  const messages: Anthropic.MessageParam[] = [{ role: "user", content }];
+  let response = await client.messages.create({
     model: "claude-opus-5",
     max_tokens: 16000,
-    messages: [{ role: "user", content }],
+    // Web search lets the model look up a kit's actual contents.
+    tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }],
+    messages,
   });
+
+  // Server tools can pause the turn; resume until the answer is complete.
+  for (let i = 0; i < 3 && response.stop_reason === "pause_turn"; i++) {
+    messages.push({ role: "assistant", content: response.content });
+    response = await client.messages.create({
+      model: "claude-opus-5",
+      max_tokens: 16000,
+      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }],
+      messages,
+    });
+  }
 
   if (response.stop_reason === "refusal") {
     throw new Error("The model declined to read this file.");
@@ -147,6 +168,7 @@ export async function extractReceipt(
         unit: typeof it.unit === "string" ? it.unit : undefined,
         cost: typeof it.cost === "number" ? it.cost : undefined,
         specs: typeof it.specs === "string" ? it.specs : undefined,
+        partOfKit: typeof it.partOfKit === "string" ? it.partOfKit : undefined,
       })),
     extractedAt: new Date().toISOString(),
   };

@@ -72,7 +72,9 @@ export function PurchaseForm() {
           {analyzing ? "Reading…" : "Read with AI — fill the form for me"}
         </button>
         {analyzing ? (
-          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>usually 10–30 seconds</span>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+            usually 10–60 seconds — kits get looked up to expand their contents
+          </span>
         ) : null}
         {analysis.error ? (
           <span style={{ color: "var(--danger)", fontSize: 13 }}>{analysis.error}</span>
