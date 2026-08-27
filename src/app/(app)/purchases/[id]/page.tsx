@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/page-header";
 import { ReceiptIcon } from "@/components/icons";
 import { DeleteButton } from "@/components/delete-button";
 import { ExtractButton } from "@/components/extract-button";
+import { RemoveItemButton } from "@/components/remove-item-button";
 
 export default async function PurchaseDetailPage({
   params,
@@ -141,7 +142,20 @@ export default async function PurchaseDetailPage({
                               ) : null}
                             </td>
                             <td>{item.category ?? item.type ?? "—"}</td>
-                            <td>{item.quantity != null ? `${item.quantity} ${item.unit ?? ""}` : "—"}</td>
+                            <td>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                                <input
+                                  type="number"
+                                  name={`qty_${idx}`}
+                                  defaultValue={item.quantity ?? 1}
+                                  step="any"
+                                  min="0"
+                                  className="field"
+                                  style={{ width: 72, padding: "5px 8px", fontSize: 12 }}
+                                />
+                                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{item.unit ?? "ct"}</span>
+                              </span>
+                            </td>
                             <td style={{ textAlign: "right" }}>{formatCost(item.cost ?? null)}</td>
                           </tr>
                         ))}
@@ -163,13 +177,20 @@ export default async function PurchaseDetailPage({
                 </form>
               </div>
             </div>
+          ) : p.proposalAppliedAt && equipItems.length + ingItems.length > 0 ? (
+            <div className="panel" style={{ borderLeft: "3px solid var(--success)", padding: "12px 16px", fontSize: 13 }}>
+              Items imported from this receipt on{" "}
+              {formatDate(p.proposalAppliedAt)} — this happens once. Remove items below
+              if something&apos;s wrong (removing everything re-enables the import).
+            </div>
           ) : p.receiptPath ? (
             <div className="panel">
               <div className="panel-heading">Import items from this receipt</div>
               <div className="panel-body" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ fontSize: 13 }}>
-                  Claude reads the receipt and proposes equipment and ingredient rows —
-                  you review every line before anything is written.
+                  Claude reads the receipt once and proposes equipment and ingredient
+                  rows — you set quantities and review every line before anything is
+                  written.
                 </div>
                 <ExtractButton purchaseId={p.id} />
               </div>
@@ -188,13 +209,19 @@ export default async function PurchaseDetailPage({
                   {equipItems.map((e) => (
                     <li key={`e${e.id}`}>
                       <Link href={`/equipment/${e.id}/edit`}>{e.name}</Link>
-                      <span style={{ color: "var(--text-faint)" }}> · equipment</span>
+                      <span style={{ color: "var(--text-faint)" }}>
+                        {" "}· equipment{e.specs ? ` · ${e.specs}` : ""}
+                      </span>{" "}
+                      <RemoveItemButton kind="equipment" itemId={e.id} purchaseId={p.id} name={e.name} />
                     </li>
                   ))}
                   {ingItems.map((i) => (
                     <li key={`i${i.id}`}>
                       <Link href={`/ingredients/${i.id}/edit`}>{i.name}</Link>
-                      <span style={{ color: "var(--text-faint)" }}> · ingredient</span>
+                      <span style={{ color: "var(--text-faint)" }}>
+                        {" "}· ingredient{i.quantity != null ? ` · ${i.quantity} ${i.unit}` : ""}
+                      </span>{" "}
+                      <RemoveItemButton kind="ingredient" itemId={i.id} purchaseId={p.id} name={i.name} />
                     </li>
                   ))}
                 </ul>

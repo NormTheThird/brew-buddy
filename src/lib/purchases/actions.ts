@@ -223,6 +223,19 @@ export async function runReceiptExtraction(
   if (!p.receiptPath || !p.receiptMime) {
     return { error: "This purchase has no stored receipt." };
   }
+  // Read-once: after items were imported, don't offer another read unless
+  // everything imported has been removed again.
+  if (p.proposalAppliedAt) {
+    const linked =
+      db.select({ id: equipment.id }).from(equipment).where(eq(equipment.purchaseId, p.id)).all().length +
+      db.select({ id: ingredients.id }).from(ingredients).where(eq(ingredients.purchaseId, p.id)).all().length;
+    if (linked > 0) {
+      return {
+        error:
+          "Items were already imported from this receipt. Remove them from the purchase first if you need a redo.",
+      };
+    }
+  }
   if (!hasApiKey()) {
     return {
       error:
@@ -261,15 +274,17 @@ export async function applyProposal(formData: FormData): Promise<void> {
   for (const idx of accepted) {
     const item = proposal.items[idx];
     if (!item) continue;
+    // User-corrected quantity from the review table; at least 1 always.
+    const editedQty = num(formData.get(`qty_${idx}`));
+    const qty = editedQty ?? item.quantity ?? 1;
     if (item.kind === "equipment") {
       const category = equipmentCategories.includes(item.category as EquipmentCategory)
         ? (item.category as EquipmentCategory)
         : "other";
       // Countable equipment (caps, bottles) keeps its count in specs.
-      const qtyNote =
-        item.quantity != null ? `${item.quantity}${item.unit ? ` ${item.unit}` : " count"}` : null;
+      const qtyNote = `${qty}${item.unit ? ` ${item.unit}` : qty > 1 ? " count" : ""}`;
       const specs =
-        [item.specs, qtyNote && !(item.specs ?? "").includes(qtyNote) ? qtyNote : null]
+        [item.specs, qty > 1 && !(item.specs ?? "").includes(qtyNote) ? qtyNote : null]
           .filter(Boolean)
           .join(" · ") || null;
       await db.insert(equipment).values({
@@ -286,15 +301,14 @@ export async function applyProposal(formData: FormData): Promise<void> {
       const type = ingredientTypes.includes(item.type as IngredientType)
         ? (item.type as IngredientType)
         : "adjunct";
-      const qty = item.quantity ?? null;
       await db.insert(ingredients).values({
         userId: user.id,
         type,
         name: item.name,
         vendor: p.vendor,
         quantity: qty,
-        quantityOnHand: qty ?? 0,
-        unit: item.unit ?? "oz",
+        quantityOnHand: qty,
+        unit: item.unit ?? "ct",
         cost: item.cost ?? null,
         purchaseDate: p.purchaseDate,
         purchaseId: p.id,
@@ -304,12 +318,35 @@ export async function applyProposal(formData: FormData): Promise<void> {
 
   await db
     .update(purchases)
-    .set({ proposalJson: null })
+    .set({ proposalJson: null, proposalAppliedAt: new Date() })
     .where(eq(purchases.id, id));
   revalidatePath(`/purchases/${id}`);
   revalidatePath("/equipment");
   revalidatePath("/ingredients");
   redirect(`/purchases/${id}`);
+}
+
+/** Removes one imported item (equipment or ingredient row) from a purchase —
+    the after-the-fact fix for a bad apply. Deletes the row itself. */
+export async function removePurchaseItem(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const purchaseId = num(formData.get("purchaseId"));
+  const itemId = num(formData.get("itemId"));
+  const kind = str(formData.get("kind"));
+  if (purchaseId == null || itemId == null) return;
+  if (!ownedPurchase(purchaseId, user.id)) return;
+  if (kind === "equipment") {
+    await db
+      .delete(equipment)
+      .where(and(eq(equipment.id, itemId), eq(equipment.userId, user.id), eq(equipment.purchaseId, purchaseId)));
+    revalidatePath("/equipment");
+  } else if (kind === "ingredient") {
+    await db
+      .delete(ingredients)
+      .where(and(eq(ingredients.id, itemId), eq(ingredients.userId, user.id), eq(ingredients.purchaseId, purchaseId)));
+    revalidatePath("/ingredients");
+  }
+  revalidatePath(`/purchases/${purchaseId}`);
 }
 
 export async function discardProposal(formData: FormData): Promise<void> {

@@ -40,6 +40,7 @@ export const purchases = sqliteTable("purchases", {
   receiptPath: text("receipt_path"), // stored file under data/receipts/
   receiptMime: text("receipt_mime"),
   proposalJson: text("proposal_json"), // pending AI-extracted items awaiting review
+  proposalAppliedAt: integer("proposal_applied_at", { mode: "timestamp" }), // read/apply happens once
   notes: text("notes"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()

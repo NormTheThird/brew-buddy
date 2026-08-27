@@ -64,7 +64,8 @@ Return ONLY a JSON object as your final answer, no other text around it, with th
 Rules:
 - kind: consumables that go into beer (malt, extract, hops, yeast, sugar, finings, chemicals like Star San) are "ingredient"; durable goods are "equipment".
 - Only include real line items — skip shipping, tax, and subtotals (they belong in totalCost context, not items).
-- Omit any field you cannot read. Never invent a price or quantity for a receipt line.
+- Omit any field you cannot read. Never invent a price.
+- QUANTITY IS REQUIRED on every item row: use the stated amount and unit when given; otherwise quantity 1 (unit "ct" for countable things). Never leave quantity out.
 - purchaseDate: if the year is missing, infer it — receipts are from the past, so use the most recent year that puts the date at or before today.
 - KITS: if a line item is a kit, bundle, or starter set, determine its contents — use web search on the vendor + kit name if you don't know them — and expand it into one row per component with the right kind/category/type and "partOfKit" set to the kit's name. Do NOT emit a row for the kit container itself, and do NOT invent per-component prices (the kit's price stays at the purchase level). If you cannot determine the contents, fall back to a single row for the kit with no partOfKit.
 - KIT COMPONENT QUANTITIES: when the kit listing states counts, sizes, or amounts, capture them — ingredient components get "quantity"/"unit" (e.g. 6 lb LME, 4 oz cleaner); equipment components get counts and sizes in "specs" (e.g. "60 count" caps, "6.5 gal" bucket, "5/16 in × 4 ft" tubing) and "quantity" when it's a countable multiple. Only what the listing states — never invent numbers.
