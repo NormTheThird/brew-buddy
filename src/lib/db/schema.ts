@@ -81,6 +81,8 @@ export const equipment = sqliteTable("equipment", {
     .$defaultFn(() => new Date()),
 });
 
+// "chemical" is the home for consumable supplies — cleaners, sanitizers,
+// water treatment. They deplete like ingredients but never gate brewability.
 export const ingredientTypes = [
   "fermentable",
   "hop",
@@ -124,6 +126,9 @@ export const ingredients = sqliteTable("ingredients", {
   purchaseId: integer("purchase_id").references(() => purchases.id, {
     onDelete: "set null",
   }),
+  // Photo of the actual packet/label — AI reads lot, AA%, best-by from it.
+  photoPath: text("photo_path"),
+  photoMime: text("photo_mime"),
   notes: text("notes"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()

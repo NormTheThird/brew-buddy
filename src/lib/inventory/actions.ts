@@ -3,7 +3,11 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
+import fs from "node:fs";
+import path from "node:path";
 import { db } from "@/lib/db";
+import { extractLabel, isSupportedLabelType, type LabelProposal } from "./label-ai";
+import { hasApiKey } from "@/lib/purchases/receipt-ai";
 import {
   equipment,
   equipmentCategories,
@@ -16,6 +20,13 @@ import {
 import { getCurrentUser } from "@/lib/auth/session";
 
 export type FormState = { error?: string };
+export type LabelAnalyzeState = { error?: string; proposal?: LabelProposal };
+
+const LABELS_DIR = path.join(
+  path.dirname(process.env.DATABASE_PATH ?? "./data/brewbuddy.db"),
+  "labels"
+);
+const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
 
 function num(v: FormDataEntryValue | null): number | null {
   const s = String(v ?? "").trim();
@@ -176,6 +187,65 @@ function ingredientValues(formData: FormData) {
   } as const;
 }
 
+/** Reads a packet-label photo BEFORE the lot exists — pre-fills the form. */
+export async function analyzeLabel(
+  _prev: LabelAnalyzeState,
+  formData: FormData
+): Promise<LabelAnalyzeState> {
+  await requireUser();
+  const photo = formData.get("photo");
+  if (!(photo instanceof File) || photo.size === 0) {
+    return { error: "Choose a photo of the packet first." };
+  }
+  if (!isSupportedLabelType(photo.type)) {
+    return { error: "Photo must be JPG/PNG/WebP/GIF." };
+  }
+  if (photo.size > MAX_PHOTO_BYTES) {
+    return { error: "Photo is over 12 MB — resize and retry." };
+  }
+  if (!hasApiKey()) {
+    return { error: "No Anthropic API key configured — add ANTHROPIC_API_KEY to .env." };
+  }
+  try {
+    const proposal = await extractLabel(
+      Buffer.from(await photo.arrayBuffer()),
+      photo.type
+    );
+    return { proposal };
+  } catch (e) {
+    return {
+      error: `Reading failed: ${e instanceof Error ? e.message : "unknown error"}`,
+    };
+  }
+}
+
+async function storeLabelPhoto(
+  formData: FormData,
+  id: number,
+  userId: number
+): Promise<void> {
+  const photo = formData.get("photo");
+  if (!(photo instanceof File) || photo.size === 0) return;
+  if (!isSupportedLabelType(photo.type) || photo.size > MAX_PHOTO_BYTES) return;
+  const owned = db
+    .select({ id: ingredients.id })
+    .from(ingredients)
+    .where(and(eq(ingredients.id, id), eq(ingredients.userId, userId)))
+    .all()[0];
+  if (!owned) return;
+  fs.mkdirSync(LABELS_DIR, { recursive: true });
+  const ext = photo.type.split("/")[1];
+  const rel = `${id}.${ext}`;
+  fs.writeFileSync(
+    path.join(LABELS_DIR, rel),
+    Buffer.from(await photo.arrayBuffer())
+  );
+  await db
+    .update(ingredients)
+    .set({ photoPath: rel, photoMime: photo.type })
+    .where(and(eq(ingredients.id, id), eq(ingredients.userId, userId)));
+}
+
 export async function createIngredient(
   _prev: FormState,
   formData: FormData
@@ -185,9 +255,11 @@ export async function createIngredient(
   if ("error" in parsed) return { error: parsed.error };
   const purchaseId = ownedPurchaseId(formData.get("purchaseId"), user.id);
   if (purchaseId != null && typeof purchaseId === "object") return purchaseId;
-  await db
+  const inserted = await db
     .insert(ingredients)
-    .values({ userId: user.id, purchaseId, ...parsed.values });
+    .values({ userId: user.id, purchaseId, ...parsed.values })
+    .returning({ id: ingredients.id });
+  await storeLabelPhoto(formData, inserted[0].id, user.id);
   revalidatePath("/ingredients");
   redirect("/ingredients");
 }
@@ -207,6 +279,7 @@ export async function updateIngredient(
     .update(ingredients)
     .set({ ...parsed.values, purchaseId })
     .where(and(eq(ingredients.id, id), eq(ingredients.userId, user.id)));
+  await storeLabelPhoto(formData, id, user.id);
   revalidatePath("/ingredients");
   redirect("/ingredients");
 }

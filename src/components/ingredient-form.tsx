@@ -1,10 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Ingredient, IngredientType } from "@/lib/db/schema";
 import { ingredientTypes } from "@/lib/db/schema";
-import type { FormState } from "@/lib/inventory/actions";
+import { analyzeLabel, type FormState, type LabelAnalyzeState } from "@/lib/inventory/actions";
 
 const typeLabels: Record<IngredientType, string> = {
   fermentable: "Fermentable",
@@ -46,10 +46,61 @@ export function IngredientForm({
     action,
     {}
   );
+  const [labelState, labelAction, reading] = useActionState<LabelAnalyzeState, FormData>(
+    analyzeLabel,
+    {}
+  );
   const [type, setType] = useState<IngredientType>(item?.type ?? "fermentable");
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Dispatch analyze WITHOUT submitting the form (a form action would make
+  // React reset the fields, losing the chosen photo before Create).
+  function readLabel() {
+    if (!formRef.current) return;
+    const fd = new FormData(formRef.current);
+    startTransition(() => labelAction(fd));
+  }
+
+  // Fill only fields the user hasn't touched; the form stays uncontrolled,
+  // so set DOM values directly (they're what the submit sends).
+  useEffect(() => {
+    const p = labelState.proposal;
+    const form = formRef.current;
+    if (!p || !form) return;
+    if (p.type && ingredientTypes.includes(p.type as IngredientType)) {
+      setType(p.type as IngredientType);
+    }
+    // Type-specific fields render after setType — fill on the next frame.
+    requestAnimationFrame(() => {
+      const fill = (fieldName: string, value: string | number | undefined) => {
+        if (value == null) return;
+        const el = form.elements.namedItem(fieldName);
+        if (el instanceof HTMLInputElement && !el.value) el.value = String(value);
+        if (el instanceof HTMLSelectElement && value) el.value = String(value);
+      };
+      fill("name", p.name);
+      fill("quantity", p.quantity);
+      fill("quantityOnHand", undefined); // on-hand stays the user's call
+      if (p.unit) fill("unit", p.unit);
+      fill("lotNumber", p.lotNumber);
+      fill("bestByDate", p.bestByDate);
+      fill("alphaAcidPercent", p.alphaAcidPercent);
+      if (p.hopForm) fill("hopForm", p.hopForm);
+      fill("ppg", p.ppg);
+      fill("colorLovibond", p.colorLovibond);
+      fill("strain", p.strain);
+      fill("manufacturer", p.manufacturer);
+      fill("productCode", p.productCode);
+      fill("attenuationPercent", p.attenuationPercent);
+      fill("tempRangeMinF", p.tempRangeMinF);
+      fill("tempRangeMaxF", p.tempRangeMaxF);
+      fill("notes", p.notes);
+    });
+  }, [labelState.proposal]);
 
   return (
     <form
+      ref={formRef}
       action={formAction}
       className="panel"
       style={{
@@ -61,6 +112,30 @@ export function IngredientForm({
       }}
     >
       {item ? <input type="hidden" name="id" value={item.id} /> : null}
+      <div>
+        <label className="field-label" htmlFor="photo">Photo of the packet (optional)</label>
+        <input id="photo" name="photo" type="file" accept="image/*" capture="environment" className="field" style={{ padding: 8 }} />
+        <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
+          <button type="button" onClick={readLabel} className="btn" disabled={reading || pending}>
+            {reading ? "Reading label…" : "Read label with AI — fill the form for me"}
+          </button>
+          {reading ? <span style={{ fontSize: 12, color: "var(--text-muted)" }}>usually 10–30 seconds</span> : null}
+          {labelState.error ? <span style={{ color: "var(--danger)", fontSize: 13 }}>{labelState.error}</span> : null}
+          {labelState.proposal ? (
+            <span style={{ color: "var(--success)", fontSize: 13 }}>
+              Label read — check the fields, especially lot and best-by.
+            </span>
+          ) : null}
+        </div>
+        {item?.photoPath ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={`/ingredients/${item.id}/photo`}
+            alt={`Packet photo for ${item.name}`}
+            style={{ maxWidth: 220, borderRadius: 3, border: "1px solid var(--border)", marginTop: 8 }}
+          />
+        ) : null}
+      </div>
       <Row>
         <div>
           <label className="field-label" htmlFor="type">Type</label>
