@@ -13,11 +13,11 @@ import {
   equipment,
   equipmentCategories,
   extractions,
-  ingredients,
-  ingredientTypes,
+  stock,
+  stockTypes,
   purchases,
   type EquipmentCategory,
-  type IngredientType,
+  type StockType,
 } from "@/lib/db/schema";
 import { notInArray } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -359,18 +359,18 @@ export async function deletePurchase(formData: FormData): Promise<void> {
       )
     );
   await db
-    .delete(ingredients)
+    .delete(stock)
     .where(
       and(
-        eq(ingredients.purchaseId, id),
-        eq(ingredients.createdByImport, true),
-        usedIngIds.length ? notInArray(ingredients.id, usedIngIds) : undefined
+        eq(stock.purchaseId, id),
+        eq(stock.createdByImport, true),
+        usedIngIds.length ? notInArray(stock.id, usedIngIds) : undefined
       )
     );
   await db.delete(purchases).where(eq(purchases.id, id));
   revalidatePath("/purchases");
   revalidatePath("/equipment");
-  revalidatePath("/ingredients");
+  revalidatePath("/stock");
   redirect("/purchases");
 }
 
@@ -391,7 +391,7 @@ export async function runReceiptExtraction(
   if (p.proposalAppliedAt) {
     const linked =
       db.select({ id: equipment.id }).from(equipment).where(eq(equipment.purchaseId, p.id)).all().length +
-      db.select({ id: ingredients.id }).from(ingredients).where(eq(ingredients.purchaseId, p.id)).all().length;
+      db.select({ id: stock.id }).from(stock).where(eq(stock.purchaseId, p.id)).all().length;
     if (linked > 0) {
       return {
         error:
@@ -518,21 +518,21 @@ export async function applyProposal(formData: FormData): Promise<void> {
         } else {
           const existing = db
             .select()
-            .from(ingredients)
-            .where(and(eq(ingredients.id, existingId), eq(ingredients.userId, user.id)))
+            .from(stock)
+            .where(and(eq(stock.id, existingId), eq(stock.userId, user.id)))
             .all()[0];
           if (existing) {
             // Restock: buying more of the same ingredient/supply tops up the
             // existing row's quantities instead of creating a new line.
             await db
-              .update(ingredients)
+              .update(stock)
               .set({
                 ...patch,
                 quantity: (existing.quantity ?? 0) + qty,
                 quantityOnHand: existing.quantityOnHand + qty,
                 unit: existing.unit ?? item.unit ?? "ct",
               })
-              .where(eq(ingredients.id, existing.id));
+              .where(eq(stock.id, existing.id));
           }
         }
         continue;
@@ -561,10 +561,10 @@ export async function applyProposal(formData: FormData): Promise<void> {
         createdByImport: true,
       });
     } else {
-      const type = ingredientTypes.includes(item.type as IngredientType)
-        ? (item.type as IngredientType)
+      const type = stockTypes.includes(item.type as StockType)
+        ? (item.type as StockType)
         : "adjunct";
-      await db.insert(ingredients).values({
+      await db.insert(stock).values({
         userId: user.id,
         type,
         name: item.name,
@@ -586,7 +586,7 @@ export async function applyProposal(formData: FormData): Promise<void> {
     .where(eq(purchases.id, id));
   revalidatePath(`/purchases/${p.id}`);
   revalidatePath("/equipment");
-  revalidatePath("/ingredients");
+  revalidatePath("/stock");
   redirect(`/purchases/${p.id}`);
 }
 
@@ -647,9 +647,9 @@ export async function removePurchaseItem(formData: FormData): Promise<void> {
     revalidatePath("/equipment");
   } else if (kind === "ingredient") {
     await db
-      .delete(ingredients)
-      .where(and(eq(ingredients.id, itemId), eq(ingredients.userId, user.id), eq(ingredients.purchaseId, purchaseId)));
-    revalidatePath("/ingredients");
+      .delete(stock)
+      .where(and(eq(stock.id, itemId), eq(stock.userId, user.id), eq(stock.purchaseId, purchaseId)));
+    revalidatePath("/stock");
   }
   revalidatePath(`/purchases/${p.id}`);
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { equipment, ingredients, purchases } from "@/lib/db/schema";
+import { equipment, stock, purchases } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { formatCost, formatDate } from "@/lib/inventory/format";
 import { PageHeader } from "@/components/page-header";
@@ -58,9 +58,9 @@ export default async function PurchasesPage({
     .where(eq(equipment.userId, user.id))
     .all();
   const ingCounts = db
-    .select({ purchaseId: ingredients.purchaseId })
-    .from(ingredients)
-    .where(eq(ingredients.userId, user.id))
+    .select({ purchaseId: stock.purchaseId })
+    .from(stock)
+    .where(eq(stock.userId, user.id))
     .all();
   const itemCount = (id: string) =>
     equipCounts.filter((e) => e.purchaseId === id).length +

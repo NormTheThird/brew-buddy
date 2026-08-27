@@ -15,7 +15,7 @@ import {
 const items = [
   { href: "/", label: "Dashboard", icon: GridIcon },
   { href: "/equipment", label: "Equipment", icon: BoxIcon },
-  { href: "/ingredients", label: "Ingredients", icon: DropletIcon },
+  { href: "/stock", label: "Stock", icon: DropletIcon },
   { href: "/purchases", label: "Purchases", icon: ReceiptIcon },
   { href: "/recipes", label: "Recipes", icon: BookIcon },
   { href: "/batches", label: "Batches", icon: LayersIcon },

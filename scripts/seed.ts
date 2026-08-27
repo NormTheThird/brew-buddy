@@ -9,7 +9,7 @@ import {
   batchIngredients,
   equipment,
   gravityReadings,
-  ingredients,
+  stock,
   recipeItems,
   recipes,
   users,
@@ -60,7 +60,6 @@ async function seedEquipment(userId: string) {
     { category: "measurement", name: "SOLIGT hydrometer + test jar", specs: "SG / Brix / ABV triple scale", flag: "not calibrated" },
     { category: "measurement", name: "Digital scale", specs: null },
     { category: "bottling", name: "Bottling bucket + filler + capper", specs: "6.5 gal · spigot · spring-tip filler" },
-    { category: "bottling", name: "Brown bottles, 12 oz", specs: "~50 count · non-twist-off" },
     { category: "cleaning", name: "Star San + no-rinse cleanser", specs: "1.5 tsp/gal working dilution · bottle brush" },
     { category: "water", name: "Home RO system", specs: "preferred source from batch 2 on" },
     { category: "other", name: '21" stainless spoon + spray bottles', specs: "24 oz Veco, 360° nozzle — foam control" },
@@ -83,18 +82,18 @@ async function seedEquipment(userId: string) {
 }
 
 // Batch-1 ingredient lots from brief §8 — all consumed, so on-hand is 0.
-async function seedIngredients(userId: string) {
+async function seedStock(userId: string) {
   const existing = db
-    .select({ id: ingredients.id })
-    .from(ingredients)
-    .where(eq(ingredients.userId, userId))
+    .select({ id: stock.id })
+    .from(stock)
+    .where(eq(stock.userId, userId))
     .all();
   if (existing.length > 0) {
     console.log("Ingredients already seeded.");
     return;
   }
   const aug2026 = new Date("2026-08-15");
-  await db.insert(ingredients).values([
+  await db.insert(stock).values([
     {
       userId,
       type: "fermentable",
@@ -150,6 +149,17 @@ async function seedIngredients(userId: string) {
       quantityOnHand: 1,
       unit: "gal",
       notes: "From the home RO system — effectively unlimited; the default from batch 2 on",
+    },
+    {
+      // Bottles are stock, not equipment — they leave with the beer and come
+      // back only sometimes. Counted like caps.
+      userId,
+      type: "supply",
+      name: "Brown bottles, 12 oz",
+      quantity: 50,
+      quantityOnHand: 50,
+      unit: "ct",
+      notes: "Non-twist-off — count is approximate; drops as beer is handed out",
     },
     {
       userId,
@@ -258,9 +268,9 @@ async function seedRecipesAndBatch1(userId: string) {
 
   const lot = (name: string) =>
     db
-      .select({ id: ingredients.id })
-      .from(ingredients)
-      .where(and(eq(ingredients.userId, userId), eq(ingredients.name, name)))
+      .select({ id: stock.id })
+      .from(stock)
+      .where(and(eq(stock.userId, userId), eq(stock.name, name)))
       .all()[0]?.id ?? null;
 
   await db.insert(batchIngredients).values([
@@ -285,7 +295,7 @@ async function seedRecipesAndBatch1(userId: string) {
 async function main() {
   const userId = await seedAdmin();
   await seedEquipment(userId);
-  await seedIngredients(userId);
+  await seedStock(userId);
   await seedRecipesAndBatch1(userId);
 }
 

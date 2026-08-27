@@ -9,10 +9,10 @@ import {
   batchIngredients,
   batchStatuses,
   gravityReadings,
-  ingredientTypes,
+  stockTypes,
   recipeItems,
   recipes,
-  type IngredientType,
+  type StockType,
 } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { parseBeerXml } from "./beerxml";
@@ -132,8 +132,8 @@ export async function addRecipeItem(formData: FormData): Promise<void> {
   const user = await requireUser();
   const recipeId = str(formData.get("recipeId"));
   const name = str(formData.get("name"));
-  const type = str(formData.get("ingredientType")) as IngredientType | null;
-  if (recipeId == null || !name || !type || !ingredientTypes.includes(type)) return;
+  const type = str(formData.get("ingredientType")) as StockType | null;
+  if (recipeId == null || !name || !type || !stockTypes.includes(type)) return;
   if (!ownedRecipe(recipeId, user.id)) return;
   const count = db
     .select({ id: recipeItems.id })

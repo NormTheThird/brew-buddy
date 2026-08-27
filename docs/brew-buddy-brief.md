@@ -79,6 +79,14 @@ Purchase
 ```
 
 ### Ingredient (per-purchase, not per-type — lot matters)
+
+> **Amendment (2026-08-27):** this entity is now named **Stock** (table `stock`,
+> page "Stock"). The split is durable vs consumable: equipment is one row per
+> unit (vessels/instruments each have their own history), stock is everything
+> that flows in and out on a quantity basis — ingredients, supplies (incl.
+> bottles and caps), chemicals, water. Types gained "supply". In batch context
+> the word "ingredient" survives (`batch_ingredients` snapshot, recipe item
+> types) because there it means "what went into the beer".
 ```
 Ingredient
   Id, Type (Fermentable | Hop | Yeast | Adjunct | Water | Chemical)

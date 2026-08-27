@@ -15,6 +15,39 @@ this area again.
 
 ---
 
+## 2026-08-27 — Ingredients renamed to Stock; bottles are stock now
+
+Trey's framing, which the model already secretly agreed with: the real split is
+**durable vs consumable**, not equipment vs ingredients. So the consumables
+side is now **Stock** — ingredients, supplies, chemicals, water, anything that
+flows in and out on a quantity basis. Renamed all the way down so the code
+doesn't lie: route `/ingredients` → `/stock`, nav + page "Stock", table
+`ingredients` → `stock` (live ALTER TABLE rename; backup at
+`data/brewbuddy.pre-stock.bak.db`), schema exports `stock`/`stockTypes`/
+`StockItem`/`StockType`, actions `createStockItem`/`updateStockItem`/
+`deleteStockItem`, component `stock-form.tsx`.
+
+Deliberately NOT renamed: `batch_ingredients` + `ingredientId` (in a batch,
+"ingredients as brewed" is the right word), `recipeItems.ingredientType`
+(recipe lines are brewing inputs), and the AI proposal wire format
+`kind: "equipment" | "ingredient"` (cached extraction logs store it; the UI
+maps supply-type rows to a SUPPLY badge anyway).
+
+Equipment stays one-row-per-unit even for identical duplicates — batches
+reference a specific vessel (kettleId/fermenterId) and per-unit constants/
+calibration are the point. Countable gear that leaves with the beer is stock:
+**Brown bottles moved from equipment to stock** (supply, 50 ct) in both the
+live DB and seed. Receipt-AI rules now classify bottles as a restockable
+supply, never equipment — EXTRACTION_RULES_VERSION bumped to "3" (invalidates
+cached reads, intentional).
+
+Also: dashboard had a local `stock` variable that collided with the schema
+import after the rename (renamed to `stockRows`), and the route-folder rename
+needed the dev server stopped first (Next's watcher holds the directory on
+Windows). Brief amended at the Ingredient entity section.
+
+---
+
 ## 2026-08-27 — All primary keys are GUIDs; pending-review status; supplies labeled
 
 Trey asked for integer keys to go away entirely (sequential ids leak record

@@ -4,10 +4,10 @@ import { purchases } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { PageHeader } from "@/components/page-header";
 import { DropletIcon } from "@/components/icons";
-import { IngredientForm } from "@/components/ingredient-form";
-import { createIngredient } from "@/lib/inventory/actions";
+import { StockForm } from "@/components/stock-form";
+import { createStockItem } from "@/lib/inventory/actions";
 
-export default async function NewIngredientPage() {
+export default async function NewStockItemPage() {
   const user = (await getCurrentUser())!;
   const purchaseOptions = db
     .select({ id: purchases.id, name: purchases.name })
@@ -22,7 +22,7 @@ export default async function NewIngredientPage() {
         title="Add a purchase lot"
         subtitle="One row per packet — capture the lot number and its real numbers"
       />
-      <IngredientForm action={createIngredient} purchaseOptions={purchaseOptions} />
+      <StockForm action={createStockItem} purchaseOptions={purchaseOptions} />
     </>
   );
 }

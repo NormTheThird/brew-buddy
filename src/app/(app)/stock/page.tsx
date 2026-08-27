@@ -1,15 +1,15 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { ingredients, ingredientTypes, purchases, type Ingredient, type IngredientType } from "@/lib/db/schema";
+import { stock, stockTypes, purchases, type StockItem, type StockType } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
-import { deleteIngredient } from "@/lib/inventory/actions";
+import { deleteStockItem } from "@/lib/inventory/actions";
 import { bestByStatus, formatCost, formatDate, formatMonth, formatMonthYearNumeric, formatQuantity } from "@/lib/inventory/format";
 import { PageHeader } from "@/components/page-header";
 import { DropletIcon } from "@/components/icons";
 import { DeleteButton } from "@/components/delete-button";
 
-const typeLabels: Record<IngredientType, string> = {
+const typeLabels: Record<StockType, string> = {
   fermentable: "Fermentable",
   hop: "Hop",
   yeast: "Yeast",
@@ -19,7 +19,7 @@ const typeLabels: Record<IngredientType, string> = {
   chemical: "Chemical",
 };
 
-const typeBadge: Record<IngredientType, string> = {
+const typeBadge: Record<StockType, string> = {
   fermentable: "var(--primary)",
   hop: "var(--success)",
   yeast: "var(--info)",
@@ -29,7 +29,7 @@ const typeBadge: Record<IngredientType, string> = {
   chemical: "#a6725b",
 };
 
-function keyNumbers(i: Ingredient): React.ReactNode {
+function keyNumbers(i: StockItem): React.ReactNode {
   if (i.type === "hop") {
     return (
       <>
@@ -69,21 +69,21 @@ function BestBy({ d }: { d: Date | null }) {
   );
 }
 
-export default async function IngredientsPage({
+export default async function StockPage({
   searchParams,
 }: {
   searchParams: Promise<{ type?: string }>;
 }) {
   const user = (await getCurrentUser())!;
   const { type } = await searchParams;
-  const filter = ingredientTypes.includes((type ?? "") as IngredientType)
-    ? (type as IngredientType)
+  const filter = stockTypes.includes((type ?? "") as StockType)
+    ? (type as StockType)
     : null;
 
   const all = db
     .select()
-    .from(ingredients)
-    .where(eq(ingredients.userId, user.id))
+    .from(stock)
+    .where(eq(stock.userId, user.id))
     .all();
 
   const purchaseNames = new Map(
@@ -97,7 +97,7 @@ export default async function IngredientsPage({
 
   const shown = (filter ? all.filter((i) => i.type === filter) : all).sort(
     (a, b) =>
-      ingredientTypes.indexOf(a.type) - ingredientTypes.indexOf(b.type) ||
+      stockTypes.indexOf(a.type) - stockTypes.indexOf(b.type) ||
       a.name.localeCompare(b.name)
   );
 
@@ -107,16 +107,16 @@ export default async function IngredientsPage({
     <>
       <PageHeader
         icon={<DropletIcon size={40} />}
-        title="Ingredients & supplies"
-        subtitle="Tracked per purchase — because this packet is never the next packet"
-        actions={<Link href="/ingredients/new" className="btn btn-solid">+ Add purchase</Link>}
+        title="Stock"
+        subtitle="Ingredients, supplies, chemicals, water — tracked per purchase lot, in and out on quantity"
+        actions={<Link href="/stock/new" className="btn btn-solid">+ Add purchase</Link>}
       />
       <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
-        <FilterChip href="/ingredients" label="All" active={filter === null} />
-        {ingredientTypes.map((t) => (
+        <FilterChip href="/stock" label="All" active={filter === null} />
+        {stockTypes.map((t) => (
           <FilterChip
             key={t}
-            href={`/ingredients?type=${t}`}
+            href={`/stock?type=${t}`}
             label={typeLabels[t]}
             active={filter === t}
           />
@@ -128,7 +128,7 @@ export default async function IngredientsPage({
           style={{ borderLeft: "3px solid var(--accent)", padding: "12px 16px", fontSize: 13, marginBottom: 18 }}
         >
           Stock is empty — everything on hand was used. Add a purchase when the next
-          ingredients arrive; the shopping list comes with recipes in milestone 3.
+          order arrives; the shopping list comes with recipes in milestone 3.
         </div>
       ) : null}
       <div className="panel">
@@ -199,10 +199,10 @@ export default async function IngredientsPage({
                       )}
                     </td>
                     <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                      <Link href={`/ingredients/${i.id}/edit`}>Edit</Link>
+                      <Link href={`/stock/${i.id}/edit`}>Edit</Link>
                       {" · "}
                       <DeleteButton
-                        action={deleteIngredient}
+                        action={deleteStockItem}
                         id={i.id}
                         confirmText={`Delete lot "${i.name}"? This can't be undone.`}
                       />

@@ -1,4 +1,4 @@
-import type { Ingredient, RecipeItem } from "@/lib/db/schema";
+import type { StockItem, RecipeItem } from "@/lib/db/schema";
 import { nameMatches } from "@/lib/inventory/match";
 
 /* Brewability (brief v1): resolve a recipe's items against live stock.
@@ -12,7 +12,7 @@ export type Brewability =
 
 export function checkBrewability(
   items: RecipeItem[],
-  stock: Ingredient[]
+  stock: StockItem[]
 ): Brewability {
   const gating = items.filter(
     (i) =>

@@ -1,14 +1,14 @@
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { ingredients, purchases } from "@/lib/db/schema";
+import { stock, purchases } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { PageHeader } from "@/components/page-header";
 import { DropletIcon } from "@/components/icons";
-import { IngredientForm } from "@/components/ingredient-form";
-import { updateIngredient } from "@/lib/inventory/actions";
+import { StockForm } from "@/components/stock-form";
+import { updateStockItem } from "@/lib/inventory/actions";
 
-export default async function EditIngredientPage({
+export default async function EditStockItemPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -18,8 +18,8 @@ export default async function EditIngredientPage({
 
   const item = db
     .select()
-    .from(ingredients)
-    .where(and(eq(ingredients.id, id), eq(ingredients.userId, user.id)))
+    .from(stock)
+    .where(and(eq(stock.id, id), eq(stock.userId, user.id)))
     .all()[0];
   if (!item) notFound();
 
@@ -36,7 +36,7 @@ export default async function EditIngredientPage({
         title={`Edit — ${item.name}`}
         subtitle={item.lotNumber ? `Lot ${item.lotNumber}` : undefined}
       />
-      <IngredientForm action={updateIngredient} item={item} purchaseOptions={purchaseOptions} />
+      <StockForm action={updateStockItem} item={item} purchaseOptions={purchaseOptions} />
     </>
   );
 }

@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { ingredientTypes } from "@/lib/db/schema";
+import { stockTypes } from "@/lib/db/schema";
 
 /* AI label reading: a photo of the actual packet (hop bag, yeast sachet,
    extract jug, sanitizer bottle) → the lot's real numbers. Pre-fills the
@@ -40,7 +40,7 @@ function buildPrompt(): string {
 Return ONLY a JSON object, no other text:
 {
   "name": "product name as a brewer would say it, e.g. 'Willamette, pellet'",
-  "type": one of ${JSON.stringify(ingredientTypes)},
+  "type": one of ${JSON.stringify(stockTypes)},
   "manufacturer": "e.g. Fermentis",
   "productCode": "product/SKU code if printed",
   "lotNumber": "lot or batch number if printed",

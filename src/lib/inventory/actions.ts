@@ -11,11 +11,11 @@ import { hasApiKey } from "@/lib/purchases/receipt-ai";
 import {
   equipment,
   equipmentCategories,
-  ingredients,
-  ingredientTypes,
+  stock,
+  stockTypes,
   purchases,
   type EquipmentCategory,
-  type IngredientType,
+  type StockType,
 } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 
@@ -148,11 +148,11 @@ export async function deleteEquipment(formData: FormData): Promise<void> {
 
 /* ---------------- ingredient lots ---------------- */
 
-function ingredientValues(formData: FormData) {
+function stockItemValues(formData: FormData) {
   const name = str(formData.get("name"));
-  const type = str(formData.get("type")) as IngredientType | null;
+  const type = str(formData.get("type")) as StockType | null;
   if (!name) return { error: "Name is required." } as const;
-  if (!type || !ingredientTypes.includes(type)) {
+  if (!type || !stockTypes.includes(type)) {
     return { error: "Pick a type." } as const;
   }
   const hopForm = str(formData.get("hopForm"));
@@ -228,9 +228,9 @@ async function storeLabelPhoto(
   if (!(photo instanceof File) || photo.size === 0) return;
   if (!isSupportedLabelType(photo.type) || photo.size > MAX_PHOTO_BYTES) return;
   const owned = db
-    .select({ id: ingredients.id })
-    .from(ingredients)
-    .where(and(eq(ingredients.id, id), eq(ingredients.userId, userId)))
+    .select({ id: stock.id })
+    .from(stock)
+    .where(and(eq(stock.id, id), eq(stock.userId, userId)))
     .all()[0];
   if (!owned) return;
   fs.mkdirSync(LABELS_DIR, { recursive: true });
@@ -241,56 +241,56 @@ async function storeLabelPhoto(
     Buffer.from(await photo.arrayBuffer())
   );
   await db
-    .update(ingredients)
+    .update(stock)
     .set({ photoPath: rel, photoMime: photo.type })
-    .where(and(eq(ingredients.id, id), eq(ingredients.userId, userId)));
+    .where(and(eq(stock.id, id), eq(stock.userId, userId)));
 }
 
-export async function createIngredient(
+export async function createStockItem(
   _prev: FormState,
   formData: FormData
 ): Promise<FormState> {
   const user = await requireUser();
-  const parsed = ingredientValues(formData);
+  const parsed = stockItemValues(formData);
   if ("error" in parsed) return { error: parsed.error };
   const purchaseId = ownedPurchaseId(formData.get("purchaseId"), user.id);
   if (purchaseId != null && typeof purchaseId === "object") return purchaseId;
   const inserted = await db
-    .insert(ingredients)
+    .insert(stock)
     .values({ userId: user.id, purchaseId, ...parsed.values })
-    .returning({ id: ingredients.id });
+    .returning({ id: stock.id });
   await storeLabelPhoto(formData, inserted[0].id, user.id);
-  revalidatePath("/ingredients");
-  redirect("/ingredients");
+  revalidatePath("/stock");
+  redirect("/stock");
 }
 
-export async function updateIngredient(
+export async function updateStockItem(
   _prev: FormState,
   formData: FormData
 ): Promise<FormState> {
   const user = await requireUser();
   const id = str(formData.get("id"));
   if (id == null) return { error: "Missing id." };
-  const parsed = ingredientValues(formData);
+  const parsed = stockItemValues(formData);
   if ("error" in parsed) return { error: parsed.error };
   const purchaseId = ownedPurchaseId(formData.get("purchaseId"), user.id);
   if (purchaseId != null && typeof purchaseId === "object") return purchaseId;
   await db
-    .update(ingredients)
+    .update(stock)
     .set({ ...parsed.values, purchaseId })
-    .where(and(eq(ingredients.id, id), eq(ingredients.userId, user.id)));
+    .where(and(eq(stock.id, id), eq(stock.userId, user.id)));
   await storeLabelPhoto(formData, id, user.id);
-  revalidatePath("/ingredients");
-  redirect("/ingredients");
+  revalidatePath("/stock");
+  redirect("/stock");
 }
 
-export async function deleteIngredient(formData: FormData): Promise<void> {
+export async function deleteStockItem(formData: FormData): Promise<void> {
   const user = await requireUser();
   const id = str(formData.get("id"));
   if (id == null) return;
   await db
-    .delete(ingredients)
-    .where(and(eq(ingredients.id, id), eq(ingredients.userId, user.id)));
-  revalidatePath("/ingredients");
-  redirect("/ingredients");
+    .delete(stock)
+    .where(and(eq(stock.id, id), eq(stock.userId, user.id)));
+  revalidatePath("/stock");
+  redirect("/stock");
 }

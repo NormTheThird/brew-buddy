@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Batch, Ingredient, RecipeItem } from "@/lib/db/schema";
+import type { Batch, StockItem, RecipeItem } from "@/lib/db/schema";
 import { learnedConstants } from "./constants";
 import { checkBrewability } from "./brewability";
 import { nextActions, fermentationDay } from "./schedule";
@@ -56,12 +56,12 @@ describe("checkBrewability", () => {
     const stock = [
       { type: "fermentable", name: "Gold LME", quantityOnHand: 6 },
       { type: "hop", name: "Willamette, pellet", quantityOnHand: 1 },
-    ] as Ingredient[];
+    ] as StockItem[];
     expect(checkBrewability(items, stock).verdict).toBe("can_brew");
   });
 
   it("ignores zero-stock lots", () => {
-    const stock = [{ type: "hop", name: "Willamette, pellet", quantityOnHand: 0 }] as Ingredient[];
+    const stock = [{ type: "hop", name: "Willamette, pellet", quantityOnHand: 0 }] as StockItem[];
     const r = checkBrewability(items, stock);
     expect(r.verdict).toBe("need_to_buy");
   });

@@ -2,11 +2,11 @@
 
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import type { Ingredient, IngredientType } from "@/lib/db/schema";
-import { ingredientTypes } from "@/lib/db/schema";
+import type { StockItem, StockType } from "@/lib/db/schema";
+import { stockTypes } from "@/lib/db/schema";
 import { analyzeLabel, type FormState, type LabelAnalyzeState } from "@/lib/inventory/actions";
 
-const typeLabels: Record<IngredientType, string> = {
+const typeLabels: Record<StockType, string> = {
   fermentable: "Fermentable",
   hop: "Hop",
   yeast: "Yeast",
@@ -34,13 +34,13 @@ function Row({ children, cols = 3 }: { children: React.ReactNode; cols?: number 
   );
 }
 
-export function IngredientForm({
+export function StockForm({
   action,
   item,
   purchaseOptions = [],
 }: {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
-  item?: Ingredient;
+  item?: StockItem;
   purchaseOptions?: Array<{ id: string; name: string }>;
 }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(
@@ -51,7 +51,7 @@ export function IngredientForm({
     analyzeLabel,
     {}
   );
-  const [type, setType] = useState<IngredientType>(item?.type ?? "fermentable");
+  const [type, setType] = useState<StockType>(item?.type ?? "fermentable");
   const formRef = useRef<HTMLFormElement>(null);
 
   // Dispatch analyze WITHOUT submitting the form (a form action would make
@@ -68,8 +68,8 @@ export function IngredientForm({
     const p = labelState.proposal;
     const form = formRef.current;
     if (!p || !form) return;
-    if (p.type && ingredientTypes.includes(p.type as IngredientType)) {
-      setType(p.type as IngredientType);
+    if (p.type && stockTypes.includes(p.type as StockType)) {
+      setType(p.type as StockType);
     }
     // Type-specific fields render after setType — fill on the next frame.
     requestAnimationFrame(() => {
@@ -131,7 +131,7 @@ export function IngredientForm({
         {item?.photoPath ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={`/ingredients/${item.id}/photo`}
+            src={`/stock/${item.id}/photo`}
             alt={`Packet photo for ${item.name}`}
             style={{ maxWidth: 220, borderRadius: 3, border: "1px solid var(--border)", marginTop: 8 }}
           />
@@ -145,9 +145,9 @@ export function IngredientForm({
             name="type"
             className="field"
             value={type}
-            onChange={(e) => setType(e.target.value as IngredientType)}
+            onChange={(e) => setType(e.target.value as StockType)}
           >
-            {ingredientTypes.map((t) => (
+            {stockTypes.map((t) => (
               <option key={t} value={t}>{typeLabels[t]}</option>
             ))}
           </select>
@@ -288,7 +288,7 @@ export function IngredientForm({
         <button type="submit" className="btn btn-solid" disabled={pending}>
           {pending ? "Saving…" : item ? "Save changes" : "Add lot"}
         </button>
-        <Link href="/ingredients" className="btn">Cancel</Link>
+        <Link href="/stock" className="btn">Cancel</Link>
       </div>
     </form>
   );

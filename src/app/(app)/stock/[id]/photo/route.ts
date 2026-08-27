@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import fs from "node:fs";
 import path from "node:path";
 import { db } from "@/lib/db";
-import { ingredients } from "@/lib/db/schema";
+import { stock } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 
 const LABELS_DIR = path.join(
@@ -23,8 +23,8 @@ export async function GET(
 
   const row = db
     .select()
-    .from(ingredients)
-    .where(and(eq(ingredients.id, id), eq(ingredients.userId, user.id)))
+    .from(stock)
+    .where(and(eq(stock.id, id), eq(stock.userId, user.id)))
     .all()[0];
   if (!row?.photoPath || !row.photoMime) {
     return new NextResponse("Not found", { status: 404 });

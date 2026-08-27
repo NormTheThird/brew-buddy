@@ -107,9 +107,9 @@ export const equipment = sqliteTable("equipment", {
 });
 
 // "chemical" (cleaners, sanitizers, water treatment) and "supply" (countable
-// consumables: bottle caps, bags, filters, corks) deplete like ingredients
+// consumables: bottle caps, bags, filters, corks) deplete like stock
 // but never gate brewability. Restocking adds to their quantity.
-export const ingredientTypes = [
+export const stockTypes = [
   "fermentable",
   "hop",
   "yeast",
@@ -121,12 +121,12 @@ export const ingredientTypes = [
 
 // One row per PURCHASE LOT, not per ingredient type (brief §3) — the lot's
 // numbers (AA%, best-by, generation) are what replication runs on.
-export const ingredients = sqliteTable("ingredients", {
+export const stock = sqliteTable("stock", {
   id: text("id").primaryKey().$defaultFn(uuid),
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  type: text("type", { enum: ingredientTypes }).notNull(),
+  type: text("type", { enum: stockTypes }).notNull(),
   name: text("name").notNull(),
   vendor: text("vendor"),
   lotNumber: text("lot_number"),
@@ -199,7 +199,7 @@ export const recipeItems = sqliteTable("recipe_items", {
   recipeId: text("recipe_id")
     .notNull()
     .references(() => recipes.id, { onDelete: "cascade" }),
-  ingredientType: text("ingredient_type", { enum: ingredientTypes }).notNull(),
+  ingredientType: text("ingredient_type", { enum: stockTypes }).notNull(),
   name: text("name").notNull(),
   amount: real("amount"),
   unit: text("unit").notNull().default("oz"),
@@ -272,7 +272,7 @@ export const batchIngredients = sqliteTable("batch_ingredients", {
   batchId: text("batch_id")
     .notNull()
     .references(() => batches.id, { onDelete: "cascade" }),
-  ingredientId: text("ingredient_id").references(() => ingredients.id, {
+  ingredientId: text("ingredient_id").references(() => stock.id, {
     onDelete: "set null",
   }),
   description: text("description").notNull(),
@@ -295,7 +295,7 @@ export const gravityReadings = sqliteTable("gravity_readings", {
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type Equipment = typeof equipment.$inferSelect;
-export type Ingredient = typeof ingredients.$inferSelect;
+export type StockItem = typeof stock.$inferSelect;
 export type Purchase = typeof purchases.$inferSelect;
 export type Recipe = typeof recipes.$inferSelect;
 export type RecipeItem = typeof recipeItems.$inferSelect;
@@ -304,4 +304,4 @@ export type BatchIngredient = typeof batchIngredients.$inferSelect;
 export type GravityReading = typeof gravityReadings.$inferSelect;
 export type BatchStatus = (typeof batchStatuses)[number];
 export type EquipmentCategory = (typeof equipmentCategories)[number];
-export type IngredientType = (typeof ingredientTypes)[number];
+export type StockType = (typeof stockTypes)[number];

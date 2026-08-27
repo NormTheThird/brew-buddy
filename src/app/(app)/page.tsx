@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { batches, equipment, ingredients, recipeItems, recipes } from "@/lib/db/schema";
+import { batches, equipment, stock, recipeItems, recipes } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { isEstimated, batchStatusBadge, recipeDisplayStatus, statusBadge } from "@/lib/brewing/display";
 import { learnedConstants } from "@/lib/brewing/constants";
@@ -37,7 +37,7 @@ export default async function DashboardPage() {
           .where(inArray(recipeItems.recipeId, allRecipes.map((r) => r.id)))
           .all()
       : [];
-  const stock = db.select().from(ingredients).where(eq(ingredients.userId, user.id)).all();
+  const stockRows = db.select().from(stock).where(eq(stock.userId, user.id)).all();
   const gear = db.select().from(equipment).where(and(eq(equipment.userId, user.id), eq(equipment.status, "active"))).all();
 
   const kettle = gear.find((g) => g.category === "kettle");
@@ -160,7 +160,7 @@ export default async function DashboardPage() {
                 const rb = allBatches.filter((b) => b.recipeId === r.id);
                 const st = recipeDisplayStatus(r, rb);
                 const badge = statusBadge[st];
-                const brewability = checkBrewability(allItems.filter((i) => i.recipeId === r.id), stock);
+                const brewability = checkBrewability(allItems.filter((i) => i.recipeId === r.id), stockRows);
                 return (
                   <div key={r.id} style={{ padding: "8px 0", borderTop: "1px solid var(--border-row)", fontSize: 13 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>

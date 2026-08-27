@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { equipmentCategories, ingredientTypes } from "@/lib/db/schema";
+import { equipmentCategories, stockTypes } from "@/lib/db/schema";
 
 /* AI receipt extraction. The model proposes items; nothing is written until
    the user reviews and applies — an AI misread must never silently become
@@ -39,7 +39,7 @@ export function hasApiKey(): boolean {
 
 /** Bump whenever the extraction rules change — cached reads from older rule
     versions are then ignored instead of serving stale results. */
-export const EXTRACTION_RULES_VERSION = "2";
+export const EXTRACTION_RULES_VERSION = "3";
 
 /** "Amazon.com" / "Amazon (Hobby Homebrew)" → "Amazon" — one canonical name
     per retailer, whatever the receipt says. */
@@ -72,7 +72,7 @@ Return ONLY a JSON object as your final answer, no other text around it, with th
       "kind": "equipment" | "ingredient",
       "name": "item name as a brewer would say it",
       "category": one of ${JSON.stringify(equipmentCategories)} (equipment only),
-      "type": one of ${JSON.stringify(ingredientTypes)} (ingredients only),
+      "type": one of ${JSON.stringify(stockTypes)} (ingredients only),
       "quantity": 6, "unit": "lb" (ingredients, if stated),
       "cost": 12.34 (this line's price, if itemized),
       "specs": "short spec string (equipment, if stated)",
@@ -86,7 +86,7 @@ Rules:
 - kind: consumables that go into beer (malt, extract, hops, yeast, sugar, finings, chemicals like Star San) are "ingredient"; durable goods are "equipment".
 - MIXED ORDERS: include non-brewing items (sunglasses, clothing, household goods) as rows so the totals reconcile, but set "notBrewing": true on them — the app leaves them unchecked for import.
 - AIRLOCKS ARE ALWAYS THEIR OWN EQUIPMENT ROW — they move between vessels and get replaced independently. A vessel's attached lid, spigot, or gasket folds into the vessel ("fermenter bucket with gasketed lid & spigot"); the airlock does not.
-- COUNTABLE CONSUMABLES — bottle caps, corks, filters — are kind "ingredient" with type "supply" and a real quantity (e.g. 60 ct caps). NEVER fold a consumable into the tool that uses it: caps and capper are separate rows.
+- COUNTABLE CONSUMABLES — bottles, bottle caps, corks, filters — are kind "ingredient" with type "supply" and a real quantity (e.g. 48 ct bottles, 60 ct caps). Bottles are consumables, not equipment: they leave with the beer. NEVER fold a consumable into the tool that uses it: caps and capper are separate rows.
 - SINGLE-USE KIT PACKAGING is not an item: a muslin/steeping bag included with a kit's grains folds into the grains row ("Kit steeping grains (with muslin bag)") — no row of its own. Bags bought SEPARATELY (reusable mesh/hop/BIAB bags) are equipment.
 - INCLUDED ACCESSORIES ARE NOT SEPARATE ITEMS: a case, sleeve, stand, storage tube, lid, spigot, or test jar that comes WITH a product is part of that product — one row, e.g. "Hydrometer with case and test jar", with the accessory noted in the name or specs. Never emit the accessory as its own row.
 - Only include real line items — skip shipping, tax, and subtotals (they belong in totalCost context, not items).

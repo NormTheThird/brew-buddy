@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { equipment, ingredients, purchases } from "@/lib/db/schema";
+import { equipment, stock, purchases } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { applyProposal, combineProposalItems, deletePurchase, discardProposal } from "@/lib/purchases/actions";
 import type { ReceiptProposal } from "@/lib/purchases/receipt-ai";
@@ -38,8 +38,8 @@ export default async function PurchaseDetailPage({
     .all();
   const ingItems = db
     .select()
-    .from(ingredients)
-    .where(and(eq(ingredients.purchaseId, p.id), eq(ingredients.userId, user.id)))
+    .from(stock)
+    .where(and(eq(stock.purchaseId, p.id), eq(stock.userId, user.id)))
     .all();
 
   const proposal: ReceiptProposal | null = p.proposalJson
@@ -52,7 +52,7 @@ export default async function PurchaseDetailPage({
     ? db.select().from(equipment).where(eq(equipment.userId, user.id)).all()
     : [];
   const allIng = proposal
-    ? db.select().from(ingredients).where(eq(ingredients.userId, user.id)).all()
+    ? db.select().from(stock).where(eq(stock.userId, user.id)).all()
     : [];
   const matches: Array<{ id: string; name: string } | undefined> = (proposal?.items ?? []).map(
     (item) => {
@@ -298,7 +298,7 @@ export default async function PurchaseDetailPage({
                   ))}
                   {ingItems.map((i) => (
                     <li key={`i${i.id}`}>
-                      <Link href={`/ingredients/${i.id}/edit`}>{i.name}</Link>
+                      <Link href={`/stock/${i.id}/edit`}>{i.name}</Link>
                       <span style={{ color: "var(--text-faint)" }}>
                         {" "}· {i.type === "supply" ? "supply" : "ingredient"}{i.quantity != null ? ` · ${i.quantity} ${i.unit}` : ""}
                       </span>{" "}
