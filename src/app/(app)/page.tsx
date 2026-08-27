@@ -71,7 +71,7 @@ export default async function DashboardPage() {
       <div className="dash-grid">
         <div className="panel dash-span-2">
           <div className="panel-heading">Active batch<Link href="/batches" style={{ fontSize: 12 }}>All batches</Link></div>
-          <div className="panel-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="panel-body" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             {!active ? (
               <div style={{ fontSize: 13, color: "var(--text-muted)" }}>Nothing fermenting — pick a recipe and brew.</div>
             ) : (
@@ -94,7 +94,7 @@ export default async function DashboardPage() {
                   {activeAbv != null ? <span>ABV {activeAbv.toFixed(1)}%</span> : null}
                 </div>
                 {day != null && active.status === "fermenting" ? (
-                  <div style={{ background: "var(--field)", borderRadius: 3, height: 8, overflow: "hidden" }}>
+                  <div style={{ background: "var(--field)", borderRadius: 3, height: 8, overflow: "hidden", margin: "6px 0" }}>
                     <div style={{ background: "var(--accent)", height: 8, width: `${Math.min(100, Math.max(2, (day / 14) * 100))}%` }} />
                   </div>
                 ) : null}
@@ -198,6 +198,19 @@ export default async function DashboardPage() {
                 const st = recipeDisplayStatus(r, rb);
                 const badge = statusBadge[st];
                 const brewability = checkBrewability(allItems.filter((i) => i.recipeId === r.id), stockRows);
+                // What matters depends on where the recipe is in its life:
+                // brewing now → the batch; brewed before → outcome + re-brew;
+                // never brewed → can I start, and what's missing.
+                const inProgress = rb.find((b) => b.status !== "completed");
+                const lastDone = rb
+                  .filter((b) => b.status === "completed")
+                  .sort((a, b) => (b.brewDate?.getTime() ?? 0) - (a.brewDate?.getTime() ?? 0))[0];
+                const shopping =
+                  brewability.verdict === "no_items"
+                    ? "no ingredient spec yet"
+                    : brewability.verdict === "can_brew"
+                      ? `✓ can ${rb.length ? "re-brew" : "brew"} from stock`
+                      : `to ${rb.length ? "re-brew" : "brew"}, buy: ${brewability.missing.slice(0, 3).join(", ")}${brewability.missing.length > 3 ? "…" : ""}`;
                 return (
                   <div key={r.id} style={{ padding: "8px 0", borderTop: "1px solid var(--border-row)", fontSize: 13 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
@@ -205,11 +218,26 @@ export default async function DashboardPage() {
                       <span className="badge" style={{ background: badge.color }}>{badge.label}</span>
                     </div>
                     <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
-                      {brewability.verdict === "no_items"
-                        ? "no ingredient spec yet"
-                        : brewability.verdict === "can_brew"
-                          ? "✓ can brew from stock"
-                          : `need to buy: ${brewability.missing.slice(0, 3).join(", ")}${brewability.missing.length > 3 ? "…" : ""}`}
+                      {inProgress ? (
+                        <Link href={`/batches/${inProgress.id}`} style={{ color: "var(--text-muted)" }}>
+                          batch #{inProgress.batchNumber} {inProgress.status}
+                          {inProgress.status === "fermenting" && fermentationDay(inProgress) != null
+                            ? ` · day ${fermentationDay(inProgress)}`
+                            : ""}
+                          {" →"}
+                        </Link>
+                      ) : lastDone ? (
+                        <>
+                          last brewed{" "}
+                          {lastDone.brewDate?.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) ?? "—"}
+                          {lastDone.keeper ? " · keeper" : ""}
+                          {lastDone.verdict ? ` · “${lastDone.verdict}”` : ""}
+                          {" · "}
+                          {shopping}
+                        </>
+                      ) : (
+                        shopping
+                      )}
                     </div>
                   </div>
                 );
