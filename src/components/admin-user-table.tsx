@@ -97,42 +97,53 @@ function UserRow({ user: u, meId }: { user: AdminUserRow; meId: string }) {
         <td style={{ whiteSpace: "nowrap" }}>{formatMonth(u.createdAt)}</td>
         <td style={{ whiteSpace: "nowrap" }}>{u.lastSignInAt ? formatMonth(u.lastSignInAt) : "never"}</td>
         <td style={{ textAlign: "right" }}>
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", alignItems: "center", flexWrap: "wrap" }}>
-            <button
-              type="button"
-              className="btn"
-              style={{ padding: "4px 12px", fontSize: 12 }}
-              onClick={() => setEditing((e) => !e)}
-            >
-              {editing ? "Close" : "Edit"}
-            </button>
-            <ResetPasswordForm userId={u.id} userName={u.name} />
-            {u.id !== meId ? (
-              <form action={setUserActive} style={{ display: "inline" }}>
-                <input type="hidden" name="id" value={u.id} />
-                <input type="hidden" name="active" value={(!u.active).toString()} />
-                {u.active ? (
-                  <button type="submit" className="btn btn-danger" style={{ padding: "4px 12px", fontSize: 12 }}>
-                    Deactivate
-                  </button>
-                ) : (
-                  <button
-                    type="submit"
-                    className="btn"
-                    style={{ padding: "4px 12px", fontSize: 12, borderColor: "var(--success)", color: "var(--success)" }}
-                  >
-                    Reactivate
-                  </button>
-                )}
-              </form>
-            ) : null}
-          </div>
+          <button
+            type="button"
+            className="btn"
+            style={{ padding: "4px 14px", fontSize: 12, borderColor: "var(--success)", color: "var(--success)" }}
+            onClick={() => setEditing((e) => !e)}
+          >
+            {editing ? "Close" : "Edit"}
+          </button>
         </td>
       </tr>
       {editing ? (
         <tr>
           <td colSpan={7} style={{ borderTop: "none", paddingTop: 0 }}>
             <EditUserForm user={u} onDone={() => setEditing(false)} />
+            <div
+              style={{
+                display: "flex",
+                gap: 12,
+                alignItems: "center",
+                flexWrap: "wrap",
+                borderTop: "1px solid var(--border-row)",
+                paddingTop: 10,
+                marginTop: 4,
+                paddingBottom: 8,
+              }}
+            >
+              <ResetPasswordForm userId={u.id} userName={u.name} />
+              {u.id !== meId ? (
+                <form action={setUserActive} style={{ display: "inline", marginLeft: "auto" }}>
+                  <input type="hidden" name="id" value={u.id} />
+                  <input type="hidden" name="active" value={(!u.active).toString()} />
+                  {u.active ? (
+                    <button type="submit" className="btn btn-danger" style={{ padding: "4px 12px", fontSize: 12 }}>
+                      Deactivate
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      className="btn"
+                      style={{ padding: "4px 12px", fontSize: 12, borderColor: "var(--success)", color: "var(--success)" }}
+                    >
+                      Reactivate
+                    </button>
+                  )}
+                </form>
+              ) : null}
+            </div>
           </td>
         </tr>
       ) : null}
