@@ -197,7 +197,7 @@ export default async function PurchaseDetailPage({
           {p.notes ? (
             <div className="panel">
               <div className="panel-heading">Notes</div>
-              <div className="panel-body" style={{ fontSize: 13 }}>{p.notes}</div>
+              <div className="panel-body" style={{ fontSize: 13, whiteSpace: "pre-line" }}>{p.notes}</div>
             </div>
           ) : null}
         </div>

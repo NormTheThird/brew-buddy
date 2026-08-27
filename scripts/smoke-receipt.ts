@@ -16,7 +16,11 @@ async function main() {
     console.error("usage: tsx scripts/smoke-receipt.ts <image-or-pdf>");
     process.exit(1);
   }
-  const mime = file.endsWith(".pdf") ? "application/pdf" : "image/png";
+  const mime = file.endsWith(".pdf")
+    ? "application/pdf"
+    : file.endsWith(".txt")
+      ? "text/plain"
+      : "image/png";
   const proposal = await extractReceipt(fs.readFileSync(file), mime);
   console.log(JSON.stringify(proposal, null, 2));
 }

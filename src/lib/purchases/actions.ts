@@ -132,13 +132,33 @@ export async function createPurchase(
   // A proposal from the pre-create analyze step rides along so the item
   // review is waiting on the purchase page immediately.
   let proposalJson: string | null = null;
+  let proposal: ReceiptProposal | null = null;
   const rawProposal = str(formData.get("proposalJson"));
   if (rawProposal) {
     try {
       const parsed = JSON.parse(rawProposal) as ReceiptProposal;
-      if (Array.isArray(parsed.items)) proposalJson = rawProposal;
+      if (Array.isArray(parsed.items)) {
+        proposalJson = rawProposal;
+        proposal = parsed;
+      }
     } catch {}
   }
+
+  // Auto-notes: how the receipt arrived, and any discount code it carried.
+  const autoNotes: string[] = [];
+  if (receiptMime === "text/plain") autoNotes.push("Receipt: pasted order text");
+  else if (receiptMime === "application/pdf") autoNotes.push("Receipt: uploaded PDF");
+  else if (receiptMime) autoNotes.push("Receipt: uploaded photo");
+  if (proposal?.discountCode) {
+    autoNotes.push(
+      `Discount code ${proposal.discountCode}${
+        proposal.discountAmount != null ? ` (−$${proposal.discountAmount.toFixed(2)})` : ""
+      }`
+    );
+  }
+  const userNotes = str(formData.get("notes"));
+  const notes =
+    [userNotes, autoNotes.join(" · ")].filter(Boolean).join("\n") || null;
 
   const inserted = await db
     .insert(purchases)
@@ -149,7 +169,7 @@ export async function createPurchase(
       purchaseDate: date(formData.get("purchaseDate")),
       totalCost: num(formData.get("totalCost")),
       proposalJson,
-      notes: str(formData.get("notes")),
+      notes,
     })
     .returning({ id: purchases.id });
   const id = inserted[0].id;

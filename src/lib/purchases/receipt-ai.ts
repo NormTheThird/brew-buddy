@@ -21,6 +21,8 @@ export type ReceiptProposal = {
   vendor?: string;
   purchaseDate?: string; // YYYY-MM-DD
   totalCost?: number;
+  discountCode?: string; // promo/coupon code, e.g. WELCOME15
+  discountAmount?: number; // dollars saved
   items: ProposedItem[];
   extractedAt: string;
 };
@@ -38,6 +40,8 @@ Return ONLY a JSON object, no other text, with this shape:
 {
   "suggestedName": "a short human name for this purchase, from its main item or kit — e.g. 'Essential Homebrew Starter Kit'",
   "vendor": "store name if visible",
+  "discountCode": "promo/coupon code if one was used, e.g. WELCOME15",
+  "discountAmount": 14.99,
   "purchaseDate": "YYYY-MM-DD if visible",
   "totalCost": 123.45,
   "items": [
@@ -119,6 +123,10 @@ export async function extractReceipt(
     suggestedName:
       typeof parsed.suggestedName === "string" ? parsed.suggestedName : undefined,
     vendor: typeof parsed.vendor === "string" ? parsed.vendor : undefined,
+    discountCode:
+      typeof parsed.discountCode === "string" ? parsed.discountCode : undefined,
+    discountAmount:
+      typeof parsed.discountAmount === "number" ? parsed.discountAmount : undefined,
     purchaseDate:
       typeof parsed.purchaseDate === "string" ? parsed.purchaseDate : undefined,
     totalCost:

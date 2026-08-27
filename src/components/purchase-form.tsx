@@ -84,6 +84,9 @@ export function PurchaseForm() {
           {proposal.items.length > 0
             ? `: ${proposal.items.slice(0, 3).map((i) => i.name).join(", ")}${proposal.items.length > 3 ? "…" : ""}`
             : ""}
+          {proposal.discountCode
+            ? `. Discount code ${proposal.discountCode} spotted — it'll be noted on the purchase`
+            : ""}
           . Fields below are filled from the order — fix anything it misread, then
           create; you&apos;ll review the items before they&apos;re saved.
           <input type="hidden" name="proposalJson" value={JSON.stringify(proposal)} />
