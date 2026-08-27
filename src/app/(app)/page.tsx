@@ -9,7 +9,6 @@ import { isDue, nextActions, fermentationDay } from "@/lib/brewing/schedule";
 import { completeTask, uncompleteTask } from "@/lib/brewing/actions";
 import { checkBrewability } from "@/lib/brewing/brewability";
 import { abv } from "@/lib/calc/gravity";
-import { formatCost } from "@/lib/inventory/format";
 import { PageHeader } from "@/components/page-header";
 import { GridIcon } from "@/components/icons";
 
@@ -45,7 +44,6 @@ export default async function DashboardPage() {
   const kettleBatches = kettle ? allBatches.filter((b) => b.kettleId === kettle.id) : [];
   const constants = learnedConstants(kettleBatches);
   const flags = gear.filter((g) => g.flag).map((g) => `${g.name}: ${g.flag}`);
-  const gearCost = gear.reduce((s, g) => s + (g.cost ?? 0), 0);
 
   const doneKeys = new Set(
     active
@@ -158,7 +156,7 @@ export default async function DashboardPage() {
             </Row>
             <Row label="Chamber">{gear.find((g) => g.name.toLowerCase().includes("refrigerator")) ? "Garage fridge + Inkbird" : "—"}</Row>
             <div style={{ fontSize: 12, color: "var(--text-muted)", paddingTop: 10, borderTop: "1px solid var(--border-row)", marginTop: 4 }}>
-              {gear.length} active items{gearCost ? ` · ${formatCost(gearCost)} in gear` : ""}
+              {gear.length} active items
               {flags.length ? ` · ${flags.length} flag${flags.length > 1 ? "s" : ""}: ${flags.join("; ")}` : ""}
             </div>
           </div>
