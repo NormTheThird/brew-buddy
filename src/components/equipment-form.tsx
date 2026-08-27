@@ -80,14 +80,10 @@ export function EquipmentForm({
           <input id="quantity" name="quantity" type="number" step="1" min="1" className="field" defaultValue={item?.quantity ?? 1} />
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div>
           <label className="field-label" htmlFor="purchaseDate">Purchased</label>
           <input id="purchaseDate" name="purchaseDate" type="date" className="field" defaultValue={toDateInput(item?.purchaseDate ?? null)} />
-        </div>
-        <div>
-          <label className="field-label" htmlFor="cost">Cost ($)</label>
-          <input id="cost" name="cost" type="number" step="0.01" min="0" className="field" defaultValue={item?.cost ?? ""} />
         </div>
         <div>
           <label className="field-label" htmlFor="flag">Warning flag</label>

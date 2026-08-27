@@ -95,7 +95,8 @@ function equipmentValues(formData: FormData) {
       quantity: Math.max(1, Math.round(num(formData.get("quantity")) ?? 1)),
       flag: str(formData.get("flag")),
       purchaseDate: date(formData.get("purchaseDate")),
-      cost: num(formData.get("cost")),
+      // No cost field: paid gear arrives via purchases (which carry the
+      // money); manually-entered gear is the free stuff.
       notes: str(formData.get("notes")),
     },
   } as const;

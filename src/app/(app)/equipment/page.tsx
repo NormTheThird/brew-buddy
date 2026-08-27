@@ -114,9 +114,6 @@ export default async function EquipmentPage({
   const page = Math.min(Math.max(1, Number(params.page) || 1), pageCount);
   const shown = filtered.slice((page - 1) * perPage, page * perPage);
 
-  const enteredCosts = all
-    .filter((e) => e.status === "active" && e.cost != null)
-    .reduce((sum, e) => sum + (e.cost ?? 0), 0);
   const activeCount = all.filter((e) => e.status === "active").length;
   const wantedCount = all.filter((e) => e.status === "wanted").length;
 
@@ -133,11 +130,7 @@ export default async function EquipmentPage({
           </>
         }
       />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 20, marginBottom: 18 }}>
-        <div className="panel" style={{ borderLeft: "3px solid var(--accent)", padding: "12px 16px" }}>
-          <div className="field-label" style={{ marginBottom: 0 }}>Entered costs</div>
-          <div style={{ color: "var(--text-bright)", fontSize: 19, fontWeight: 300 }}>{formatCost(enteredCosts || null)}</div>
-        </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 20, marginBottom: 18 }}>
         <div className="panel" style={{ borderLeft: "3px solid var(--success)", padding: "12px 16px" }}>
           <div className="field-label" style={{ marginBottom: 0 }}>Active items</div>
           <div style={{ color: "var(--text-bright)", fontSize: 19, fontWeight: 300 }}>{activeCount}</div>

@@ -127,7 +127,7 @@ export default async function DashboardPage() {
             </Row>
             <Row label="Chamber">{gear.find((g) => g.name.toLowerCase().includes("refrigerator")) ? "Garage fridge + Inkbird" : "—"}</Row>
             <div style={{ fontSize: 12, color: "var(--text-muted)", paddingTop: 10, borderTop: "1px solid var(--border-row)", marginTop: 4 }}>
-              {gear.length} active items{gearCost ? ` · ${formatCost(gearCost)} entered` : ""}
+              {gear.length} active items{gearCost ? ` · ${formatCost(gearCost)} in gear` : ""}
               {flags.length ? ` · ${flags.length} flag${flags.length > 1 ? "s" : ""}: ${flags.join("; ")}` : ""}
             </div>
           </div>
