@@ -5,10 +5,12 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { db } from "@/lib/db";
 import {
   equipment,
   equipmentCategories,
+  extractions,
   ingredients,
   ingredientTypes,
   purchases,
@@ -55,6 +57,50 @@ async function requireUser() {
   return user;
 }
 
+/* --- extraction log: the same receipt is only ever read once --- */
+
+function receiptHash(bytes: Buffer): string {
+  return crypto.createHash("sha256").update(bytes).digest("hex");
+}
+
+function loggedProposal(userId: number, hash: string): ReceiptProposal | null {
+  const row = db
+    .select()
+    .from(extractions)
+    .where(and(eq(extractions.userId, userId), eq(extractions.sha256, hash)))
+    .all()[0];
+  if (!row) return null;
+  try {
+    return JSON.parse(row.proposalJson) as ReceiptProposal;
+  } catch {
+    return null;
+  }
+}
+
+async function logProposal(userId: number, hash: string, proposal: ReceiptProposal) {
+  await db
+    .delete(extractions)
+    .where(and(eq(extractions.userId, userId), eq(extractions.sha256, hash)));
+  await db
+    .insert(extractions)
+    .values({ userId, sha256: hash, proposalJson: JSON.stringify(proposal) });
+}
+
+/** Read from the log if this exact receipt was read before; otherwise call
+    the AI once and log the result. */
+async function extractOnce(
+  userId: number,
+  bytes: Buffer,
+  mime: string
+): Promise<ReceiptProposal> {
+  const hash = receiptHash(bytes);
+  const cached = loggedProposal(userId, hash);
+  if (cached) return cached;
+  const proposal = await extractReceipt(bytes, mime);
+  await logProposal(userId, hash, proposal);
+  return proposal;
+}
+
 function ownedPurchase(id: number, userId: number) {
   return db
     .select()
@@ -69,7 +115,7 @@ export async function analyzeReceipt(
   _prev: AnalyzeState,
   formData: FormData
 ): Promise<AnalyzeState> {
-  await requireUser();
+  const user = await requireUser();
   const receipt = formData.get("receipt");
   const pastedText = str(formData.get("receiptText"));
   let bytes: Buffer | null = null;
@@ -94,7 +140,7 @@ export async function analyzeReceipt(
     return { error: "No Anthropic API key configured — add ANTHROPIC_API_KEY to .env." };
   }
   try {
-    return { proposal: await extractReceipt(bytes, mime) };
+    return { proposal: await extractOnce(user.id, bytes, mime) };
   } catch (e) {
     return {
       error: `Reading failed: ${e instanceof Error ? e.message : "unknown error"}`,
@@ -171,6 +217,7 @@ export async function createPurchase(
       userId: user.id,
       name,
       vendor: str(formData.get("vendor")),
+      orderNumber: str(formData.get("orderNumber")),
       purchaseDate: date(formData.get("purchaseDate")),
       totalCost: num(formData.get("totalCost")),
       proposalJson,
@@ -251,7 +298,7 @@ export async function runReceiptExtraction(
   let proposal: ReceiptProposal;
   try {
     const bytes = fs.readFileSync(path.join(RECEIPTS_DIR, p.receiptPath));
-    proposal = await extractReceipt(bytes, p.receiptMime);
+    proposal = await extractOnce(user.id, bytes, p.receiptMime);
   } catch (e) {
     return {
       error: `Receipt reading failed: ${e instanceof Error ? e.message : "unknown error"}`,
@@ -262,6 +309,48 @@ export async function runReceiptExtraction(
     .update(purchases)
     .set({ proposalJson: JSON.stringify(proposal) })
     .where(eq(purchases.id, id));
+  revalidatePath(`/purchases/${id}`);
+  return {};
+}
+
+/** Rescan: re-reads the receipt WITH the previous result and the user's
+    feedback so it improves instead of starting over. Updates the log. */
+export async function rescanReceipt(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const user = await requireUser();
+  const id = num(formData.get("id"));
+  if (id == null) return { error: "Missing purchase id." };
+  const p = ownedPurchase(id, user.id);
+  if (!p?.receiptPath || !p.receiptMime) {
+    return { error: "This purchase has no stored receipt." };
+  }
+  if (!hasApiKey()) {
+    return { error: "No Anthropic API key configured — add ANTHROPIC_API_KEY to .env." };
+  }
+
+  const hint = str(formData.get("hint")) ?? undefined;
+  let previous: ReceiptProposal | undefined;
+  if (p.proposalJson) {
+    try {
+      previous = JSON.parse(p.proposalJson) as ReceiptProposal;
+    } catch {}
+  }
+
+  try {
+    const bytes = fs.readFileSync(path.join(RECEIPTS_DIR, p.receiptPath));
+    const proposal = await extractReceipt(bytes, p.receiptMime, { previous, hint });
+    await logProposal(user.id, receiptHash(bytes), proposal);
+    await db
+      .update(purchases)
+      .set({ proposalJson: JSON.stringify(proposal) })
+      .where(eq(purchases.id, id));
+  } catch (e) {
+    return {
+      error: `Rescan failed: ${e instanceof Error ? e.message : "unknown error"}`,
+    };
+  }
   revalidatePath(`/purchases/${id}`);
   return {};
 }

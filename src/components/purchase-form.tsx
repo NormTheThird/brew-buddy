@@ -22,6 +22,7 @@ export function PurchaseForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const [name, setName] = useState("");
   const [vendor, setVendor] = useState("");
+  const [orderNumber, setOrderNumber] = useState("");
   const [purchaseDate, setPurchaseDate] = useState("");
   const [totalCost, setTotalCost] = useState("");
   const [notes, setNotes] = useState("");
@@ -41,6 +42,7 @@ export function PurchaseForm() {
     if (!p) return;
     setName((v) => v || p.suggestedName || "");
     setVendor((v) => v || p.vendor || "");
+    setOrderNumber((v) => v || p.orderNumber || "");
     setPurchaseDate((v) => v || p.purchaseDate || "");
     setTotalCost((v) => v || (p.totalCost != null ? String(p.totalCost) : ""));
     // Auto-notes appear here, visible and editable before create.
@@ -118,10 +120,14 @@ export function PurchaseForm() {
         <label className="field-label" htmlFor="name">Name</label>
         <input id="name" name="name" className="field" placeholder='e.g. "Block Party Amber kit"' value={name} onChange={(e) => setName(e.target.value)} required />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div>
           <label className="field-label" htmlFor="vendor">Vendor</label>
           <input id="vendor" name="vendor" className="field" placeholder="Northern Brewer" value={vendor} onChange={(e) => setVendor(e.target.value)} />
+        </div>
+        <div>
+          <label className="field-label" htmlFor="orderNumber">Order / invoice #</label>
+          <input id="orderNumber" name="orderNumber" className="field" value={orderNumber} onChange={(e) => setOrderNumber(e.target.value)} />
         </div>
         <div>
           <label className="field-label" htmlFor="purchaseDate">Date</label>

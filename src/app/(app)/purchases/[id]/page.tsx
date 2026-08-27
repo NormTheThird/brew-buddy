@@ -13,6 +13,7 @@ import { ReceiptIcon } from "@/components/icons";
 import { DeleteButton } from "@/components/delete-button";
 import { ExtractButton } from "@/components/extract-button";
 import { RemoveItemButton } from "@/components/remove-item-button";
+import { RescanControls } from "@/components/rescan-controls";
 import { findLikelyMatch } from "@/lib/inventory/match";
 
 export default async function PurchaseDetailPage({
@@ -73,7 +74,12 @@ export default async function PurchaseDetailPage({
       <PageHeader
         icon={<ReceiptIcon size={40} />}
         title={p.name}
-        subtitle={[p.vendor, formatDate(p.purchaseDate), formatCost(p.totalCost)]
+        subtitle={[
+          p.vendor,
+          p.orderNumber ? `Order ${p.orderNumber}` : null,
+          formatDate(p.purchaseDate),
+          formatCost(p.totalCost),
+        ]
           .filter((s) => s && s !== "—")
           .join(" · ")}
         actions={
@@ -221,6 +227,7 @@ export default async function PurchaseDetailPage({
                     Discard proposal
                   </button>
                 </form>
+                <RescanControls purchaseId={p.id} />
               </div>
             </div>
           ) : p.proposalAppliedAt && equipItems.length + ingItems.length > 0 ? (

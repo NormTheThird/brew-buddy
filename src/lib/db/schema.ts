@@ -35,6 +35,7 @@ export const purchases = sqliteTable("purchases", {
     .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   vendor: text("vendor"),
+  orderNumber: text("order_number"), // invoice/order number for admin lookups
   purchaseDate: integer("purchase_date", { mode: "timestamp" }),
   totalCost: real("total_cost"),
   receiptPath: text("receipt_path"), // stored file under data/receipts/
@@ -42,6 +43,20 @@ export const purchases = sqliteTable("purchases", {
   proposalJson: text("proposal_json"), // pending AI-extracted items awaiting review
   proposalAppliedAt: integer("proposal_applied_at", { mode: "timestamp" }), // read/apply happens once
   notes: text("notes"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+// Log of every AI receipt read, keyed by content hash: the same receipt is
+// only ever read once — later reads return the logged result instantly.
+export const extractions = sqliteTable("extractions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  sha256: text("sha256").notNull(),
+  proposalJson: text("proposal_json").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

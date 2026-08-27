@@ -20,6 +20,7 @@ export type ProposedItem = {
 export type ReceiptProposal = {
   suggestedName?: string;
   vendor?: string;
+  orderNumber?: string;
   purchaseDate?: string; // YYYY-MM-DD
   totalCost?: number;
   discountCode?: string; // promo/coupon code, e.g. WELCOME15
@@ -43,6 +44,7 @@ Return ONLY a JSON object as your final answer, no other text around it, with th
 {
   "suggestedName": "a short human name for this purchase, from its main item or kit — e.g. 'Essential Homebrew Starter Kit'",
   "vendor": "store name if visible",
+  "orderNumber": "order/invoice number if visible, e.g. 5500001631510",
   "discountCode": "promo/coupon code if one was used, e.g. WELCOME15",
   "discountAmount": 14.99,
   "purchaseDate": "YYYY-MM-DD if visible",
@@ -72,13 +74,29 @@ Rules:
 - NESTED KITS: a kit inside a kit (e.g. a recipe/ingredient kit bundled in a starter kit) also expands into its components (fermentables, hops, yeast, finings) when its contents are known, each with partOfKit set to the inner kit's name; otherwise leave it as one row.`;
 }
 
+export type ExtractOptions = {
+  /** A previous read of the same receipt — the model builds on it instead of starting over. */
+  previous?: ReceiptProposal;
+  /** User feedback steering a rescan, e.g. "you missed the bottle capper". */
+  hint?: string;
+};
+
 export async function extractReceipt(
   fileBytes: Buffer,
-  mime: string
+  mime: string,
+  opts: ExtractOptions = {}
 ): Promise<ReceiptProposal> {
   const client = new Anthropic();
 
-  const prompt = buildPrompt();
+  let prompt = buildPrompt();
+  if (opts.previous) {
+    prompt += `\n\nA previous read of this SAME receipt produced this result:\n${JSON.stringify(
+      { ...opts.previous, extractedAt: undefined }
+    )}\nBuild on it: keep what is correct, fix mistakes, and add anything it missed (kit components included). Do not drop correct items.`;
+  }
+  if (opts.hint) {
+    prompt += `\n\nUser feedback for this rescan — treat it as corrections to apply: ${opts.hint}`;
+  }
   const data = fileBytes.toString("base64");
   const content: Anthropic.ContentBlockParam[] =
     mime === "text/plain"
@@ -109,12 +127,11 @@ export async function extractReceipt(
         ];
 
   const messages: Anthropic.MessageParam[] = [{ role: "user", content }];
-  // Extraction is mechanical — low effort cuts thinking time without
-  // changing the model.
+  // Receipts read once (results are logged/cached), so use the strongest
+  // model at full effort — accuracy beats per-read cost here.
   let response = await client.messages.create({
-    model: "claude-sonnet-5",
+    model: "claude-opus-5",
     max_tokens: 16000,
-    output_config: { effort: "low" },
     // Web search lets the model look up a kit's actual contents.
     tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }],
     messages,
@@ -124,9 +141,8 @@ export async function extractReceipt(
   for (let i = 0; i < 3 && response.stop_reason === "pause_turn"; i++) {
     messages.push({ role: "assistant", content: response.content });
     response = await client.messages.create({
-      model: "claude-sonnet-5",
+      model: "claude-opus-5",
       max_tokens: 16000,
-      output_config: { effort: "low" },
       tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }],
       messages,
     });
@@ -151,6 +167,8 @@ export async function extractReceipt(
     suggestedName:
       typeof parsed.suggestedName === "string" ? parsed.suggestedName : undefined,
     vendor: typeof parsed.vendor === "string" ? parsed.vendor : undefined,
+    orderNumber:
+      typeof parsed.orderNumber === "string" ? parsed.orderNumber : undefined,
     discountCode:
       typeof parsed.discountCode === "string" ? parsed.discountCode : undefined,
     discountAmount:

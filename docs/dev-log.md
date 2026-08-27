@@ -15,6 +15,33 @@ this area again.
 
 ---
 
+## 2026-08-26 — Purchase-flow hardening from live testing
+
+Trey exercised the receipt flow with real Amazon/Northern Brewer orders; each round
+of feedback landed as a refinement. Key design decisions:
+
+- **Extraction log/cache** (`extractions` table, keyed userId+sha256 of receipt
+  bytes): a receipt is only ever read by the AI once — identical bytes return the
+  logged proposal instantly. Model economics follow: receipts use claude-opus-5 at
+  default effort (read once, accuracy matters — Sonnet+low-effort missed kit items
+  and misread the year), labels use claude-sonnet-5+low (verified accurate, frequent).
+- **Rescan with feedback**: pending proposals have a hint box; rescan feeds the
+  PREVIOUS result + the user's note back to the model ("keep what's right, fix
+  this") and replaces the log entry. Never starts from scratch.
+- **Read-once/apply-once**: proposalAppliedAt blocks re-reads while imported items
+  exist; removing all imported items re-enables. Review table has editable
+  quantities (min 1 enforced end-to-end).
+- **Same-item merge**: non-kit lines matching an existing item (loose name match,
+  shared inventory/match.ts) ask same-vs-new; "same" adopts the receipt's name,
+  merges specs (user notes kept), sets cost + purchase link. Kit components never
+  merge-prompt.
+- **Purchase = one invoice, 1..many items** each with its own price; orderNumber
+  column for admin lookups. Pending proposal is a DRAFT on the purchase — no
+  inventory rows exist until Apply.
+- vitest.config.ts added (vitest needs the @/ alias explicitly).
+
+---
+
 ## 2026-08-26 — Milestones 3–5: brewing core, dashboard, deploy prep
 
 v1 feature set is code-complete except BJCP style ranges and batch diff (v4). All
