@@ -202,8 +202,12 @@ async function seedRecipesAndBatch1(userId: string) {
       method: "extract",
       status: "want_to_brew",
       targetVolumeGal: 5,
-      targetOG: 1.044,
+      // OG and ABV are Northern Brewer's published numbers; FG derives from
+      // them; IBU ~18 is an estimate (NB publishes only "low, under 25").
+      targetOG: 1.042,
+      targetFG: 1.009,
       targetIBU: 18,
+      targetABV: 4.3,
       boilMinutes: 60,
       notes: "Northern Brewer extract kit. Batch 1 missed OG low; the analysis is in batch 1's notes.",
     })

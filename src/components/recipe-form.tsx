@@ -52,10 +52,15 @@ export function RecipeForm({
         </div>
         <div>
           <label className="field-label" htmlFor="status">Status</label>
-          <select id="status" name="status" className="field" defaultValue={item?.status ?? "want_to_brew"} disabled={locked}>
-            <option value="want_to_brew">Want to brew</option>
-            <option value="idea">Idea</option>
-          </select>
+          {locked ? (
+            // The stored status is stale once batches exist: Brewed is derived.
+            <input id="status" className="field" value="Brewed" disabled readOnly />
+          ) : (
+            <select id="status" name="status" className="field" defaultValue={item?.status ?? "want_to_brew"}>
+              <option value="want_to_brew">Want to brew</option>
+              <option value="idea">Idea</option>
+            </select>
+          )}
         </div>
         <div>
           <label className="field-label" htmlFor="targetVolumeGal">Into fermenter (gal)</label>

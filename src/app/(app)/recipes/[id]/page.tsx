@@ -49,6 +49,9 @@ export default async function RecipeDetailPage({
 
   return (
     <>
+      <div style={{ fontSize: 12, marginBottom: 8 }}>
+        <Link href="/recipes" style={{ color: "var(--nav-link)" }}>← Recipes</Link>
+      </div>
       <PageHeader
         icon={<BookIcon size={40} />}
         title={recipe.name}
