@@ -15,6 +15,7 @@ export type ProposedItem = {
   cost?: number;
   specs?: string;
   partOfKit?: string; // set when this row is a component expanded from a kit
+  notBrewing?: boolean; // clearly unrelated to brewing — unchecked by default
 };
 
 export type ReceiptProposal = {
@@ -58,13 +59,15 @@ Return ONLY a JSON object as your final answer, no other text around it, with th
       "quantity": 6, "unit": "lb" (ingredients, if stated),
       "cost": 12.34 (this line's price, if itemized),
       "specs": "short spec string (equipment, if stated)",
-      "partOfKit": "kit name — only on rows expanded from a kit"
+      "partOfKit": "kit name — only on rows expanded from a kit",
+      "notBrewing": true — only on items clearly unrelated to brewing (clothing, sunglasses, household goods)
     }
   ]
 }
 
 Rules:
 - kind: consumables that go into beer (malt, extract, hops, yeast, sugar, finings, chemicals like Star San) are "ingredient"; durable goods are "equipment".
+- MIXED ORDERS: include non-brewing items (sunglasses, clothing, household goods) as rows so the totals reconcile, but set "notBrewing": true on them — the app leaves them unchecked for import.
 - INCLUDED ACCESSORIES ARE NOT SEPARATE ITEMS: a case, sleeve, stand, storage tube, lid, spigot, or test jar that comes WITH a product is part of that product — one row, e.g. "Hydrometer with case and test jar", with the accessory noted in the name or specs. Never emit the accessory as its own row.
 - Only include real line items — skip shipping, tax, and subtotals (they belong in totalCost context, not items).
 - Omit any field you cannot read. Never invent a price.
@@ -196,8 +199,51 @@ export async function extractReceipt(
         cost: typeof it.cost === "number" ? it.cost : undefined,
         specs: typeof it.specs === "string" ? it.specs : undefined,
         partOfKit: typeof it.partOfKit === "string" ? it.partOfKit : undefined,
+        notBrewing: it.notBrewing === true ? true : undefined,
       })),
     extractedAt: new Date().toISOString(),
+  };
+}
+
+/** Merge user-selected proposal rows into one item: AI names it, costs sum. */
+export async function combineItems(items: ProposedItem[]): Promise<ProposedItem> {
+  const client = new Anthropic();
+  const response = await client.messages.create({
+    model: "claude-sonnet-5",
+    max_tokens: 1000,
+    output_config: { effort: "low" },
+    messages: [
+      {
+        role: "user",
+        content: `These purchased items belong together as ONE product (e.g. a tool and its case/accessories). Combine them into a single inventory row.
+
+Items:
+${items.map((i) => `- ${i.name}${i.specs ? ` (${i.specs})` : ""} [${i.kind}${i.category ? `/${i.category}` : i.type ? `/${i.type}` : ""}]`).join("\n")}
+
+Return ONLY JSON: {"name": "combined name, main product first with accessories after — e.g. 'Triple scale hydrometer with test jar & case'", "kind": "equipment"|"ingredient", "category": equipment category of the MAIN product, "type": ingredient type if kind is ingredient, "specs": "merged short specs or omit"}`,
+      },
+    ],
+  });
+  let text = "";
+  for (const block of response.content) {
+    if (block.type === "text") text += block.text;
+  }
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("No JSON in combine response.");
+  const p = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+
+  const costs = items.map((i) => i.cost).filter((c): c is number => c != null);
+  const kits = new Set(items.map((i) => i.partOfKit ?? ""));
+  return {
+    kind: p.kind === "ingredient" ? "ingredient" : "equipment",
+    name: typeof p.name === "string" && p.name ? p.name : items.map((i) => i.name).join(" + "),
+    category: typeof p.category === "string" ? p.category : items[0].category,
+    type: typeof p.type === "string" ? p.type : items[0].type,
+    specs: typeof p.specs === "string" ? p.specs : undefined,
+    quantity: 1,
+    unit: "ct",
+    cost: costs.length ? Math.round(costs.reduce((a, b) => a + b, 0) * 100) / 100 : undefined,
+    partOfKit: kits.size === 1 && items[0].partOfKit ? items[0].partOfKit : undefined,
   };
 }
 

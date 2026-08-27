@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { equipment, ingredients, purchases } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
-import { applyProposal, deletePurchase, discardProposal } from "@/lib/purchases/actions";
+import { applyProposal, combineProposalItems, deletePurchase, discardProposal } from "@/lib/purchases/actions";
 import type { ReceiptProposal } from "@/lib/purchases/receipt-ai";
 import { formatCost, formatDate } from "@/lib/inventory/format";
 import { PageHeader } from "@/components/page-header";
@@ -146,6 +146,7 @@ export default async function PurchaseDetailPage({
                           <th>Category / type</th>
                           <th>Qty</th>
                           <th style={{ textAlign: "right" }}>Cost</th>
+                          <th style={{ width: 60, textAlign: "center" }}>Merge</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -153,7 +154,7 @@ export default async function PurchaseDetailPage({
                           <React.Fragment key={idx}>
                           <tr>
                             <td>
-                              <input type="checkbox" name="accept" value={idx} defaultChecked />
+                              <input type="checkbox" name="accept" value={idx} defaultChecked={!item.notBrewing} />
                             </td>
                             <td>
                               <span
@@ -168,6 +169,11 @@ export default async function PurchaseDetailPage({
                               {item.partOfKit ? (
                                 <span className="chip-estimate" style={{ marginLeft: 8, borderStyle: "solid" }}>
                                   FROM KIT
+                                </span>
+                              ) : null}
+                              {item.notBrewing ? (
+                                <span className="badge" style={{ marginLeft: 8, background: "#44464f", color: "var(--text)" }}>
+                                  NOT BREWING?
                                 </span>
                               ) : null}
                             </td>
@@ -187,11 +193,14 @@ export default async function PurchaseDetailPage({
                               </span>
                             </td>
                             <td style={{ textAlign: "right" }}>{formatCost(item.cost ?? null)}</td>
+                            <td style={{ textAlign: "center" }}>
+                              <input type="checkbox" name="combine" value={idx} title="Select to combine with another row" />
+                            </td>
                           </tr>
                           {matches[idx] ? (
                             <tr>
                               <td></td>
-                              <td colSpan={5} style={{ borderTop: "none", paddingTop: 0 }}>
+                              <td colSpan={6} style={{ borderTop: "none", paddingTop: 0 }}>
                                 <div style={{ background: "rgba(247,175,62,.1)", borderLeft: "3px solid var(--warning)", padding: "10px 12px", fontSize: 12, display: "flex", flexDirection: "column", gap: 8 }}>
                                   <span>
                                     Looks like <span style={{ color: "var(--text-bright)" }}>{matches[idx]!.name}</span>,
@@ -214,8 +223,14 @@ export default async function PurchaseDetailPage({
                       </tbody>
                     </table>
                   </div>
-                  <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+                  <div style={{ display: "flex", gap: 10, marginTop: 14, alignItems: "center", flexWrap: "wrap" }}>
                     <button type="submit" className="btn btn-solid">Apply checked items</button>
+                    <button type="submit" formAction={combineProposalItems} formNoValidate className="btn">
+                      Combine merge-checked into one (AI)
+                    </button>
+                    <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                      tick 2+ in the Merge column to fuse them — name and summed cost handled for you
+                    </span>
                   </div>
                 </form>
                 <form action={discardProposal} style={{ marginTop: 10 }}>

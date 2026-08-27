@@ -19,6 +19,7 @@ import {
 } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import {
+  combineItems,
   extractReceipt,
   hasApiKey,
   isSupportedReceiptType,
@@ -536,6 +537,46 @@ export async function applyProposal(formData: FormData): Promise<void> {
   revalidatePath(`/purchases/${id}`);
   revalidatePath("/equipment");
   revalidatePath("/ingredients");
+  redirect(`/purchases/${id}`);
+}
+
+/** Combine user-selected proposal rows into one item (AI names it, costs
+    sum). Edits the pending draft only — nothing is written until Apply. */
+export async function combineProposalItems(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const id = num(formData.get("id"));
+  if (id == null) return;
+  const p = ownedPurchase(id, user.id);
+  if (!p?.proposalJson || !hasApiKey()) return;
+  const indexes = formData
+    .getAll("combine")
+    .map((v) => Number(v))
+    .filter((n) => Number.isInteger(n));
+  if (indexes.length < 2) return;
+
+  const proposal = JSON.parse(p.proposalJson) as ReceiptProposal;
+  const selected = indexes.map((i) => proposal.items[i]).filter(Boolean);
+  if (selected.length < 2) return;
+
+  try {
+    const combined = await combineItems(selected);
+    const first = Math.min(...indexes);
+    const items = proposal.items.filter((_, i) => !indexes.includes(i));
+    items.splice(Math.min(first, items.length), 0, combined);
+    const updated: ReceiptProposal = { ...proposal, items };
+    await db
+      .update(purchases)
+      .set({ proposalJson: JSON.stringify(updated) })
+      .where(eq(purchases.id, id));
+    // Keep the extraction log in step with the curated result.
+    if (p.receiptPath) {
+      try {
+        const bytes = fs.readFileSync(path.join(RECEIPTS_DIR, p.receiptPath));
+        await logProposal(user.id, receiptHash(bytes), updated);
+      } catch {}
+    }
+  } catch {}
+  revalidatePath(`/purchases/${id}`);
   redirect(`/purchases/${id}`);
 }
 
