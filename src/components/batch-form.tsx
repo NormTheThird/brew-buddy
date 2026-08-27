@@ -79,11 +79,8 @@ export function BatchForm({
   const [state, formAction, pending] = useActionState<FormState, FormData>(action, {});
 
   return (
-    <form
-      action={formAction}
-      className="panel"
-      style={{ maxWidth: 860, padding: 20, display: "flex", flexDirection: "column", gap: 18 }}
-    >
+    <div className="panel" style={{ maxWidth: 860, padding: 20 }}>
+    <form action={formAction} className="form-stack gap-lg">
       {item ? <input type="hidden" name="id" value={item.id} /> : null}
       <Section title="Batch" cols={4}>
         <div style={{ gridColumn: "span 2" }}>
@@ -191,5 +188,6 @@ export function BatchForm({
         <Link href={item ? `/batches/${item.id}` : "/batches"} className="btn">Cancel</Link>
       </div>
     </form>
+    </div>
   );
 }

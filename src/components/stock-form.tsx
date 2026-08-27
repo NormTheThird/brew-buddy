@@ -100,18 +100,8 @@ export function StockForm({
   }, [labelState.proposal]);
 
   return (
-    <form
-      ref={formRef}
-      action={formAction}
-      className="panel"
-      style={{
-        maxWidth: 680,
-        padding: 20,
-        display: "flex",
-        flexDirection: "column",
-        gap: 14,
-      }}
-    >
+    <div className="panel" style={{ maxWidth: 680, padding: 20 }}>
+    <form ref={formRef} action={formAction} className="form-stack">
       {item ? <input type="hidden" name="id" value={item.id} /> : null}
       <div>
         <label className="field-label" htmlFor="photo">Photo of the packet (optional)</label>
@@ -295,5 +285,6 @@ export function StockForm({
         <Link href="/stock" className="btn">Cancel</Link>
       </div>
     </form>
+    </div>
   );
 }

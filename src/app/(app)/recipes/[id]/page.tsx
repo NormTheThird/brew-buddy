@@ -62,7 +62,7 @@ export default async function RecipeDetailPage({
             <Link href={`/batches/new?recipe=${recipe.id}`} className="btn btn-solid">Brew this</Link>
             <Link href={`/recipes/${recipe.id}/edit`} className="btn">Edit</Link>
             <Link href={`/recipes/${recipe.id}/beerxml`} className="btn">Export BeerXML</Link>
-            <form action={duplicateRecipe} style={{ display: "inline-flex" }}>
+            <form action={duplicateRecipe} className="form-inline-flex">
               <input type="hidden" name="id" value={recipe.id} />
               <button type="submit" className="btn" title="Copy this recipe and its ingredients to tweak your own version">
                 Duplicate
@@ -124,7 +124,7 @@ export default async function RecipeDetailPage({
                           <td>{it.timingMinutes != null ? `${it.timingMinutes} min` : "—"}</td>
                           <td style={{ textAlign: "right" }}>
                             {brewed ? null : (
-                              <form action={deleteRecipeItem} style={{ display: "inline" }}>
+                              <form action={deleteRecipeItem} className="form-inline">
                                 <input type="hidden" name="id" value={it.id} />
                                 <input type="hidden" name="recipeId" value={recipe.id} />
                                 <button type="submit" style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>remove</button>
@@ -143,7 +143,7 @@ export default async function RecipeDetailPage({
                   history now. Duplicate the recipe to make your own version.
                 </div>
               ) : (
-              <form action={addRecipeItem} style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr 0.8fr 0.8fr 1fr 0.9fr auto", gap: 8, alignItems: "end" }}>
+              <form action={addRecipeItem}><div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr 0.8fr 0.8fr 1fr 0.9fr auto", gap: 8, alignItems: "end" }}>
                 <input type="hidden" name="recipeId" value={recipe.id} />
                 <div>
                   <label className="field-label" htmlFor="ri-type">Type</label>
@@ -181,7 +181,7 @@ export default async function RecipeDetailPage({
                   <input id="ri-timing" name="timingMinutes" type="number" step="1" className="field" />
                 </div>
                 <button type="submit" className="btn" style={{ height: 38 }}>Add</button>
-              </form>
+              </div></form>
               )}
             </div>
           </div>

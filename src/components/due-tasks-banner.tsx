@@ -62,7 +62,7 @@ export async function DueTasksBanner({ userId }: { userId: string }) {
           <Link href={`/batches/${b.id}`} style={{ fontSize: 12 }}>
             Batch #{b.batchNumber} · {b.recipeName}
           </Link>
-          <form action={completeTask} style={{ display: "inline", marginLeft: "auto" }}>
+          <form action={completeTask} className="form-inline form-push-right">
             <input type="hidden" name="batchId" value={b.id} />
             <input type="hidden" name="taskKey" value={a.key} />
             <button type="submit" className="btn" style={{ padding: "3px 12px", fontSize: 12 }}>

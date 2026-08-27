@@ -153,7 +153,7 @@ function OnHandEditor({ lot }: { lot: StockLot }) {
         setEditing(false);
       }}
       onClick={(e) => e.stopPropagation()}
-      style={{ display: "inline-flex", gap: 4, alignItems: "center", marginLeft: 6 }}
+      className="form-inline-flex"
     >
       <input type="hidden" name="id" value={lot.id} />
       <input

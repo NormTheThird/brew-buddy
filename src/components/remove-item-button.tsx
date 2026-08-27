@@ -21,7 +21,7 @@ export function RemoveItemButton({
           e.preventDefault();
         }
       }}
-      style={{ display: "inline" }}
+      className="form-inline"
     >
       <input type="hidden" name="kind" value={kind} />
       <input type="hidden" name="itemId" value={itemId} />

@@ -10,18 +10,8 @@ export function LoginForm() {
   );
 
   return (
-    <form
-      action={action}
-      className="panel"
-      style={{
-        width: "100%",
-        maxWidth: 360,
-        padding: 24,
-        display: "flex",
-        flexDirection: "column",
-        gap: 14,
-      }}
-    >
+    <div className="panel" style={{ width: "100%", maxWidth: 360, padding: 24 }}>
+    <form action={action} className="form-stack">
       <div>
         <label className="field-label" htmlFor="email">
           Email
@@ -63,5 +53,6 @@ export function LoginForm() {
         Sessions last 90 days, brew-day friendly.
       </div>
     </form>
+    </div>
   );
 }

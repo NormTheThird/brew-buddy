@@ -11,11 +11,8 @@ export function BeerXmlImportForm() {
   );
 
   return (
-    <form
-      action={formAction}
-      className="panel"
-      style={{ maxWidth: 560, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}
-    >
+    <div className="panel" style={{ maxWidth: 560, padding: 20 }}>
+    <form action={formAction} className="form-stack">
       <div>
         <label className="field-label" htmlFor="file">BeerXML file (.xml)</label>
         <input id="file" name="file" type="file" accept=".xml,text/xml" className="field" style={{ padding: 8 }} required />
@@ -32,5 +29,6 @@ export function BeerXmlImportForm() {
         <Link href="/recipes" className="btn">Cancel</Link>
       </div>
     </form>
+    </div>
   );
 }

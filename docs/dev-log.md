@@ -15,6 +15,25 @@ this area again.
 
 ---
 
+## 2026-08-27 — ROOT CAUSE: React 19 strips inline styles from action forms
+
+Trey's "edit pages look broken until I refresh, then break again when I
+navigate back" was diagnosed to a React 19 behavior: on CLIENT-SIDE
+navigation, a `<form action={someFunction}>` loses its inline `style`
+attribute entirely (className and the styles of child divs survive; the
+server-rendered HTML keeps the style, which is why a hard refresh always
+looked right). Not a stale-cache issue — reproduced on a fresh .next.
+
+HOUSE RULE FROM NOW ON: **never put a `style` prop on a `<form>` element.**
+globals.css has utilities (.form-stack/.gap-sm/.gap-lg, .form-row,
+.form-inline, .form-inline-flex, .form-push-right, .form-no-shrink); for
+panel forms move the panel/maxWidth/padding to a wrapper div; for grid
+forms put the grid on a div INSIDE the form. Every form in the app (~25
+sites) was swept accordingly. If a page ever again looks unstyled after
+navigation but fine on refresh, look for a style prop on a form first.
+
+---
+
 ## 2026-08-27 — Recipe polish round: filters, beer glass, targets, template
 
 - **Style family chips** on the recipes list (lib/brewing/beer-color.ts):

@@ -12,7 +12,7 @@ const themes = [
 /** Picking a theme applies it immediately; there is nothing to save. */
 export function ThemePicker({ user }: { user: User }) {
   return (
-    <form action={setTheme} style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+    <form action={setTheme} className="form-row">
       {themes.map((t) => (
         <label
           key={t.value}
@@ -38,7 +38,7 @@ export function ProfileForm({ user }: { user: User }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(updateProfile, {});
 
   return (
-    <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <form action={formAction} className="form-stack">
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div>
           <label className="field-label" htmlFor="p-name">Name</label>
@@ -66,7 +66,7 @@ export function PasswordForm() {
   const [state, formAction, pending] = useActionState<FormState, FormData>(changePassword, {});
 
   return (
-    <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <form action={formAction} className="form-stack">
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div>
           <label className="field-label" htmlFor="pw-current">Current password</label>

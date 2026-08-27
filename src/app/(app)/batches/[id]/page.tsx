@@ -251,7 +251,7 @@ export default async function BatchDetailPage({
                           kit
                         </span>
                       ) : null}
-                      <form action={deleteBatchIngredient} style={{ display: "inline" }}>
+                      <form action={deleteBatchIngredient} className="form-inline">
                         <input type="hidden" name="id" value={ir.id} />
                         <input type="hidden" name="batchId" value={b.id} />
                         <button
@@ -281,10 +281,8 @@ export default async function BatchDetailPage({
               </>
             )}
             {usableLots.length > 0 ? (
-              <form
-                action={useStockInBatch}
-                style={{ display: "grid", gridTemplateColumns: "2fr auto auto", gap: 8, alignItems: "end", marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--border-row)" }}
-              >
+              <form action={useStockInBatch}>
+                <div style={{ display: "grid", gridTemplateColumns: "2fr auto auto", gap: 8, alignItems: "end", marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--border-row)" }}>
                 <input type="hidden" name="batchId" value={b.id} />
                 <div>
                   <label className="field-label" htmlFor="use-lot">Use from stock (deducts on hand)</label>
@@ -299,10 +297,11 @@ export default async function BatchDetailPage({
                   <input id="use-amount" name="amount" type="number" step="any" min="0" className="field" style={{ width: 90 }} required />
                 </div>
                 <button type="submit" className="btn" style={{ height: 38 }}>Use</button>
+                </div>
               </form>
             ) : null}
             {b.bottleCount != null && bottlingGuesses.length > 0 ? (
-              <form action={useBottlingSupplies} style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+              <form action={useBottlingSupplies}><div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
                 <input type="hidden" name="batchId" value={b.id} />
                 <div className="field-label" style={{ marginBottom: 0 }}>
                   Bottling day: one submit deducts it all (clear a row to skip it)
@@ -332,7 +331,7 @@ export default async function BatchDetailPage({
                 <button type="submit" className="btn" style={{ alignSelf: "flex-start" }}>
                   Deduct bottling supplies
                 </button>
-              </form>
+              </div></form>
             ) : null}
           </div>
         </div>
@@ -354,7 +353,7 @@ export default async function BatchDetailPage({
                         </td>
                         <td>{r.stage ?? "—"}</td>
                         <td style={{ textAlign: "right" }}>
-                          <form action={deleteGravityReading} style={{ display: "inline" }}>
+                          <form action={deleteGravityReading} className="form-inline">
                             <input type="hidden" name="id" value={r.id} />
                             <input type="hidden" name="batchId" value={b.id} />
                             <button type="submit" style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>remove</button>
@@ -366,7 +365,7 @@ export default async function BatchDetailPage({
                 </table>
               </div>
             ) : null}
-            <form action={addGravityReading} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr auto", gap: 8, alignItems: "end" }}>
+            <form action={addGravityReading}><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr auto", gap: 8, alignItems: "end" }}>
               <input type="hidden" name="batchId" value={b.id} />
               <div>
                 <label className="field-label" htmlFor="gr-value">Raw reading</label>
@@ -387,7 +386,7 @@ export default async function BatchDetailPage({
                 </select>
               </div>
               <button type="submit" className="btn" style={{ height: 38 }}>Add</button>
-            </form>
+            </div></form>
             <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 8 }}>
               Bottling gate (v3): two matching readings before you&apos;re allowed to bottle.
             </div>

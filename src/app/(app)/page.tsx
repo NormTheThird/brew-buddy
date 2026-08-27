@@ -137,7 +137,7 @@ export default async function DashboardPage() {
                       {a.due.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}
                     </span>
                     {done ? (
-                      <form action={uncompleteTask} style={{ display: "inline", flexShrink: 0 }}>
+                      <form action={uncompleteTask} className="form-inline form-no-shrink">
                         <input type="hidden" name="batchId" value={a.batch.id} />
                         <input type="hidden" name="taskKey" value={a.key} />
                         <button type="submit" title="Undo" style={{ background: "none", border: "none", color: "var(--text-faint)", cursor: "pointer", fontSize: 12, padding: 0, fontFamily: "inherit" }}>
@@ -145,7 +145,7 @@ export default async function DashboardPage() {
                         </button>
                       </form>
                     ) : isDue(a) ? (
-                      <form action={completeTask} style={{ display: "inline", flexShrink: 0 }}>
+                      <form action={completeTask} className="form-inline form-no-shrink">
                         <input type="hidden" name="batchId" value={a.batch.id} />
                         <input type="hidden" name="taskKey" value={a.key} />
                         <button type="submit" className="btn" style={{ padding: "1px 10px", fontSize: 12 }}>

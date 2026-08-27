@@ -7,7 +7,7 @@ export function CreateUserForm() {
   const [state, formAction, pending] = useActionState<FormState, FormData>(createUser, {});
 
   return (
-    <form action={formAction} style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 1fr 0.8fr auto", gap: 10, alignItems: "end" }}>
+    <form action={formAction}><div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 1fr 0.8fr auto", gap: 10, alignItems: "end" }}>
       <div>
         <label className="field-label" htmlFor="nu-name">Name</label>
         <input id="nu-name" name="name" className="field" required />
@@ -32,7 +32,7 @@ export function CreateUserForm() {
       </button>
       {state.error ? <div style={{ gridColumn: "1 / -1", color: "var(--danger)", fontSize: 13 }}>{state.error}</div> : null}
       {state.message ? <div style={{ gridColumn: "1 / -1", color: "var(--success)", fontSize: 13 }}>{state.message}</div> : null}
-    </form>
+    </div></form>
   );
 }
 
@@ -40,7 +40,7 @@ export function ResetPasswordForm({ userId, userName }: { userId: string; userNa
   const [state, formAction, pending] = useActionState<FormState, FormData>(resetUserPassword, {});
 
   return (
-    <form action={formAction} style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+    <form action={formAction} className="form-inline-flex">
       <input type="hidden" name="id" value={userId} />
       <input
         name="password"

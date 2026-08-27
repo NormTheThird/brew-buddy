@@ -246,7 +246,7 @@ export default async function PurchaseDetailPage({
                     </span>
                   </div>
                 </form>
-                <form action={discardProposal} style={{ marginTop: 10 }}>
+                <div style={{ marginTop: 10 }}><form action={discardProposal}>
                   <input type="hidden" name="id" value={p.id} />
                   <button
                     type="submit"
@@ -254,7 +254,7 @@ export default async function PurchaseDetailPage({
                   >
                     Discard proposal
                   </button>
-                </form>
+                </form></div>
                 <RescanControls purchaseId={p.id} />
               </div>
             </div>

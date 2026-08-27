@@ -10,7 +10,7 @@ export function ExtractButton({ purchaseId }: { purchaseId: string }) {
   );
 
   return (
-    <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <form action={formAction} className="form-stack gap-sm">
       <input type="hidden" name="id" value={purchaseId} />
       <button type="submit" className="btn btn-solid" disabled={pending}>
         {pending ? "Reading receipt…" : "Read receipt with AI"}

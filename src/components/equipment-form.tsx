@@ -36,17 +36,8 @@ export function EquipmentForm({
   );
 
   return (
-    <form
-      action={formAction}
-      className="panel"
-      style={{
-        maxWidth: 640,
-        padding: 20,
-        display: "flex",
-        flexDirection: "column",
-        gap: 14,
-      }}
-    >
+    <div className="panel" style={{ maxWidth: 640, padding: 20 }}>
+    <form action={formAction} className="form-stack">
       {item ? <input type="hidden" name="id" value={item.id} /> : null}
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 12 }}>
         <div>
@@ -119,5 +110,6 @@ export function EquipmentForm({
         <Link href="/equipment" className="btn">Cancel</Link>
       </div>
     </form>
+    </div>
   );
 }

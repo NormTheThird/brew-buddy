@@ -224,3 +224,16 @@ table.data td {
     grid-column: auto;
   }
 }
+
+/* React 19 drops the inline style attribute from <form action={fn}> on
+   client-side navigation (server HTML keeps it, hence "fine after refresh").
+   NEVER put a style prop on a form element: use these classes, or wrap the
+   form contents in a styled div. */
+.form-inline { display: inline; }
+.form-inline-flex { display: inline-flex; gap: 6px; align-items: center; }
+.form-stack { display: flex; flex-direction: column; gap: 14px; }
+.form-stack.gap-sm { gap: 8px; }
+.form-stack.gap-lg { gap: 18px; }
+.form-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.form-push-right { margin-left: auto; }
+.form-no-shrink { flex-shrink: 0; }

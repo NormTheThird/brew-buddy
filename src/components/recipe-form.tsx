@@ -18,11 +18,8 @@ export function RecipeForm({
   const [state, formAction, pending] = useActionState<FormState, FormData>(action, {});
 
   return (
-    <form
-      action={formAction}
-      className="panel"
-      style={{ maxWidth: 760, padding: 24, display: "flex", flexDirection: "column", gap: 16 }}
-    >
+    <div className="panel" style={{ maxWidth: 760, padding: 24 }}>
+    <form action={formAction} className="form-stack">
       {item ? <input type="hidden" name="id" value={item.id} /> : null}
       {locked ? (
         <div style={{ fontSize: 13, color: "var(--text-muted)", borderLeft: "3px solid var(--warning)", paddingLeft: 12 }}>
@@ -110,5 +107,6 @@ export function RecipeForm({
         <Link href={item ? `/recipes/${item.id}` : "/recipes"} className="btn">Cancel</Link>
       </div>
     </form>
+    </div>
   );
 }

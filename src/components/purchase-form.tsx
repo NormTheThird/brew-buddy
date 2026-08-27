@@ -69,12 +69,8 @@ export function PurchaseForm() {
   const proposal = analysis.proposal;
 
   return (
-    <form
-      ref={formRef}
-      action={createAction}
-      className="panel"
-      style={{ maxWidth: 640, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}
-    >
+    <div className="panel" style={{ maxWidth: 640, padding: 20 }}>
+    <form ref={formRef} action={createAction} className="form-stack">
       <div>
         <label className="field-label" htmlFor="receipt">Receipt (photo or PDF, reads automatically)</label>
         <input
@@ -182,5 +178,6 @@ export function PurchaseForm() {
         <Link href="/purchases" className="btn">Cancel</Link>
       </div>
     </form>
+    </div>
   );
 }

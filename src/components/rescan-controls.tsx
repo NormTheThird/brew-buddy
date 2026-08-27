@@ -10,18 +10,8 @@ export function RescanControls({ purchaseId }: { purchaseId: string }) {
   );
 
   return (
-    <form
-      action={formAction}
-      style={{
-        display: "flex",
-        gap: 8,
-        alignItems: "center",
-        flexWrap: "wrap",
-        borderTop: "1px solid var(--border-row)",
-        paddingTop: 12,
-        marginTop: 12,
-      }}
-    >
+    <div style={{ borderTop: "1px solid var(--border-row)", paddingTop: 12, marginTop: 12 }}>
+    <form action={formAction} className="form-row">
       <input type="hidden" name="id" value={purchaseId} />
       <input
         name="hint"
@@ -41,5 +31,6 @@ export function RescanControls({ purchaseId }: { purchaseId: string }) {
         <span style={{ color: "var(--danger)", fontSize: 13 }}>{state.error}</span>
       ) : null}
     </form>
+    </div>
   );
 }

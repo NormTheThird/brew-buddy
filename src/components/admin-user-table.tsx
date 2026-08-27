@@ -26,10 +26,8 @@ function EditUserForm({ user, onDone }: { user: AdminUserRow; onDone: () => void
   }, [state.message, onDone]);
 
   return (
-    <form
-      action={formAction}
-      style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 0.7fr auto auto", gap: 10, alignItems: "end", padding: "4px 0 8px" }}
-    >
+    <form action={formAction}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 0.7fr auto auto", gap: 10, alignItems: "end", padding: "4px 0 8px" }}>
       <input type="hidden" name="id" value={user.id} />
       <div>
         <label className="field-label" htmlFor={`eu-name-${user.id}`}>Name</label>
@@ -60,6 +58,7 @@ function EditUserForm({ user, onDone }: { user: AdminUserRow; onDone: () => void
       {state.error ? (
         <div style={{ gridColumn: "1 / -1", color: "var(--danger)", fontSize: 13 }}>{state.error}</div>
       ) : null}
+      </div>
     </form>
   );
 }
@@ -125,7 +124,7 @@ function UserRow({ user: u, meId }: { user: AdminUserRow; meId: string }) {
             >
               <ResetPasswordForm userId={u.id} userName={u.name} />
               {u.id !== meId ? (
-                <form action={setUserActive} style={{ display: "inline", marginLeft: "auto" }}>
+                <form action={setUserActive} className="form-inline form-push-right">
                   <input type="hidden" name="id" value={u.id} />
                   <input type="hidden" name="active" value={(!u.active).toString()} />
                   {u.active ? (

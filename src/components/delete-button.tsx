@@ -29,7 +29,7 @@ export function DeleteButton({
       onSubmit={(e) => {
         if (!window.confirm(confirmText)) e.preventDefault();
       }}
-      style={{ display: variant === "button" ? "inline-flex" : "inline" }}
+      className={variant === "button" ? "form-inline-flex" : "form-inline"}
     >
       <input type="hidden" name="id" value={id} />
       <button
