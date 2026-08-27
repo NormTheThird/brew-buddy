@@ -15,6 +15,29 @@ this area again.
 
 ---
 
+## 2026-08-27 — Due-task notifications: banner on login, mark-done, undo
+
+Trey: "when I log in something should pop up to say raise fridge to 70
+today and I need to mark off that I did it." (Email/text is the v2 of this,
+post-deploy.)
+
+- Schedule tasks stay DERIVED from batch dates (schedule.ts) — only
+  done-ness is stored: new `task_completions` table (batchId + stable
+  taskKey like "raise-temp-d4"; NextAction gained `key`). Live CREATE TABLE.
+- `DueTasksBanner` renders in the (app) LAYOUT so it shows on every page:
+  tasks due today or overdue across all non-completed batches, each with a
+  ✓ Done button. completeTask is idempotent; uncompleteTask is the undo.
+  Actions revalidate with `revalidatePath("/", "layout")` — plain "/" only
+  refreshes the page segment and the banner wouldn't clear elsewhere.
+- Dashboard "Next up" shows done items struck through with green dot +
+  undo; due items get the ✓ Done button.
+- Overdue/due are CALENDAR-DAY comparisons (due dates are UTC-midnight
+  date-onlys, "today" is the user's local date) — timestamp comparison made
+  a task due today read OVERDUE all day. An unfinished task turns OVERDUE
+  the next day and nags for up to 30 days past due.
+
+---
+
 ## 2026-08-27 — Preserve-name flag; equipment cost entry removed
 
 Two Trey rules landed:

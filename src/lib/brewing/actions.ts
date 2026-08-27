@@ -13,6 +13,7 @@ import {
   stockTypes,
   recipeItems,
   recipes,
+  taskCompletions,
   type StockItem,
   type StockType,
 } from "@/lib/db/schema";
@@ -434,6 +435,39 @@ export async function useBottlingSupplies(formData: FormData): Promise<void> {
   }
   revalidatePath(`/batches/${batchId}`);
   revalidatePath("/stock");
+}
+
+/** Mark a schedule task done (idempotent) — clears it from the login banner. */
+export async function completeTask(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const batchId = str(formData.get("batchId"));
+  const taskKey = str(formData.get("taskKey"));
+  if (batchId == null || taskKey == null) return;
+  if (!ownedBatch(batchId, user.id)) return;
+  const existing = db
+    .select({ id: taskCompletions.id })
+    .from(taskCompletions)
+    .where(and(eq(taskCompletions.batchId, batchId), eq(taskCompletions.taskKey, taskKey)))
+    .all();
+  if (existing.length === 0) {
+    await db.insert(taskCompletions).values({ userId: user.id, batchId, taskKey });
+  }
+  // The banner lives in the (app) layout — revalidate the layout so it
+  // clears on every page, not just the dashboard.
+  revalidatePath("/", "layout");
+}
+
+/** Undo a mis-click on Done. */
+export async function uncompleteTask(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const batchId = str(formData.get("batchId"));
+  const taskKey = str(formData.get("taskKey"));
+  if (batchId == null || taskKey == null) return;
+  if (!ownedBatch(batchId, user.id)) return;
+  await db
+    .delete(taskCompletions)
+    .where(and(eq(taskCompletions.batchId, batchId), eq(taskCompletions.taskKey, taskKey)));
+  revalidatePath("/", "layout");
 }
 
 export async function deleteBatchIngredient(formData: FormData): Promise<void> {

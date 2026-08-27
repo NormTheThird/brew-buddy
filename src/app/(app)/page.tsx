@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { batches, equipment, stock, recipeItems, recipes } from "@/lib/db/schema";
+import { batches, equipment, stock, recipeItems, recipes, taskCompletions } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { isEstimated, batchStatusBadge, recipeDisplayStatus, statusBadge } from "@/lib/brewing/display";
 import { learnedConstants } from "@/lib/brewing/constants";
-import { nextActions, fermentationDay } from "@/lib/brewing/schedule";
+import { isDue, nextActions, fermentationDay } from "@/lib/brewing/schedule";
+import { completeTask, uncompleteTask } from "@/lib/brewing/actions";
 import { checkBrewability } from "@/lib/brewing/brewability";
 import { abv } from "@/lib/calc/gravity";
 import { formatCost } from "@/lib/inventory/format";
@@ -46,6 +47,16 @@ export default async function DashboardPage() {
   const flags = gear.filter((g) => g.flag).map((g) => `${g.name}: ${g.flag}`);
   const gearCost = gear.reduce((s, g) => s + (g.cost ?? 0), 0);
 
+  const doneKeys = new Set(
+    active
+      ? db
+          .select({ taskKey: taskCompletions.taskKey })
+          .from(taskCompletions)
+          .where(eq(taskCompletions.batchId, active.id))
+          .all()
+          .map((c) => c.taskKey)
+      : []
+  );
   const actions = active ? nextActions(active).slice(0, 4) : [];
   const day = active ? fermentationDay(active) : null;
   const activeBadge = active ? batchStatusBadge[active.status] : null;
@@ -103,15 +114,37 @@ export default async function DashboardPage() {
             {actions.length === 0 ? (
               <div style={{ fontSize: 13, color: "var(--text-muted)" }}>Nothing scheduled.</div>
             ) : (
-              actions.map((a, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 0", borderTop: i > 0 ? "1px solid var(--border-row)" : "none", fontSize: 13 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: a.overdue ? "var(--danger)" : i === 0 ? "var(--accent)" : "#4a4f5a", flexShrink: 0 }} />
-                  <span style={{ color: a.overdue ? "var(--danger)" : undefined }}>{a.label}</span>
-                  <span style={{ marginLeft: "auto", color: "var(--text-muted)", flexShrink: 0 }}>
-                    {a.due.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}
-                  </span>
-                </div>
-              ))
+              actions.map((a, i) => {
+                const done = doneKeys.has(a.key);
+                return (
+                  <div key={a.key} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 0", borderTop: i > 0 ? "1px solid var(--border-row)" : "none", fontSize: 13 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: done ? "var(--success)" : a.overdue ? "var(--danger)" : i === 0 ? "var(--accent)" : "#4a4f5a", flexShrink: 0 }} />
+                    <span style={{ color: done ? "var(--text-muted)" : a.overdue ? "var(--danger)" : undefined, textDecoration: done ? "line-through" : "none" }}>
+                      {a.label}
+                    </span>
+                    <span style={{ marginLeft: "auto", color: "var(--text-muted)", flexShrink: 0 }}>
+                      {a.due.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}
+                    </span>
+                    {done ? (
+                      <form action={uncompleteTask} style={{ display: "inline", flexShrink: 0 }}>
+                        <input type="hidden" name="batchId" value={active!.id} />
+                        <input type="hidden" name="taskKey" value={a.key} />
+                        <button type="submit" title="Undo" style={{ background: "none", border: "none", color: "var(--text-faint)", cursor: "pointer", fontSize: 12, padding: 0, fontFamily: "inherit" }}>
+                          undo
+                        </button>
+                      </form>
+                    ) : isDue(a) ? (
+                      <form action={completeTask} style={{ display: "inline", flexShrink: 0 }}>
+                        <input type="hidden" name="batchId" value={active!.id} />
+                        <input type="hidden" name="taskKey" value={a.key} />
+                        <button type="submit" className="btn" style={{ padding: "1px 10px", fontSize: 12 }}>
+                          ✓ Done
+                        </button>
+                      </form>
+                    ) : null}
+                  </div>
+                );
+              })
             )}
           </div>
         </div>

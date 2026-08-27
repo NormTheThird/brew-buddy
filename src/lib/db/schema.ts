@@ -304,6 +304,22 @@ export const gravityReadings = sqliteTable("gravity_readings", {
   stage: text("stage"), // og | fermentation | fg
 });
 
+// Schedule tasks (raise temp day 4, readings day 10/13…) are DERIVED from
+// batch dates — only their done-ness is stored, keyed by a stable task key.
+export const taskCompletions = sqliteTable("task_completions", {
+  id: text("id").primaryKey().$defaultFn(uuid),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  batchId: text("batch_id")
+    .notNull()
+    .references(() => batches.id, { onDelete: "cascade" }),
+  taskKey: text("task_key").notNull(),
+  completedAt: integer("completed_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type Equipment = typeof equipment.$inferSelect;

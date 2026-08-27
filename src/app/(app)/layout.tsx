@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { TopBar } from "@/components/top-bar";
 import { SideNav } from "@/components/side-nav";
+import { DueTasksBanner } from "@/components/due-tasks-banner";
 
 export default async function AppLayout({
   children,
@@ -28,6 +29,7 @@ export default async function AppLayout({
             minWidth: 0,
           }}
         >
+          <DueTasksBanner userId={user.id} />
           {children}
         </main>
       </div>
