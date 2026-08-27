@@ -37,6 +37,10 @@ export function hasApiKey(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
+/** Bump whenever the extraction rules change — cached reads from older rule
+    versions are then ignored instead of serving stale results. */
+export const EXTRACTION_RULES_VERSION = "2";
+
 /** "Amazon.com" / "Amazon (Hobby Homebrew)" → "Amazon" — one canonical name
     per retailer, whatever the receipt says. */
 export function normalizeVendor(v: string): string {

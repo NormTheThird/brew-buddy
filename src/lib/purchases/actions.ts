@@ -24,6 +24,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import {
   combineItems,
   extractReceipt,
+  EXTRACTION_RULES_VERSION,
   hasApiKey,
   isSupportedReceiptType,
   normalizeVendor,
@@ -76,7 +77,13 @@ async function requireUser() {
 /* --- extraction log: the same receipt is only ever read once --- */
 
 function receiptHash(bytes: Buffer): string {
-  return crypto.createHash("sha256").update(bytes).digest("hex");
+  // Rules version is part of the key: a rule change makes old cached reads
+  // miss, so the next read applies current rules instead of serving stale.
+  return crypto
+    .createHash("sha256")
+    .update(EXTRACTION_RULES_VERSION)
+    .update(bytes)
+    .digest("hex");
 }
 
 function loggedProposal(userId: number, hash: string): ReceiptProposal | null {
