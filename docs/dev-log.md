@@ -15,6 +15,30 @@ this area again.
 
 ---
 
+## 2026-08-27 — Kit-apply duplicates merged into the seeded lots (data fix)
+
+Applying the Essential starter kit created stock rows for ingredients the
+seed data already described — those packets WERE batch 1 (the kit's Block
+Party recipe kit), so "Gold liquid malt extract" duplicated "Gold LME",
+"Willamette hop pellets" duplicated "Willamette, pellet" (lot HP15), etc.
+
+Merged each pair into the ORIGINAL row (script in session scratchpad, not
+kept): originals win because they hold the lot numbers/AA%/generation/best-by
+AND are what batch_ingredients reference — renaming or re-pointing would have
+broken the batch snapshot and brewability name-matching against recipes. The
+import row donated its purchase link + purchase date (Aug 8), then was
+deleted. On-hand stays at the originals' 0 (used) — the import rows' "6 lb on
+hand" was false; that beer is fermenting. Unopened kit items (priming sugar,
+caps, Oxygen Wash) had no counterpart and stand as-is.
+
+Why this happened: kit components deliberately skip the same-item merge
+prompt on apply (they always create fresh rows). Here the seed had
+pre-described the kit's contents, a one-time artifact of building the app
+mid-brew. If it recurs with real data, consider extending the merge prompt
+to kit components.
+
+---
+
 ## 2026-08-27 — Equipment quantity, flag-as-status, equipment search, mixed-order trim
 
 Four refinements from Trey's testing:
