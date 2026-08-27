@@ -27,7 +27,7 @@ export default async function PurchaseDetailPage({
   const p = db
     .select()
     .from(purchases)
-    .where(and(eq(purchases.publicId, id), eq(purchases.userId, user.id)))
+    .where(and(eq(purchases.id, id), eq(purchases.userId, user.id)))
     .all()[0];
   if (!p) notFound();
 
@@ -54,7 +54,7 @@ export default async function PurchaseDetailPage({
   const allIng = proposal
     ? db.select().from(ingredients).where(eq(ingredients.userId, user.id)).all()
     : [];
-  const matches: Array<{ id: number; name: string } | undefined> = (proposal?.items ?? []).map(
+  const matches: Array<{ id: string; name: string } | undefined> = (proposal?.items ?? []).map(
     (item) => {
       if (item.partOfKit) return undefined;
       const pool = (
@@ -102,7 +102,7 @@ export default async function PurchaseDetailPage({
                 {isImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={`/purchases/${p.publicId}/receipt`}
+                    src={`/purchases/${p.id}/receipt`}
                     alt={`Receipt for ${p.name}`}
                     style={{ maxWidth: "100%", borderRadius: 3, border: "1px solid var(--border)" }}
                   />
@@ -111,7 +111,7 @@ export default async function PurchaseDetailPage({
                     {p.receiptMime === "text/plain" ? "Pasted order text stored." : "PDF receipt stored."}
                   </div>
                 )}
-                <Link href={`/purchases/${p.publicId}/receipt`} target="_blank" style={{ fontSize: 13 }}>
+                <Link href={`/purchases/${p.id}/receipt`} target="_blank" style={{ fontSize: 13 }}>
                   Open full receipt
                 </Link>
               </div>
@@ -157,9 +157,20 @@ export default async function PurchaseDetailPage({
                             <td>
                               <span
                                 className="badge"
-                                style={{ background: item.kind === "equipment" ? "var(--primary)" : "var(--success)" }}
+                                style={{
+                                  background:
+                                    item.kind === "equipment"
+                                      ? "var(--primary)"
+                                      : item.type === "supply"
+                                        ? "#7a8a5b"
+                                        : "var(--success)",
+                                }}
                               >
-                                {item.kind.toUpperCase()}
+                                {item.kind === "equipment"
+                                  ? "EQUIPMENT"
+                                  : item.type === "supply"
+                                    ? "SUPPLY"
+                                    : "INGREDIENT"}
                               </span>
                             </td>
                             <td style={{ color: "var(--text-bright)" }}>
@@ -289,7 +300,7 @@ export default async function PurchaseDetailPage({
                     <li key={`i${i.id}`}>
                       <Link href={`/ingredients/${i.id}/edit`}>{i.name}</Link>
                       <span style={{ color: "var(--text-faint)" }}>
-                        {" "}· ingredient{i.quantity != null ? ` · ${i.quantity} ${i.unit}` : ""}
+                        {" "}· {i.type === "supply" ? "supply" : "ingredient"}{i.quantity != null ? ` · ${i.quantity} ${i.unit}` : ""}
                       </span>{" "}
                       <RemoveItemButton kind="ingredient" itemId={i.id} purchaseId={p.id} name={i.name} />
                     </li>

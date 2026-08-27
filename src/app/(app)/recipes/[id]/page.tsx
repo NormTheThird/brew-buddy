@@ -18,13 +18,11 @@ export default async function RecipeDetailPage({
 }) {
   const user = (await getCurrentUser())!;
   const { id } = await params;
-  const numId = Number(id);
-  if (!Number.isInteger(numId)) notFound();
 
   const recipe = db
     .select()
     .from(recipes)
-    .where(and(eq(recipes.id, numId), eq(recipes.userId, user.id)))
+    .where(and(eq(recipes.id, id), eq(recipes.userId, user.id)))
     .all()[0];
   if (!recipe) notFound();
 

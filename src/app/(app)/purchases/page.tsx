@@ -62,7 +62,7 @@ export default async function PurchasesPage({
     .from(ingredients)
     .where(eq(ingredients.userId, user.id))
     .all();
-  const itemCount = (id: number) =>
+  const itemCount = (id: string) =>
     equipCounts.filter((e) => e.purchaseId === id).length +
     ingCounts.filter((i) => i.purchaseId === id).length;
 
@@ -119,6 +119,7 @@ export default async function PurchasesPage({
                     <th>Order #</th>
                     <th>Date</th>
                     <th>Items</th>
+                    <th>Status</th>
                     <th>Receipt</th>
                     <th style={{ textAlign: "right" }}>Total</th>
                   </tr>
@@ -127,13 +128,37 @@ export default async function PurchasesPage({
                   {shown.map((p) => (
                     <tr key={p.id}>
                       <td style={{ color: "var(--text-bright)" }}>
-                        <Link href={`/purchases/${p.publicId}`}>{p.name}</Link>
+                        <Link href={`/purchases/${p.id}`}>{p.name}</Link>
                       </td>
                       <td>{p.vendor ?? "—"}</td>
                       <td>{p.orderNumber ?? "—"}</td>
                       <td>{formatDate(p.purchaseDate)}</td>
                       <td>{itemCount(p.id)}</td>
-                      <td>{p.receiptPath ? <Link href={`/purchases/${p.publicId}/receipt`} target="_blank">view</Link> : "—"}</td>
+                      <td>
+                        {p.proposalAppliedAt ? (
+                          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Applied</span>
+                        ) : p.proposalJson ? (
+                          <Link
+                            href={`/purchases/${p.id}`}
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 600,
+                              letterSpacing: 0.5,
+                              textTransform: "uppercase",
+                              color: "var(--accent)",
+                              border: "1px solid var(--accent)",
+                              borderRadius: 4,
+                              padding: "2px 7px",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            Needs review
+                          </Link>
+                        ) : (
+                          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>—</span>
+                        )}
+                      </td>
+                      <td>{p.receiptPath ? <Link href={`/purchases/${p.id}/receipt`} target="_blank">view</Link> : "—"}</td>
                       <td style={{ textAlign: "right" }}>{formatCost(p.totalCost)}</td>
                     </tr>
                   ))}

@@ -63,11 +63,11 @@ export default async function EquipmentPage({
 
   const purchaseNames = new Map(
     db
-      .select({ id: purchases.id, name: purchases.name, publicId: purchases.publicId })
+      .select({ id: purchases.id, name: purchases.name })
       .from(purchases)
       .where(eq(purchases.userId, user.id))
       .all()
-      .map((p) => [p.id, { name: p.name, publicId: p.publicId }] as const)
+      .map((p) => [p.id, p.name] as const)
   );
 
   const shown = (filter ? all.filter((e) => e.status === filter) : all).sort(
@@ -153,8 +153,8 @@ export default async function EquipmentPage({
                     <td>
                       {e.purchaseId && purchaseNames.has(e.purchaseId) ? (
                         <Link
-                          href={`/purchases/${purchaseNames.get(e.purchaseId)!.publicId}`}
-                          title={`Open purchase: ${purchaseNames.get(e.purchaseId)!.name}`}
+                          href={`/purchases/${e.purchaseId}`}
+                          title={`Open purchase: ${purchaseNames.get(e.purchaseId)!}`}
                         >
                           {formatDate(e.purchaseDate)}
                         </Link>
@@ -167,10 +167,10 @@ export default async function EquipmentPage({
                         formatCost(e.cost)
                       ) : e.purchaseId && purchaseNames.has(e.purchaseId) ? (
                         <Link
-                          href={`/purchases/${purchaseNames.get(e.purchaseId)!.publicId}`}
+                          href={`/purchases/${e.purchaseId}`}
                           style={{ fontSize: 12, color: "var(--text-muted)" }}
                         >
-                          part of {purchaseNames.get(e.purchaseId)!.name}
+                          part of {purchaseNames.get(e.purchaseId)!}
                         </Link>
                       ) : (
                         "—"

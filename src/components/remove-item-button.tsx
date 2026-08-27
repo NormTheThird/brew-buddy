@@ -9,8 +9,8 @@ export function RemoveItemButton({
   name,
 }: {
   kind: "equipment" | "ingredient";
-  itemId: number;
-  purchaseId: number;
+  itemId: string;
+  purchaseId: string;
   name: string;
 }) {
   return (

@@ -51,7 +51,7 @@ export function nameMatches(a: string, b: string): boolean {
   return tokens(x).some((t) => y.includes(t));
 }
 
-export function findLikelyMatch<T extends { id: number; name: string }>(
+export function findLikelyMatch<T extends { id: string; name: string }>(
   name: string,
   candidates: T[]
 ): T | undefined {

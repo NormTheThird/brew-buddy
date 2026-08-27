@@ -20,13 +20,11 @@ export async function GET(
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
 
   const { id } = await params;
-  const numId = Number(id);
-  if (!Number.isInteger(numId)) return new NextResponse("Bad id", { status: 400 });
 
   const row = db
     .select()
     .from(ingredients)
-    .where(and(eq(ingredients.id, numId), eq(ingredients.userId, user.id)))
+    .where(and(eq(ingredients.id, id), eq(ingredients.userId, user.id)))
     .all()[0];
   if (!row?.photoPath || !row.photoMime) {
     return new NextResponse("Not found", { status: 404 });

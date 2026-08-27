@@ -15,6 +15,39 @@ this area again.
 
 ---
 
+## 2026-08-27 — All primary keys are GUIDs; pending-review status; supplies labeled
+
+Trey asked for integer keys to go away entirely (sequential ids leak record
+counts in URLs), so every table's PK is now `text` with a
+`crypto.randomUUID()` default, and every FK column is text to match.
+`purchases.publicId` is gone — the id itself is the GUID; the migration reused
+each purchase's old public_id as its new id, so purchase URLs survived. Data
+migrated by export → rename to `data/brewbuddy.pre-guid.bak.db` → fresh
+`db:push` → reimport with old-id→uuid maps (scratchpad script, FK check clean).
+`batchNumber` stays an integer — it's a business number ("Batch #1"), not a key.
+Code sweep: all actions take string ids, `[id]` pages dropped their
+`Number(id)` guards and query by string, `findLikelyMatch` and every component
+id prop is string-typed. Typecheck clean, 36/36 tests pass, all pages verified
+in the browser on GUID URLs.
+
+Mid-sweep, six component files turned up corrupted on disk with systematic
+character substitutions (every "p"→"u" in one, "t"→"y" in another, stripped
+braces elsewhere) — cause unknown, possibly a disk/sync glitch. Restored from
+HEAD via git checkout and re-applied the sweep edits. If files look mangled
+again, check git first.
+
+Also from Trey's feedback:
+- **Purchases list Status column**: "Needs review" (accent badge, links to the
+  purchase) when a proposal is pending, "Applied" once imported, "—" when
+  nothing was extracted. Answers "which purchases haven't I approved yet?"
+- **Supplies labeled honestly**: bottle caps were badged INGREDIENT in the
+  review table even though their type is supply. The Kind badge now shows
+  SUPPLY (olive #7a8a5b, matching the inventory page), the items list on a
+  purchase says "supply", and the inventory page is titled
+  "Ingredients & supplies".
+
+---
+
 ## 2026-08-26 — Purchase-flow hardening from live testing
 
 Trey exercised the receipt flow with real Amazon/Northern Brewer orders; each round

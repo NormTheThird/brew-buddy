@@ -41,7 +41,7 @@ export function IngredientForm({
 }: {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
   item?: Ingredient;
-  purchaseOptions?: Array<{ id: number; name: string }>;
+  purchaseOptions?: Array<{ id: string; name: string }>;
 }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(
     action,

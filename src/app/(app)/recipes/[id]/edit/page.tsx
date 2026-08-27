@@ -15,12 +15,10 @@ export default async function EditRecipePage({
 }) {
   const user = (await getCurrentUser())!;
   const { id } = await params;
-  const numId = Number(id);
-  if (!Number.isInteger(numId)) notFound();
   const item = db
     .select()
     .from(recipes)
-    .where(and(eq(recipes.id, numId), eq(recipes.userId, user.id)))
+    .where(and(eq(recipes.id, id), eq(recipes.userId, user.id)))
     .all()[0];
   if (!item) notFound();
 

@@ -36,7 +36,7 @@ export function CreateUserForm() {
   );
 }
 
-export function ResetPasswordForm({ userId, userName }: { userId: number; userName: string }) {
+export function ResetPasswordForm({ userId, userName }: { userId: string; userName: string }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(resetUserPassword, {});
 
   return (

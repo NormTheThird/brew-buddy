@@ -8,7 +8,7 @@ export function DeleteButton({
   variant = "link",
 }: {
   action: (formData: FormData) => void;
-  id: number;
+  id: string | number;
   label?: string;
   confirmText: string;
   variant?: "link" | "button";

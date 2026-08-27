@@ -118,7 +118,7 @@ export function PurchaseForm() {
             This looks like a duplicate — you already have this purchase:
           </span>
           <span>
-            <Link href={`/purchases/${analysis.duplicateOf.publicId}`} style={{ color: "var(--text-bright)" }}>
+            <Link href={`/purchases/${analysis.duplicateOf.id}`} style={{ color: "var(--text-bright)" }}>
               {analysis.duplicateOf.name}
             </Link>
             {analysis.duplicateOf.totalCost != null ? ` · $${analysis.duplicateOf.totalCost.toFixed(2)}` : ""}

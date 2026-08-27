@@ -21,7 +21,7 @@ export async function GET(
   const p = db
     .select()
     .from(purchases)
-    .where(and(eq(purchases.publicId, id), eq(purchases.userId, user.id)))
+    .where(and(eq(purchases.id, id), eq(purchases.userId, user.id)))
     .all()[0];
   if (!p?.receiptPath || !p.receiptMime) {
     return new NextResponse("Not found", { status: 404 });

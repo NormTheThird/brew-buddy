@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { Batch } from "@/lib/db/schema";
 import type { FormState } from "@/lib/brewing/actions";
 
-type Option = { id: number; name: string };
+type Option = { id: string; name: string };
 
 function toDateInput(d: Date | null): string {
   return d ? d.toISOString().slice(0, 10) : "";
@@ -74,7 +74,7 @@ export function BatchForm({
   recipeOptions: Option[];
   kettleOptions: Option[];
   fermenterOptions: Option[];
-  defaults?: { recipeId?: number; batchNumber?: number };
+  defaults?: { recipeId?: string; batchNumber?: number };
 }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(action, {});
 

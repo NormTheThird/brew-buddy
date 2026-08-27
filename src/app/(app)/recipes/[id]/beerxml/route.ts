@@ -12,13 +12,11 @@ export async function GET(
   const user = await getCurrentUser();
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
   const { id } = await params;
-  const numId = Number(id);
-  if (!Number.isInteger(numId)) return new NextResponse("Bad id", { status: 400 });
 
   const recipe = db
     .select()
     .from(recipes)
-    .where(and(eq(recipes.id, numId), eq(recipes.userId, user.id)))
+    .where(and(eq(recipes.id, id), eq(recipes.userId, user.id)))
     .all()[0];
   if (!recipe) return new NextResponse("Not found", { status: 404 });
   const items = db

@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { runReceiptExtraction, type FormState } from "@/lib/purchases/actions";
 
-export function ExtractButton({ purchaseId }: { purchaseId: number }) {
+export function ExtractButton({ purchaseId }: { purchaseId: string }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(
     runReceiptExtraction,
     {}

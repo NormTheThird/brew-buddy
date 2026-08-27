@@ -97,7 +97,7 @@ export async function updateRecipe(
   formData: FormData
 ): Promise<FormState> {
   const user = await requireUser();
-  const id = int(formData.get("id"));
+  const id = str(formData.get("id"));
   if (id == null) return { error: "Missing id." };
   const parsed = recipeValues(formData);
   if ("error" in parsed) return { error: parsed.error };
@@ -111,7 +111,7 @@ export async function updateRecipe(
 
 export async function deleteRecipe(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const id = int(formData.get("id"));
+  const id = str(formData.get("id"));
   if (id == null) return;
   await db
     .delete(recipes)
@@ -120,7 +120,7 @@ export async function deleteRecipe(formData: FormData): Promise<void> {
   redirect("/recipes");
 }
 
-function ownedRecipe(id: number, userId: number) {
+function ownedRecipe(id: string, userId: string) {
   return db
     .select()
     .from(recipes)
@@ -130,7 +130,7 @@ function ownedRecipe(id: number, userId: number) {
 
 export async function addRecipeItem(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const recipeId = int(formData.get("recipeId"));
+  const recipeId = str(formData.get("recipeId"));
   const name = str(formData.get("name"));
   const type = str(formData.get("ingredientType")) as IngredientType | null;
   if (recipeId == null || !name || !type || !ingredientTypes.includes(type)) return;
@@ -155,8 +155,8 @@ export async function addRecipeItem(formData: FormData): Promise<void> {
 
 export async function deleteRecipeItem(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const id = int(formData.get("id"));
-  const recipeId = int(formData.get("recipeId"));
+  const id = str(formData.get("id"));
+  const recipeId = str(formData.get("recipeId"));
   if (id == null || recipeId == null) return;
   if (!ownedRecipe(recipeId, user.id)) return;
   await db
@@ -175,7 +175,7 @@ export async function importBeerXmlAction(
     return { error: "Choose a BeerXML (.xml) file." };
   }
   if (file.size > 2 * 1024 * 1024) return { error: "File too large." };
-  let recipeId: number;
+  let recipeId: string;
   try {
     const parsed = parseBeerXml(await file.text());
     const inserted = await db
@@ -218,8 +218,8 @@ const EST_FIELDS = [
   "pitchTempF",
 ] as const;
 
-function batchValues(formData: FormData, userId: number) {
-  const recipeId = int(formData.get("recipeId"));
+function batchValues(formData: FormData, userId: string) {
+  const recipeId = str(formData.get("recipeId"));
   const recipe = recipeId != null ? ownedRecipe(recipeId, userId) : undefined;
   const recipeName = recipe?.name ?? str(formData.get("recipeName"));
   if (!recipeName) return { error: "Pick a recipe." } as const;
@@ -240,8 +240,8 @@ function batchValues(formData: FormData, userId: number) {
       brewDate: date(formData.get("brewDate")),
       method: method as "extract" | "partial_mash" | "all_grain",
       status: status as (typeof batchStatuses)[number],
-      kettleId: int(formData.get("kettleId")),
-      fermenterId: int(formData.get("fermenterId")),
+      kettleId: str(formData.get("kettleId")),
+      fermenterId: str(formData.get("fermenterId")),
       preBoilVolumeGal: num(formData.get("preBoilVolumeGal")),
       postBoilVolumeGal: num(formData.get("postBoilVolumeGal")),
       intoFermenterGal: num(formData.get("intoFermenterGal")),
@@ -288,7 +288,7 @@ export async function updateBatch(
   formData: FormData
 ): Promise<FormState> {
   const user = await requireUser();
-  const id = int(formData.get("id"));
+  const id = str(formData.get("id"));
   if (id == null) return { error: "Missing id." };
   const parsed = batchValues(formData, user.id);
   if ("error" in parsed) return { error: parsed.error };
@@ -303,7 +303,7 @@ export async function updateBatch(
 
 export async function deleteBatch(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const id = int(formData.get("id"));
+  const id = str(formData.get("id"));
   if (id == null) return;
   await db
     .delete(batches)
@@ -312,7 +312,7 @@ export async function deleteBatch(formData: FormData): Promise<void> {
   redirect("/batches");
 }
 
-function ownedBatch(id: number, userId: number) {
+function ownedBatch(id: string, userId: string) {
   return db
     .select()
     .from(batches)
@@ -322,7 +322,7 @@ function ownedBatch(id: number, userId: number) {
 
 export async function addGravityReading(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const batchId = int(formData.get("batchId"));
+  const batchId = str(formData.get("batchId"));
   const value = num(formData.get("value"));
   if (batchId == null || value == null) return;
   if (!ownedBatch(batchId, user.id)) return;
@@ -338,8 +338,8 @@ export async function addGravityReading(formData: FormData): Promise<void> {
 
 export async function deleteGravityReading(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const id = int(formData.get("id"));
-  const batchId = int(formData.get("batchId"));
+  const id = str(formData.get("id"));
+  const batchId = str(formData.get("batchId"));
   if (id == null || batchId == null) return;
   if (!ownedBatch(batchId, user.id)) return;
   await db
@@ -350,13 +350,13 @@ export async function deleteGravityReading(formData: FormData): Promise<void> {
 
 export async function addBatchIngredient(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const batchId = int(formData.get("batchId"));
+  const batchId = str(formData.get("batchId"));
   const description = str(formData.get("description"));
   if (batchId == null || !description) return;
   if (!ownedBatch(batchId, user.id)) return;
   await db.insert(batchIngredients).values({
     batchId,
-    ingredientId: int(formData.get("ingredientId")),
+    ingredientId: str(formData.get("ingredientId")),
     description,
     amount: num(formData.get("amount")),
     unit: str(formData.get("unit")),
@@ -367,8 +367,8 @@ export async function addBatchIngredient(formData: FormData): Promise<void> {
 
 export async function deleteBatchIngredient(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const id = int(formData.get("id"));
-  const batchId = int(formData.get("batchId"));
+  const id = str(formData.get("id"));
+  const batchId = str(formData.get("batchId"));
   if (id == null || batchId == null) return;
   if (!ownedBatch(batchId, user.id)) return;
   await db

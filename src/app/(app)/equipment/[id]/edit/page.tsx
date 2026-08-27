@@ -15,13 +15,11 @@ export default async function EditEquipmentPage({
 }) {
   const user = (await getCurrentUser())!;
   const { id } = await params;
-  const numId = Number(id);
-  if (!Number.isInteger(numId)) notFound();
 
   const item = db
     .select()
     .from(equipment)
-    .where(and(eq(equipment.id, numId), eq(equipment.userId, user.id)))
+    .where(and(eq(equipment.id, id), eq(equipment.userId, user.id)))
     .all()[0];
   if (!item) notFound();
 

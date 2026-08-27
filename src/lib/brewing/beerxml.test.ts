@@ -56,7 +56,7 @@ describe("round trip", () => {
       notes: null,
     } as Recipe;
     const items = parsed.items.map(
-      (i, idx) => ({ ...i, id: idx, recipeId: 1, sortOrder: idx }) as RecipeItem
+      (i, idx) => ({ ...i, id: String(idx), recipeId: "r1", sortOrder: idx }) as RecipeItem
     );
     const xml = buildBeerXml(recipe, items);
     const again = parseBeerXml(xml);

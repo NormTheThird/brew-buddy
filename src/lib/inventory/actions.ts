@@ -61,9 +61,9 @@ async function requireUser() {
 /** null when unset; rejects a purchase the user doesn't own. */
 function ownedPurchaseId(
   v: FormDataEntryValue | null,
-  userId: number
-): number | null | { error: string } {
-  const id = int(v);
+  userId: string
+): string | null | { error: string } {
+  const id = str(v);
   if (id == null) return null;
   const owned = db
     .select({ id: purchases.id })
@@ -121,7 +121,7 @@ export async function updateEquipment(
   formData: FormData
 ): Promise<FormState> {
   const user = await requireUser();
-  const id = int(formData.get("id"));
+  const id = str(formData.get("id"));
   if (id == null) return { error: "Missing id." };
   const parsed = equipmentValues(formData);
   if ("error" in parsed) return { error: parsed.error };
@@ -137,7 +137,7 @@ export async function updateEquipment(
 
 export async function deleteEquipment(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const id = int(formData.get("id"));
+  const id = str(formData.get("id"));
   if (id == null) return;
   await db
     .delete(equipment)
@@ -221,8 +221,8 @@ export async function analyzeLabel(
 
 async function storeLabelPhoto(
   formData: FormData,
-  id: number,
-  userId: number
+  id: string,
+  userId: string
 ): Promise<void> {
   const photo = formData.get("photo");
   if (!(photo instanceof File) || photo.size === 0) return;
@@ -269,7 +269,7 @@ export async function updateIngredient(
   formData: FormData
 ): Promise<FormState> {
   const user = await requireUser();
-  const id = int(formData.get("id"));
+  const id = str(formData.get("id"));
   if (id == null) return { error: "Missing id." };
   const parsed = ingredientValues(formData);
   if ("error" in parsed) return { error: parsed.error };
@@ -286,7 +286,7 @@ export async function updateIngredient(
 
 export async function deleteIngredient(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const id = int(formData.get("id"));
+  const id = str(formData.get("id"));
   if (id == null) return;
   await db
     .delete(ingredients)

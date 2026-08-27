@@ -50,9 +50,9 @@ export async function createUser(
 
 export async function setUserActive(formData: FormData): Promise<void> {
   const admin = await requireAdmin();
-  const id = Number(formData.get("id"));
+  const id = str(formData.get("id"));
   const active = String(formData.get("active")) === "true";
-  if (!Number.isInteger(id)) return;
+  if (!id) return;
   if (id === admin.id && !active) return; // can't deactivate yourself
   await db.update(users).set({ active }).where(eq(users.id, id));
   if (!active) {
@@ -67,9 +67,9 @@ export async function resetUserPassword(
   formData: FormData
 ): Promise<FormState> {
   await requireAdmin();
-  const id = Number(formData.get("id"));
+  const id = str(formData.get("id"));
   const password = String(formData.get("password") ?? "");
-  if (!Number.isInteger(id)) return { error: "Missing user." };
+  if (!id) return { error: "Missing user." };
   if (password.length < 8) return { error: "Password must be at least 8 characters." };
   const target = db.select().from(users).where(eq(users.id, id)).all()[0];
   if (!target) return { error: "Unknown user." };

@@ -38,7 +38,7 @@ export type AnalyzeState = {
   proposal?: ReceiptProposal;
   /** An existing purchase this receipt appears to duplicate — user decides. */
   duplicateOf?: {
-    publicId: string;
+    id: string;
     name: string;
     totalCost: number | null;
     date: string | null;
@@ -86,7 +86,7 @@ function receiptHash(bytes: Buffer): string {
     .digest("hex");
 }
 
-function loggedProposal(userId: number, hash: string): ReceiptProposal | null {
+function loggedProposal(userId: string, hash: string): ReceiptProposal | null {
   const row = db
     .select()
     .from(extractions)
@@ -100,7 +100,7 @@ function loggedProposal(userId: number, hash: string): ReceiptProposal | null {
   }
 }
 
-async function logProposal(userId: number, hash: string, proposal: ReceiptProposal) {
+async function logProposal(userId: string, hash: string, proposal: ReceiptProposal) {
   await db
     .delete(extractions)
     .where(and(eq(extractions.userId, userId), eq(extractions.sha256, hash)));
@@ -112,7 +112,7 @@ async function logProposal(userId: number, hash: string, proposal: ReceiptPropos
 /** Read from the log if this exact receipt was read before; otherwise call
     the AI once and log the result. */
 async function extractOnce(
-  userId: number,
+  userId: string,
   bytes: Buffer,
   mime: string
 ): Promise<ReceiptProposal> {
@@ -124,7 +124,7 @@ async function extractOnce(
   return proposal;
 }
 
-function ownedPurchase(id: number, userId: number) {
+function ownedPurchase(id: string, userId: string) {
   return db
     .select()
     .from(purchases)
@@ -190,7 +190,7 @@ export async function analyzeReceipt(
       ...(dup
         ? {
             duplicateOf: {
-              publicId: dup.publicId,
+              id: dup.id,
               name: dup.name,
               totalCost: dup.totalCost,
               date: dup.purchaseDate
@@ -288,7 +288,7 @@ export async function createPurchase(
       proposalJson,
       notes,
     })
-    .returning({ id: purchases.id, publicId: purchases.publicId });
+    .returning({ id: purchases.id });
   const id = inserted[0].id;
 
   if (receiptBytes && receiptMime) {
@@ -308,12 +308,12 @@ export async function createPurchase(
   }
 
   revalidatePath("/purchases");
-  redirect(`/purchases/${inserted[0].publicId}`);
+  redirect(`/purchases/${inserted[0].id}`);
 }
 
 export async function deletePurchase(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const id = num(formData.get("id"));
+  const id = str(formData.get("id"));
   if (id == null) return;
   const p = ownedPurchase(id, user.id);
   if (!p) return;
@@ -333,7 +333,7 @@ export async function deletePurchase(formData: FormData): Promise<void> {
     .all();
   const usedEquipIds = [
     ...new Set(
-      userBatches.flatMap((b) => [b.kettleId, b.fermenterId]).filter((v): v is number => v != null)
+      userBatches.flatMap((b) => [b.kettleId, b.fermenterId]).filter((v): v is string => v != null)
     ),
   ];
   const usedIngIds = [
@@ -345,7 +345,7 @@ export async function deletePurchase(formData: FormData): Promise<void> {
         .where(eq(batches.userId, user.id))
         .all()
         .map((r) => r.ingredientId)
-        .filter((v): v is number => v != null)
+        .filter((v): v is string => v != null)
     ),
   ];
 
@@ -379,7 +379,7 @@ export async function runReceiptExtraction(
   formData: FormData
 ): Promise<FormState> {
   const user = await requireUser();
-  const id = num(formData.get("id"));
+  const id = str(formData.get("id"));
   if (id == null) return { error: "Missing purchase id." };
   const p = ownedPurchase(id, user.id);
   if (!p) return { error: "Purchase not found." };
@@ -420,7 +420,7 @@ export async function runReceiptExtraction(
     .update(purchases)
     .set({ proposalJson: JSON.stringify(proposal) })
     .where(eq(purchases.id, id));
-  revalidatePath(`/purchases/${p.publicId}`);
+  revalidatePath(`/purchases/${p.id}`);
   return {};
 }
 
@@ -431,7 +431,7 @@ export async function rescanReceipt(
   formData: FormData
 ): Promise<FormState> {
   const user = await requireUser();
-  const id = num(formData.get("id"));
+  const id = str(formData.get("id"));
   if (id == null) return { error: "Missing purchase id." };
   const p = ownedPurchase(id, user.id);
   if (!p?.receiptPath || !p.receiptMime) {
@@ -462,13 +462,13 @@ export async function rescanReceipt(
       error: `Rescan failed: ${e instanceof Error ? e.message : "unknown error"}`,
     };
   }
-  revalidatePath(`/purchases/${p.publicId}`);
+  revalidatePath(`/purchases/${p.id}`);
   return {};
 }
 
 export async function applyProposal(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const id = num(formData.get("id"));
+  const id = str(formData.get("id"));
   if (id == null) return;
   const p = ownedPurchase(id, user.id);
   if (!p?.proposalJson) return;
@@ -488,8 +488,8 @@ export async function applyProposal(formData: FormData): Promise<void> {
     // components never go through this — they always create fresh rows.
     const sameVal = str(formData.get(`same_${idx}`));
     if (!item.partOfKit && sameVal && sameVal !== "new") {
-      const existingId = Number(sameVal);
-      if (Number.isInteger(existingId)) {
+      const existingId = sameVal;
+      {
         // The receipt becomes the source of truth: name and details update,
         // but hand-entered specs/notes the receipt doesn't know are kept.
         const patch = {
@@ -584,17 +584,17 @@ export async function applyProposal(formData: FormData): Promise<void> {
     .update(purchases)
     .set({ proposalJson: null, proposalAppliedAt: new Date() })
     .where(eq(purchases.id, id));
-  revalidatePath(`/purchases/${p.publicId}`);
+  revalidatePath(`/purchases/${p.id}`);
   revalidatePath("/equipment");
   revalidatePath("/ingredients");
-  redirect(`/purchases/${p.publicId}`);
+  redirect(`/purchases/${p.id}`);
 }
 
 /** Combine user-selected proposal rows into one item (AI names it, costs
     sum). Edits the pending draft only — nothing is written until Apply. */
 export async function combineProposalItems(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const id = num(formData.get("id"));
+  const id = str(formData.get("id"));
   if (id == null) return;
   const p = ownedPurchase(id, user.id);
   if (!p?.proposalJson || !hasApiKey()) return;
@@ -626,16 +626,16 @@ export async function combineProposalItems(formData: FormData): Promise<void> {
       } catch {}
     }
   } catch {}
-  revalidatePath(`/purchases/${p.publicId}`);
-  redirect(`/purchases/${p.publicId}`);
+  revalidatePath(`/purchases/${p.id}`);
+  redirect(`/purchases/${p.id}`);
 }
 
 /** Removes one imported item (equipment or ingredient row) from a purchase —
     the after-the-fact fix for a bad apply. Deletes the row itself. */
 export async function removePurchaseItem(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const purchaseId = num(formData.get("purchaseId"));
-  const itemId = num(formData.get("itemId"));
+  const purchaseId = str(formData.get("purchaseId"));
+  const itemId = str(formData.get("itemId"));
   const kind = str(formData.get("kind"));
   if (purchaseId == null || itemId == null) return;
   const p = ownedPurchase(purchaseId, user.id);
@@ -651,16 +651,16 @@ export async function removePurchaseItem(formData: FormData): Promise<void> {
       .where(and(eq(ingredients.id, itemId), eq(ingredients.userId, user.id), eq(ingredients.purchaseId, purchaseId)));
     revalidatePath("/ingredients");
   }
-  revalidatePath(`/purchases/${p.publicId}`);
+  revalidatePath(`/purchases/${p.id}`);
 }
 
 export async function discardProposal(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const id = num(formData.get("id"));
+  const id = str(formData.get("id"));
   if (id == null) return;
   const p = ownedPurchase(id, user.id);
   if (!p) return;
   await db.update(purchases).set({ proposalJson: null }).where(eq(purchases.id, id));
-  revalidatePath(`/purchases/${p.publicId}`);
-  redirect(`/purchases/${p.publicId}`);
+  revalidatePath(`/purchases/${p.id}`);
+  redirect(`/purchases/${p.id}`);
 }

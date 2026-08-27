@@ -9,7 +9,7 @@ export const SESSION_COOKIE = "bb_session";
 // Brew-day friendly: nobody types a password with wet hands. 90 days.
 const SESSION_DAYS = 90;
 
-export async function createSession(userId: number): Promise<string> {
+export async function createSession(userId: string): Promise<string> {
   const id = crypto.randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
   await db.insert(sessions).values({ id, userId, expiresAt });

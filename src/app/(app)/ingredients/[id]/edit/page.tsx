@@ -15,13 +15,11 @@ export default async function EditIngredientPage({
 }) {
   const user = (await getCurrentUser())!;
   const { id } = await params;
-  const numId = Number(id);
-  if (!Number.isInteger(numId)) notFound();
 
   const item = db
     .select()
     .from(ingredients)
-    .where(and(eq(ingredients.id, numId), eq(ingredients.userId, user.id)))
+    .where(and(eq(ingredients.id, id), eq(ingredients.userId, user.id)))
     .all()[0];
   if (!item) notFound();
 

@@ -88,11 +88,11 @@ export default async function IngredientsPage({
 
   const purchaseNames = new Map(
     db
-      .select({ id: purchases.id, name: purchases.name, publicId: purchases.publicId })
+      .select({ id: purchases.id, name: purchases.name })
       .from(purchases)
       .where(eq(purchases.userId, user.id))
       .all()
-      .map((p) => [p.id, { name: p.name, publicId: p.publicId }] as const)
+      .map((p) => [p.id, p.name] as const)
   );
 
   const shown = (filter ? all.filter((i) => i.type === filter) : all).sort(
@@ -107,7 +107,7 @@ export default async function IngredientsPage({
     <>
       <PageHeader
         icon={<DropletIcon size={40} />}
-        title="Ingredient lots"
+        title="Ingredients & supplies"
         subtitle="Tracked per purchase — because this packet is never the next packet"
         actions={<Link href="/ingredients/new" className="btn btn-solid">+ Add purchase</Link>}
       />
@@ -175,8 +175,8 @@ export default async function IngredientsPage({
                     <td>
                       {i.purchaseId && purchaseNames.has(i.purchaseId) ? (
                         <Link
-                          href={`/purchases/${purchaseNames.get(i.purchaseId)!.publicId}`}
-                          title={`Open purchase: ${purchaseNames.get(i.purchaseId)!.name}`}
+                          href={`/purchases/${i.purchaseId}`}
+                          title={`Open purchase: ${purchaseNames.get(i.purchaseId)!}`}
                         >
                           {formatDate(i.purchaseDate)}
                         </Link>
@@ -189,10 +189,10 @@ export default async function IngredientsPage({
                         formatCost(i.cost)
                       ) : i.purchaseId && purchaseNames.has(i.purchaseId) ? (
                         <Link
-                          href={`/purchases/${purchaseNames.get(i.purchaseId)!.publicId}`}
+                          href={`/purchases/${i.purchaseId}`}
                           style={{ fontSize: 12, color: "var(--text-muted)" }}
                         >
-                          part of {purchaseNames.get(i.purchaseId)!.name}
+                          part of {purchaseNames.get(i.purchaseId)!}
                         </Link>
                       ) : (
                         "—"

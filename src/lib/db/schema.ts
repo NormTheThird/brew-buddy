@@ -1,9 +1,13 @@
 import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 
+// All primary keys are GUIDs — integer ids leak record counts in URLs and
+// imply an ordering that means nothing. crypto.randomUUID() at insert time.
+const uuid = () => crypto.randomUUID();
+
 // Roles are deliberately flat (brief §2): admins manage accounts, everyone
 // else has identical rights to everything except the admin Users page.
 export const users = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+  id: text("id").primaryKey().$defaultFn(uuid),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   passwordHash: text("password_hash").notNull(),
@@ -17,7 +21,7 @@ export const users = sqliteTable("users", {
 
 export const sessions = sqliteTable("sessions", {
   id: text("id").primaryKey(),
-  userId: integer("user_id")
+  userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
@@ -26,16 +30,25 @@ export const sessions = sqliteTable("sessions", {
     .$defaultFn(() => new Date()),
 });
 
+// Log of every AI receipt read, keyed by content hash: the same receipt is
+// only ever read once — later reads return the logged result instantly.
+export const extractions = sqliteTable("extractions", {
+  id: text("id").primaryKey().$defaultFn(uuid),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  sha256: text("sha256").notNull(),
+  proposalJson: text("proposal_json").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 // A Purchase groups items bought together — a kit or one order — with one
 // total cost. Items in a kit show "part of <kit>", never a fake per-item price.
 export const purchases = sqliteTable("purchases", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  // URLs use this GUID — integer ids stay internal (they leak record counts).
-  publicId: text("public_id")
-    .notNull()
-    .unique()
-    .$defaultFn(() => crypto.randomUUID()),
-  userId: integer("user_id")
+  id: text("id").primaryKey().$defaultFn(uuid),
+  userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
@@ -48,20 +61,6 @@ export const purchases = sqliteTable("purchases", {
   proposalJson: text("proposal_json"), // pending AI-extracted items awaiting review
   proposalAppliedAt: integer("proposal_applied_at", { mode: "timestamp" }), // read/apply happens once
   notes: text("notes"),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-});
-
-// Log of every AI receipt read, keyed by content hash: the same receipt is
-// only ever read once — later reads return the logged result instantly.
-export const extractions = sqliteTable("extractions", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  sha256: text("sha256").notNull(),
-  proposalJson: text("proposal_json").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -80,8 +79,8 @@ export const equipmentCategories = [
 
 // status: wanted items live in the same table so the wanted list is just a filter.
 export const equipment = sqliteTable("equipment", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id")
+  id: text("id").primaryKey().$defaultFn(uuid),
+  userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
@@ -91,7 +90,7 @@ export const equipment = sqliteTable("equipment", {
     .default("active"),
   specs: text("specs"), // short human-readable: "7.5 gal · 110V · 1600W"
   flag: text("flag"), // badge-worthy warning: "not calibrated", "replace"
-  purchaseId: integer("purchase_id").references(() => purchases.id, {
+  purchaseId: text("purchase_id").references(() => purchases.id, {
     onDelete: "set null",
   }),
   purchaseDate: integer("purchase_date", { mode: "timestamp" }),
@@ -123,8 +122,8 @@ export const ingredientTypes = [
 // One row per PURCHASE LOT, not per ingredient type (brief §3) — the lot's
 // numbers (AA%, best-by, generation) are what replication runs on.
 export const ingredients = sqliteTable("ingredients", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id")
+  id: text("id").primaryKey().$defaultFn(uuid),
+  userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   type: text("type", { enum: ingredientTypes }).notNull(),
@@ -151,7 +150,7 @@ export const ingredients = sqliteTable("ingredients", {
   tempRangeMinF: real("temp_range_min_f"),
   tempRangeMaxF: real("temp_range_max_f"),
   attenuationPercent: real("attenuation_percent"),
-  purchaseId: integer("purchase_id").references(() => purchases.id, {
+  purchaseId: text("purchase_id").references(() => purchases.id, {
     onDelete: "set null",
   }),
   // Photo of the actual packet/label — AI reads lot, AA%, best-by from it.
@@ -169,8 +168,8 @@ export const ingredients = sqliteTable("ingredients", {
 // Recipes are specifications, not shopping lists (brief §5) — they survive
 // equipment changes. Brewed/Keeper display states derive from batches.
 export const recipes = sqliteTable("recipes", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id")
+  id: text("id").primaryKey().$defaultFn(uuid),
+  userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
@@ -196,8 +195,8 @@ export const recipes = sqliteTable("recipes", {
 });
 
 export const recipeItems = sqliteTable("recipe_items", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  recipeId: integer("recipe_id")
+  id: text("id").primaryKey().$defaultFn(uuid),
+  recipeId: text("recipe_id")
     .notNull()
     .references(() => recipes.id, { onDelete: "cascade" }),
   ingredientType: text("ingredient_type", { enum: ingredientTypes }).notNull(),
@@ -217,25 +216,25 @@ export const batchStatuses = [
 ] as const;
 
 export const batches = sqliteTable("batches", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id")
+  id: text("id").primaryKey().$defaultFn(uuid),
+  userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  recipeId: integer("recipe_id").references(() => recipes.id, {
+  recipeId: text("recipe_id").references(() => recipes.id, {
     onDelete: "set null",
   }),
   recipeName: text("recipe_name").notNull(), // snapshot — survives recipe deletion
-  batchNumber: integer("batch_number").notNull(),
+  batchNumber: integer("batch_number").notNull(), // business number, not a key
   brewDate: integer("brew_date", { mode: "timestamp" }),
   method: text("method", { enum: ["extract", "partial_mash", "all_grain"] })
     .notNull()
     .default("extract"),
   status: text("status", { enum: batchStatuses }).notNull().default("planned"),
   // Constants are per-vessel (brief §4): record which vessels this batch used.
-  kettleId: integer("kettle_id").references(() => equipment.id, {
+  kettleId: text("kettle_id").references(() => equipment.id, {
     onDelete: "set null",
   }),
-  fermenterId: integer("fermenter_id").references(() => equipment.id, {
+  fermenterId: text("fermenter_id").references(() => equipment.id, {
     onDelete: "set null",
   }),
   preBoilVolumeGal: real("pre_boil_volume_gal"),
@@ -269,11 +268,11 @@ export const batches = sqliteTable("batches", {
 
 // Snapshot of exactly what went in, including the lot (brief §3).
 export const batchIngredients = sqliteTable("batch_ingredients", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  batchId: integer("batch_id")
+  id: text("id").primaryKey().$defaultFn(uuid),
+  batchId: text("batch_id")
     .notNull()
     .references(() => batches.id, { onDelete: "cascade" }),
-  ingredientId: integer("ingredient_id").references(() => ingredients.id, {
+  ingredientId: text("ingredient_id").references(() => ingredients.id, {
     onDelete: "set null",
   }),
   description: text("description").notNull(),
@@ -283,8 +282,8 @@ export const batchIngredients = sqliteTable("batch_ingredients", {
 });
 
 export const gravityReadings = sqliteTable("gravity_readings", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  batchId: integer("batch_id")
+  id: text("id").primaryKey().$defaultFn(uuid),
+  batchId: text("batch_id")
     .notNull()
     .references(() => batches.id, { onDelete: "cascade" }),
   takenAt: integer("taken_at", { mode: "timestamp" }).notNull(),

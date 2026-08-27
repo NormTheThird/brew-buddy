@@ -19,7 +19,7 @@ const email = (process.env.ADMIN_EMAIL ?? "normthethird@protonmail.com").toLower
 const name = process.env.ADMIN_NAME ?? "Trey";
 const password = process.env.ADMIN_PASSWORD ?? "brewbuddy";
 
-async function seedAdmin(): Promise<number> {
+async function seedAdmin(): Promise<string> {
   const existing = db.select().from(users).where(eq(users.email, email)).all()[0];
   if (existing) {
     console.log(`Admin ${email} already exists.`);
@@ -39,7 +39,7 @@ async function seedAdmin(): Promise<number> {
 
 // Equipment from brief §7. Per-item costs weren't itemized (~$669 total from
 // receipts), so cost is left null until entered from real receipts.
-async function seedEquipment(userId: number) {
+async function seedEquipment(userId: string) {
   const existing = db
     .select({ id: equipment.id })
     .from(equipment)
@@ -83,7 +83,7 @@ async function seedEquipment(userId: number) {
 }
 
 // Batch-1 ingredient lots from brief §8 — all consumed, so on-hand is 0.
-async function seedIngredients(userId: number) {
+async function seedIngredients(userId: string) {
   const existing = db
     .select({ id: ingredients.id })
     .from(ingredients)
@@ -172,7 +172,7 @@ async function seedIngredients(userId: number) {
 }
 
 // Recipes from brief §6/§12 and batch 1 from §8.
-async function seedRecipesAndBatch1(userId: number) {
+async function seedRecipesAndBatch1(userId: string) {
   const existing = db
     .select({ id: recipes.id })
     .from(recipes)

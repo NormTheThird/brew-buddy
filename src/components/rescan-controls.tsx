@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { rescanReceipt, type FormState } from "@/lib/purchases/actions";
 
-export function RescanControls({ purchaseId }: { purchaseId: number }) {
+export function RescanControls({ purchaseId }: { purchaseId: string }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(
     rescanReceipt,
     {}

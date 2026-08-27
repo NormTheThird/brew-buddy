@@ -32,8 +32,6 @@ export default async function NewBatchPage({
     .all();
   const nextNumber = existing.reduce((m, b) => Math.max(m, b.n), 0) + 1;
 
-  const recipeId = Number(recipe);
-
   return (
     <>
       <PageHeader
@@ -47,7 +45,7 @@ export default async function NewBatchPage({
         kettleOptions={vessels.filter((v) => v.category === "kettle")}
         fermenterOptions={vessels.filter((v) => v.category === "fermentation")}
         defaults={{
-          recipeId: Number.isInteger(recipeId) ? recipeId : undefined,
+          recipeId: recipe || undefined,
           batchNumber: nextNumber,
         }}
       />

@@ -39,13 +39,11 @@ export default async function BatchDetailPage({
 }) {
   const user = (await getCurrentUser())!;
   const { id } = await params;
-  const numId = Number(id);
-  if (!Number.isInteger(numId)) notFound();
 
   const b = db
     .select()
     .from(batches)
-    .where(and(eq(batches.id, numId), eq(batches.userId, user.id)))
+    .where(and(eq(batches.id, id), eq(batches.userId, user.id)))
     .all()[0];
   if (!b) notFound();
 

@@ -28,7 +28,7 @@ export function EquipmentForm({
 }: {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
   item?: Equipment;
-  purchaseOptions?: Array<{ id: number; name: string }>;
+  purchaseOptions?: Array<{ id: string; name: string }>;
 }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(
     action,
