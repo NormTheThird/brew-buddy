@@ -24,6 +24,7 @@ export function PurchaseForm() {
   const [vendor, setVendor] = useState("");
   const [purchaseDate, setPurchaseDate] = useState("");
   const [totalCost, setTotalCost] = useState("");
+  const [notes, setNotes] = useState("");
 
   // Dispatch analyze WITHOUT submitting the form — a form-action submission
   // makes React reset uncontrolled fields, losing the pasted text / chosen file
@@ -42,6 +43,25 @@ export function PurchaseForm() {
     setVendor((v) => v || p.vendor || "");
     setPurchaseDate((v) => v || p.purchaseDate || "");
     setTotalCost((v) => v || (p.totalCost != null ? String(p.totalCost) : ""));
+    // Auto-notes appear here, visible and editable before create.
+    const auto: string[] = [];
+    const fileInput = formRef.current?.elements.namedItem("receipt");
+    const hasFile = fileInput instanceof HTMLInputElement && (fileInput.files?.length ?? 0) > 0;
+    if (hasFile) {
+      auto.push(
+        fileInput.files![0].type === "application/pdf"
+          ? "Receipt: uploaded PDF"
+          : "Receipt: uploaded photo"
+      );
+    } else {
+      auto.push("Receipt: pasted order text");
+    }
+    if (p.discountCode) {
+      auto.push(
+        `Discount code ${p.discountCode}${p.discountAmount != null ? ` (−$${p.discountAmount.toFixed(2)})` : ""}`
+      );
+    }
+    setNotes((v) => (v ? v : auto.join(" · ")));
   }, [analysis.proposal]);
 
   const proposal = analysis.proposal;
@@ -114,7 +134,7 @@ export function PurchaseForm() {
       </div>
       <div>
         <label className="field-label" htmlFor="notes">Notes</label>
-        <textarea id="notes" name="notes" className="field" rows={3} />
+        <textarea id="notes" name="notes" className="field" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </div>
       <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
         Receipt or pasted text is stored privately with the purchase, viewable later.

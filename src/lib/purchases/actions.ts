@@ -145,18 +145,23 @@ export async function createPurchase(
   }
 
   // Auto-notes: how the receipt arrived, and any discount code it carried.
+  // The form pre-fills these after an AI read, so skip any already present.
+  const userNotes = str(formData.get("notes"));
   const autoNotes: string[] = [];
-  if (receiptMime === "text/plain") autoNotes.push("Receipt: pasted order text");
-  else if (receiptMime === "application/pdf") autoNotes.push("Receipt: uploaded PDF");
-  else if (receiptMime) autoNotes.push("Receipt: uploaded photo");
+  const addNote = (note: string, marker: string) => {
+    if (!userNotes?.includes(marker)) autoNotes.push(note);
+  };
+  if (receiptMime === "text/plain") addNote("Receipt: pasted order text", "Receipt:");
+  else if (receiptMime === "application/pdf") addNote("Receipt: uploaded PDF", "Receipt:");
+  else if (receiptMime) addNote("Receipt: uploaded photo", "Receipt:");
   if (proposal?.discountCode) {
-    autoNotes.push(
+    addNote(
       `Discount code ${proposal.discountCode}${
         proposal.discountAmount != null ? ` (−$${proposal.discountAmount.toFixed(2)})` : ""
-      }`
+      }`,
+      `Discount code ${proposal.discountCode}`
     );
   }
-  const userNotes = str(formData.get("notes"));
   const notes =
     [userNotes, autoNotes.join(" · ")].filter(Boolean).join("\n") || null;
 
