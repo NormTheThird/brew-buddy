@@ -95,11 +95,21 @@ h3 {
   padding: 6px 14px;
   border-radius: 4px;
   font-size: 13px;
+  line-height: 1.4;
   font-family: inherit;
   border: 1px solid var(--accent);
   color: var(--accent);
   background: transparent;
   cursor: pointer;
+}
+
+.btn-danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.btn-danger:hover {
+  border-color: #b23a34;
+  color: #b23a34;
 }
 .btn:hover {
   border-color: var(--accent-hover);

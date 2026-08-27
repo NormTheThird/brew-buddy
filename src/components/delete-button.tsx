@@ -13,31 +13,15 @@ export function DeleteButton({
   confirmText: string;
   variant?: "link" | "button";
 }) {
-  const style =
-    variant === "button"
-      ? ({
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 6,
-          padding: "6px 14px",
-          borderRadius: 4,
-          fontSize: 13,
-          fontFamily: "inherit",
-          border: "1px solid var(--danger)",
-          color: "var(--danger)",
-          background: "transparent",
-          cursor: "pointer",
-        } as const)
-      : ({
-          background: "none",
-          border: "none",
-          color: "var(--danger)",
-          cursor: "pointer",
-          fontSize: 13,
-          padding: 0,
-          fontFamily: "inherit",
-        } as const);
+  const linkStyle = {
+    background: "none",
+    border: "none",
+    color: "var(--danger)",
+    cursor: "pointer",
+    fontSize: 13,
+    padding: 0,
+    fontFamily: "inherit",
+  } as const;
 
   return (
     <form
@@ -45,10 +29,14 @@ export function DeleteButton({
       onSubmit={(e) => {
         if (!window.confirm(confirmText)) e.preventDefault();
       }}
-      style={{ display: "inline" }}
+      style={{ display: variant === "button" ? "inline-flex" : "inline" }}
     >
       <input type="hidden" name="id" value={id} />
-      <button type="submit" style={style}>
+      <button
+        type="submit"
+        className={variant === "button" ? "btn btn-danger" : undefined}
+        style={variant === "button" ? undefined : linkStyle}
+      >
         {label}
       </button>
     </form>
