@@ -102,6 +102,17 @@ export async function updateRecipe(
   const user = await requireUser();
   const id = str(formData.get("id"));
   if (id == null) return { error: "Missing id." };
+  if (!ownedRecipe(id, user.id)) return { error: "Unknown recipe." };
+  // Brewed recipes are history: batches were made from this spec, so only
+  // notes stay editable. Everything else changes on a duplicate.
+  if (recipeIsBrewed(id)) {
+    await db
+      .update(recipes)
+      .set({ notes: str(formData.get("notes")) })
+      .where(and(eq(recipes.id, id), eq(recipes.userId, user.id)));
+    revalidatePath("/recipes");
+    redirect(`/recipes/${id}`);
+  }
   const parsed = recipeValues(formData);
   if ("error" in parsed) return { error: parsed.error };
   await db

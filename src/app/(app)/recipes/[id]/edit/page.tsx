@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { recipes } from "@/lib/db/schema";
+import { batches, recipes } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { PageHeader } from "@/components/page-header";
 import { BookIcon } from "@/components/icons";
@@ -22,10 +22,17 @@ export default async function EditRecipePage({
     .all()[0];
   if (!item) notFound();
 
+  const brewed =
+    db
+      .select({ id: batches.id })
+      .from(batches)
+      .where(eq(batches.recipeId, item.id))
+      .all().length > 0;
+
   return (
     <>
       <PageHeader icon={<BookIcon size={40} />} title={`Edit · ${item.name}`} />
-      <RecipeForm action={updateRecipe} item={item} />
+      <RecipeForm action={updateRecipe} item={item} locked={brewed} />
     </>
   );
 }
