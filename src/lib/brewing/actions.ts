@@ -9,9 +9,11 @@ import {
   batchIngredients,
   batchStatuses,
   gravityReadings,
+  stock,
   stockTypes,
   recipeItems,
   recipes,
+  type StockItem,
   type StockType,
 } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -363,6 +365,75 @@ export async function addBatchIngredient(formData: FormData): Promise<void> {
     timingMinutes: int(formData.get("timingMinutes")),
   });
   revalidatePath(`/batches/${batchId}`);
+}
+
+/** Snapshot description in the house style: name · key numbers · lot. */
+function lotDescription(lot: StockItem): string {
+  const parts = [lot.name];
+  if (lot.type === "hop" && lot.alphaAcidPercent != null) parts.push(`${lot.alphaAcidPercent}% AA`);
+  if (lot.lotNumber) parts.push(`lot ${lot.lotNumber}`);
+  if (lot.type === "yeast" && lot.generation != null) parts.push(`gen ${lot.generation}`);
+  return parts.join(" · ");
+}
+
+async function consumeLot(batchId: string, lot: StockItem, amount: number) {
+  await db.insert(batchIngredients).values({
+    batchId,
+    ingredientId: lot.id,
+    description: lotDescription(lot),
+    amount,
+    unit: lot.unit,
+  });
+  // Water is effectively unlimited (RO system) — snapshot it, never deduct.
+  if (lot.type !== "water") {
+    await db
+      .update(stock)
+      .set({ quantityOnHand: Math.max(0, lot.quantityOnHand - amount) })
+      .where(eq(stock.id, lot.id));
+  }
+}
+
+function ownedLot(lotId: string, userId: string): StockItem | undefined {
+  return db
+    .select()
+    .from(stock)
+    .where(and(eq(stock.id, lotId), eq(stock.userId, userId)))
+    .all()[0];
+}
+
+/** Consume a stock lot into a batch: snapshot line + on-hand deduction.
+    Deleting the snapshot line does NOT refund stock — corrections happen
+    inline on the stock list, so counts track the physical world. */
+export async function useStockInBatch(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const batchId = str(formData.get("batchId"));
+  const lotId = str(formData.get("lotId"));
+  const amount = num(formData.get("amount"));
+  if (batchId == null || lotId == null || amount == null || amount <= 0) return;
+  if (!ownedBatch(batchId, user.id)) return;
+  const lot = ownedLot(lotId, user.id);
+  if (!lot) return;
+  await consumeLot(batchId, lot, amount);
+  revalidatePath(`/batches/${batchId}`);
+  revalidatePath("/stock");
+}
+
+/** Bottling day in one submit: bottles, caps, priming sugar — each row is a
+    lot pick + amount; empty rows are skipped. */
+export async function useBottlingSupplies(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const batchId = str(formData.get("batchId"));
+  if (batchId == null || !ownedBatch(batchId, user.id)) return;
+  for (const key of ["bottles", "caps", "sugar"]) {
+    const lotId = str(formData.get(`lot_${key}`));
+    const amount = num(formData.get(`amount_${key}`));
+    if (lotId == null || amount == null || amount <= 0) continue;
+    const lot = ownedLot(lotId, user.id);
+    if (!lot) continue;
+    await consumeLot(batchId, lot, amount);
+  }
+  revalidatePath(`/batches/${batchId}`);
+  revalidatePath("/stock");
 }
 
 export async function deleteBatchIngredient(formData: FormData): Promise<void> {

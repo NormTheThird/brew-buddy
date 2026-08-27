@@ -4,7 +4,14 @@ import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { batches, batchIngredients, gravityReadings, purchases, stock } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
-import { addGravityReading, deleteBatch, deleteGravityReading } from "@/lib/brewing/actions";
+import {
+  addGravityReading,
+  deleteBatch,
+  deleteBatchIngredient,
+  deleteGravityReading,
+  useBottlingSupplies,
+  useStockInBatch,
+} from "@/lib/brewing/actions";
 import { isEstimated, batchStatusBadge, methodLabels } from "@/lib/brewing/display";
 import { abv, apparentAttenuation, correctForTemperature } from "@/lib/calc/gravity";
 import { PageHeader } from "@/components/page-header";
@@ -112,6 +119,33 @@ export default async function BatchDetailPage({
   const pricedCount = lineCosts.filter((c) => c.kind === "priced").length;
   const kitCount = lineCosts.filter((c) => c.kind === "kit").length;
 
+  // Lots the batch can draw from: anything on hand, plus water (unlimited).
+  const usableLots = db
+    .select()
+    .from(stock)
+    .where(eq(stock.userId, user.id))
+    .all()
+    .filter((l) => l.quantityOnHand > 0 || l.type === "water")
+    .sort((a, c) => a.type.localeCompare(c.type) || a.name.localeCompare(c.name));
+  const lotLabel = (l: (typeof usableLots)[number]) =>
+    `${l.name}${l.lotNumber ? ` · lot ${l.lotNumber}` : ""} — ${
+      l.type === "water" ? "unlimited" : `${l.quantityOnHand} ${l.unit ?? "ct"} on hand`
+    }`;
+
+  // Bottling helper guesses — transparent prefills, never silent deductions.
+  const guessBottles = usableLots.find(
+    (l) => l.type === "supply" && /bottle/i.test(l.name) && !/cap/i.test(l.name)
+  );
+  const guessCaps = usableLots.find((l) => l.type === "supply" && /cap/i.test(l.name));
+  const guessSugar = usableLots.find(
+    (l) => l.type === "adjunct" && /priming|sugar/i.test(l.name)
+  );
+  const bottlingGuesses = [
+    { key: "bottles", label: "Bottles", lot: guessBottles, amount: b.bottleCount ?? 48 },
+    { key: "caps", label: "Caps", lot: guessCaps, amount: b.bottleCount ?? 48 },
+    { key: "sugar", label: "Priming sugar", lot: guessSugar, amount: 1 },
+  ].filter((g) => g.lot);
+
   const badge = batchStatusBadge[b.status];
   const abvVal = b.og != null && b.fg != null ? abv(b.og, b.fg) : null;
   const atten = b.og != null && b.fg != null && b.og > 1 ? apparentAttenuation(b.og, b.fg) : null;
@@ -217,6 +251,17 @@ export default async function BatchDetailPage({
                           kit
                         </span>
                       ) : null}
+                      <form action={deleteBatchIngredient} style={{ display: "inline" }}>
+                        <input type="hidden" name="id" value={ir.id} />
+                        <input type="hidden" name="batchId" value={b.id} />
+                        <button
+                          type="submit"
+                          title="Remove this line — stock is NOT refunded; fix counts on the Stock page"
+                          style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 11, padding: 0, fontFamily: "inherit" }}
+                        >
+                          remove
+                        </button>
+                      </form>
                     </Row>
                   );
                 })}
@@ -235,6 +280,60 @@ export default async function BatchDetailPage({
                 ) : null}
               </>
             )}
+            {usableLots.length > 0 ? (
+              <form
+                action={useStockInBatch}
+                style={{ display: "grid", gridTemplateColumns: "2fr auto auto", gap: 8, alignItems: "end", marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--border-row)" }}
+              >
+                <input type="hidden" name="batchId" value={b.id} />
+                <div>
+                  <label className="field-label" htmlFor="use-lot">Use from stock — deducts on hand</label>
+                  <select id="use-lot" name="lotId" className="field" required>
+                    {usableLots.map((l) => (
+                      <option key={l.id} value={l.id}>{lotLabel(l)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="field-label" htmlFor="use-amount">Amount</label>
+                  <input id="use-amount" name="amount" type="number" step="any" min="0" className="field" style={{ width: 90 }} required />
+                </div>
+                <button type="submit" className="btn" style={{ height: 38 }}>Use</button>
+              </form>
+            ) : null}
+            {b.bottleCount != null && bottlingGuesses.length > 0 ? (
+              <form action={useBottlingSupplies} style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+                <input type="hidden" name="batchId" value={b.id} />
+                <div className="field-label" style={{ marginBottom: 0 }}>
+                  Bottling day — one submit deducts it all (clear a row to skip it)
+                </div>
+                {bottlingGuesses.map((g) => (
+                  <div key={g.key} style={{ display: "grid", gridTemplateColumns: "90px 2fr auto", gap: 8, alignItems: "center" }}>
+                    <span style={{ fontSize: 13 }}>{g.label}</span>
+                    <select name={`lot_${g.key}`} className="field" defaultValue={g.lot!.id}>
+                      <option value="">— skip</option>
+                      {usableLots
+                        .filter((l) => l.type === g.lot!.type)
+                        .map((l) => (
+                          <option key={l.id} value={l.id}>{lotLabel(l)}</option>
+                        ))}
+                    </select>
+                    <input
+                      name={`amount_${g.key}`}
+                      type="number"
+                      step="any"
+                      min="0"
+                      defaultValue={g.amount}
+                      className="field"
+                      style={{ width: 90 }}
+                    />
+                  </div>
+                ))}
+                <button type="submit" className="btn" style={{ alignSelf: "flex-start" }}>
+                  Deduct bottling supplies
+                </button>
+              </form>
+            ) : null}
           </div>
         </div>
         <div className="panel">

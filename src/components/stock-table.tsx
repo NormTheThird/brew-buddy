@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import type { StockItem } from "@/lib/db/schema";
-import { deleteStockItem } from "@/lib/inventory/actions";
+import { deleteStockItem, setOnHand } from "@/lib/inventory/actions";
 import { bestByStatus, formatDate, formatMonthYearNumeric, formatQuantity } from "@/lib/inventory/format";
 import { typeBadge, typeLabels } from "@/lib/inventory/stock-labels";
 import { DeleteButton } from "./delete-button";
@@ -111,6 +111,68 @@ function OnHandCell({ lot }: { lot: StockLot }) {
   );
 }
 
+/** Click-to-edit on-hand: free inflows (returned bottles, recounts) are
+    adjustments, not purchases — fix the number where you see it. */
+function OnHandEditor({ lot }: { lot: StockLot }) {
+  const [editing, setEditing] = useState(false);
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        title="Adjust on hand"
+        onClick={(e) => {
+          e.stopPropagation();
+          setEditing(true);
+        }}
+        style={{
+          background: "none",
+          border: "none",
+          color: "var(--text-faint)",
+          cursor: "pointer",
+          fontSize: 12,
+          padding: "0 2px",
+          fontFamily: "inherit",
+        }}
+      >
+        ✎
+      </button>
+    );
+  }
+  return (
+    <form
+      action={async (fd) => {
+        await setOnHand(fd);
+        setEditing(false);
+      }}
+      onClick={(e) => e.stopPropagation()}
+      style={{ display: "inline-flex", gap: 4, alignItems: "center", marginLeft: 6 }}
+    >
+      <input type="hidden" name="id" value={lot.id} />
+      <input
+        name="quantityOnHand"
+        type="number"
+        step="any"
+        min="0"
+        defaultValue={lot.quantityOnHand}
+        autoFocus
+        className="field"
+        style={{ width: 72, padding: "2px 6px", fontSize: 12 }}
+      />
+      <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{lot.unit ?? "ct"}</span>
+      <button type="submit" className="btn" style={{ padding: "2px 8px", fontSize: 12 }}>
+        Save
+      </button>
+      <button
+        type="button"
+        onClick={() => setEditing(false)}
+        style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}
+      >
+        ✕
+      </button>
+    </form>
+  );
+}
+
 function PurchasedCell({ lot }: { lot: StockLot }) {
   if (lot.purchaseId && lot.purchaseName) {
     return (
@@ -184,7 +246,7 @@ export function StockTable({
                   <td style={{ color: "var(--text-bright)" }}>{lot.name}</td>
                   <td>{lot.lotNumber ?? "—"}</td>
                   <td>{keyNumbers(lot)}</td>
-                  <td><OnHandCell lot={lot} /></td>
+                  <td><OnHandCell lot={lot} /> <OnHandEditor lot={lot} /></td>
                   <td><BestBy d={lot.bestByDate} /></td>
                   <td><PurchasedCell lot={lot} /></td>
                   <td style={{ textAlign: "right", whiteSpace: "nowrap" }}><ActionCell lot={lot} /></td>
@@ -231,7 +293,7 @@ export function StockTable({
                         <td style={{ paddingLeft: 26, color: "var(--text)" }}>↳ {lot.name}</td>
                         <td>{lot.lotNumber ?? "—"}</td>
                         <td>{keyNumbers(lot)}</td>
-                        <td><OnHandCell lot={lot} /></td>
+                        <td><OnHandCell lot={lot} /> <OnHandEditor lot={lot} /></td>
                         <td><BestBy d={lot.bestByDate} /></td>
                         <td><PurchasedCell lot={lot} /></td>
                         <td style={{ textAlign: "right", whiteSpace: "nowrap" }}><ActionCell lot={lot} /></td>

@@ -15,6 +15,32 @@ this area again.
 
 ---
 
+## 2026-08-27 — Stock finally moves: inline adjustments + batch consumption
+
+Until now NOTHING decremented stock — batch 1's zeros were hand-seeded.
+Trey's bottling question ("I use 48 bottles, deduct them, say used in
+batch 1") exposed it. Four pieces, one mechanic:
+
+- **Inline on-hand edit** (pencil on every lot row): free inflows — returned
+  bottles, recounts, breakage — are ADJUSTMENTS, not purchases. `setOnHand`
+  action; no fake purchase rows.
+- **Use from stock** on the batch page: pick a lot + amount → writes the
+  batch_ingredients snapshot line (house description style: name · AA% ·
+  lot · gen) AND deducts on hand (clamped at 0). The used-in links and cost
+  proration light up automatically.
+- **Bottling day form** (shows when the batch has a bottle count): prefilled
+  rows for bottles/caps/priming sugar guessed by name+type match, amounts
+  defaulting to bottleCount/bottleCount/1 — transparent prefills the user
+  confirms, never silent deductions. One submit, skippable rows.
+- **Water never deducts** — the RO system is effectively unlimited; water
+  lots snapshot into batches ("5.5 gal Home RO") but keep their quantity.
+
+DELIBERATE: removing a snapshot line does NOT refund stock (button says so).
+Silent inventory changes are how counts drift from the physical world —
+corrections happen inline on the stock page where you can see the number.
+
+---
+
 ## 2026-08-27 — Cost moves from stock list to the batch
 
 Trey: cost doesn't matter while a packet sits on a shelf — it matters when a

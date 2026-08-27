@@ -285,6 +285,20 @@ export async function updateStockItem(
   redirect("/stock");
 }
 
+/** Inline on-hand correction from the stock list — for free inflows
+    (returned bottles, breakage, recounts) that aren't purchases. */
+export async function setOnHand(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const id = str(formData.get("id"));
+  const qty = num(formData.get("quantityOnHand"));
+  if (id == null || qty == null || qty < 0) return;
+  await db
+    .update(stock)
+    .set({ quantityOnHand: qty })
+    .where(and(eq(stock.id, id), eq(stock.userId, user.id)));
+  revalidatePath("/stock");
+}
+
 export async function deleteStockItem(formData: FormData): Promise<void> {
   const user = await requireUser();
   const id = str(formData.get("id"));
