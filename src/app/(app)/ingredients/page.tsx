@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { ingredients, ingredientTypes, purchases, type Ingredient, type IngredientType } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { deleteIngredient } from "@/lib/inventory/actions";
-import { bestByStatus, formatCost, formatMonth, formatMonthYearNumeric, formatQuantity } from "@/lib/inventory/format";
+import { bestByStatus, formatCost, formatDate, formatMonth, formatMonthYearNumeric, formatQuantity } from "@/lib/inventory/format";
 import { PageHeader } from "@/components/page-header";
 import { DropletIcon } from "@/components/icons";
 import { DeleteButton } from "@/components/delete-button";
@@ -176,10 +176,10 @@ export default async function IngredientsPage({
                           href={`/purchases/${i.purchaseId}`}
                           title={`Open purchase: ${purchaseNames.get(i.purchaseId)}`}
                         >
-                          {formatMonth(i.purchaseDate)}
+                          {formatDate(i.purchaseDate)}
                         </Link>
                       ) : (
-                        formatMonth(i.purchaseDate)
+                        formatDate(i.purchaseDate)
                       )}
                     </td>
                     <td style={{ textAlign: "right" }}>

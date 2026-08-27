@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { equipment, purchases, type Equipment } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { deleteEquipment } from "@/lib/inventory/actions";
-import { formatCost, formatMonth } from "@/lib/inventory/format";
+import { formatCost, formatDate } from "@/lib/inventory/format";
 import { PageHeader } from "@/components/page-header";
 import { BoxIcon } from "@/components/icons";
 import { DeleteButton } from "@/components/delete-button";
@@ -156,10 +156,10 @@ export default async function EquipmentPage({
                           href={`/purchases/${e.purchaseId}`}
                           title={`Open purchase: ${purchaseNames.get(e.purchaseId)}`}
                         >
-                          {formatMonth(e.purchaseDate)}
+                          {formatDate(e.purchaseDate)}
                         </Link>
                       ) : (
-                        formatMonth(e.purchaseDate)
+                        formatDate(e.purchaseDate)
                       )}
                     </td>
                     <td style={{ textAlign: "right" }}>
