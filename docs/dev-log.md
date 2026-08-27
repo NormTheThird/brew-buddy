@@ -15,6 +15,30 @@ this area again.
 
 ---
 
+## 2026-08-27 — Cost moves from stock list to the batch
+
+Trey: cost doesn't matter while a packet sits on a shelf — it matters when a
+batch consumes it. So the stock list dropped its Cost column (cost stays on
+the lot's edit form and on purchases), and the batch page's "Ingredients as
+brewed" panel now prices each snapshot line from its lot:
+
+- Partially-used lots are PRORATED: amount used / lot quantity × lot cost,
+  only when units match ("$2.65 of lot"). Full-lot use charges the lot price.
+- Kit components show "kit" (hover names the kit) — the never-fake-kit-line-
+  prices rule holds; they're counted, not guessed.
+- Footer: "Batch cost (ingredients): $X.XX + N kit-priced items".
+- A deleted lot's line shows no cost (snapshot text survives, price unknown).
+
+Batch 1 reads "4 kit-priced items" and no dollar figure — correct, the
+Essential kit never itemized prices. Future batches from individually
+priced lots will sum properly.
+
+NOTE: the live DB currently holds 6 demo stock lots tagged
+notes='SAMPLE DATA' (extra US-05/Willamette/caps lots) so Trey can try the
+nested groups — he'll ask for their removal; delete WHERE notes='SAMPLE DATA'.
+
+---
+
 ## 2026-08-27 — Stock availability filter; used lots link to their batch
 
 Stock now answers "what can I brew with?" by default: Available (on hand > 0)

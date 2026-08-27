@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { batches, batchIngredients, gravityReadings } from "@/lib/db/schema";
+import { batches, batchIngredients, gravityReadings, purchases, stock } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { addGravityReading, deleteBatch, deleteGravityReading } from "@/lib/brewing/actions";
 import { isEstimated, batchStatusBadge, methodLabels } from "@/lib/brewing/display";
@@ -58,6 +58,59 @@ export default async function BatchDetailPage({
     .where(eq(gravityReadings.batchId, b.id))
     .all()
     .sort((a, c) => a.takenAt.getTime() - c.takenAt.getTime());
+
+  // What the batch cost: each snapshot line looks up its lot's price. A lot
+  // only partially used is prorated by amount/lot quantity (same unit). Kit
+  // components have no line price by design — they're flagged, never faked.
+  const lotIds = ingredientRows
+    .map((ir) => ir.ingredientId)
+    .filter((v): v is string => v != null);
+  const lots = lotIds.length
+    ? db.select().from(stock).where(inArray(stock.id, lotIds)).all()
+    : [];
+  const lotById = new Map(lots.map((l) => [l.id, l]));
+  const kitPurchaseIds = [
+    ...new Set(
+      lots.filter((l) => l.cost == null && l.purchaseId).map((l) => l.purchaseId!)
+    ),
+  ];
+  const kitNames = kitPurchaseIds.length
+    ? new Map(
+        db
+          .select({ id: purchases.id, name: purchases.name })
+          .from(purchases)
+          .where(inArray(purchases.id, kitPurchaseIds))
+          .all()
+          .map((p) => [p.id, p.name] as const)
+      )
+    : new Map<string, string>();
+
+  const costOfLine = (ir: (typeof ingredientRows)[number]) => {
+    const lot = ir.ingredientId ? lotById.get(ir.ingredientId) : undefined;
+    if (!lot) return { kind: "unknown" as const };
+    if (lot.cost == null) {
+      return lot.purchaseId && kitNames.has(lot.purchaseId)
+        ? { kind: "kit" as const, kit: kitNames.get(lot.purchaseId)! }
+        : { kind: "unknown" as const };
+    }
+    if (
+      ir.amount != null &&
+      lot.quantity != null &&
+      lot.quantity > 0 &&
+      (ir.unit ?? "") === (lot.unit ?? "")
+    ) {
+      const ratio = Math.min(1, ir.amount / lot.quantity);
+      return { kind: "priced" as const, cost: lot.cost * ratio, prorated: ratio < 1 };
+    }
+    return { kind: "priced" as const, cost: lot.cost, prorated: false };
+  };
+  const lineCosts = ingredientRows.map(costOfLine);
+  const knownCost = lineCosts.reduce(
+    (s, c) => s + (c.kind === "priced" ? c.cost : 0),
+    0
+  );
+  const pricedCount = lineCosts.filter((c) => c.kind === "priced").length;
+  const kitCount = lineCosts.filter((c) => c.kind === "kit").length;
 
   const badge = batchStatusBadge[b.status];
   const abvVal = b.og != null && b.fg != null ? abv(b.og, b.fg) : null;
@@ -147,12 +200,40 @@ export default async function BatchDetailPage({
             {ingredientRows.length === 0 ? (
               <div style={{ fontSize: 13, color: "var(--text-muted)" }}>No snapshot recorded.</div>
             ) : (
-              ingredientRows.map((ir) => (
-                <Row key={ir.id} label={ir.description}>
-                  {ir.amount != null ? `${ir.amount} ${ir.unit ?? ""}` : ""}
-                  {ir.timingMinutes != null ? ` · ${ir.timingMinutes} min` : ""}
-                </Row>
-              ))
+              <>
+                {ingredientRows.map((ir, i) => {
+                  const c = lineCosts[i];
+                  return (
+                    <Row key={ir.id} label={ir.description}>
+                      {ir.amount != null ? `${ir.amount} ${ir.unit ?? ""}` : ""}
+                      {ir.timingMinutes != null ? ` · ${ir.timingMinutes} min` : ""}
+                      {c.kind === "priced" ? (
+                        <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
+                          ${c.cost.toFixed(2)}
+                          {c.prorated ? " of lot" : ""}
+                        </span>
+                      ) : c.kind === "kit" ? (
+                        <span style={{ color: "var(--text-faint)", fontSize: 12 }} title={`Part of ${c.kit} — no line price`}>
+                          kit
+                        </span>
+                      ) : null}
+                    </Row>
+                  );
+                })}
+                {pricedCount > 0 || kitCount > 0 ? (
+                  <Row label="Batch cost (ingredients)">
+                    <span>
+                      {pricedCount > 0 ? `$${knownCost.toFixed(2)}` : null}
+                      {kitCount > 0 ? (
+                        <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
+                          {pricedCount > 0 ? " + " : ""}
+                          {kitCount} kit-priced item{kitCount === 1 ? "" : "s"}
+                        </span>
+                      ) : null}
+                    </span>
+                  </Row>
+                ) : null}
+              </>
             )}
           </div>
         </div>

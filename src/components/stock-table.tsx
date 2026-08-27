@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import type { StockItem } from "@/lib/db/schema";
 import { deleteStockItem } from "@/lib/inventory/actions";
-import { bestByStatus, formatCost, formatDate, formatMonthYearNumeric, formatQuantity } from "@/lib/inventory/format";
+import { bestByStatus, formatDate, formatMonthYearNumeric, formatQuantity } from "@/lib/inventory/format";
 import { typeBadge, typeLabels } from "@/lib/inventory/stock-labels";
 import { DeleteButton } from "./delete-button";
 
@@ -119,18 +119,6 @@ function PurchasedCell({ lot }: { lot: StockLot }) {
   return <>{formatDate(lot.purchaseDate)}</>;
 }
 
-function CostCell({ lot }: { lot: StockLot }) {
-  if (lot.cost != null) return <>{formatCost(lot.cost)}</>;
-  if (lot.purchaseId && lot.purchaseName) {
-    return (
-      <Link href={`/purchases/${lot.purchaseId}`} style={{ fontSize: 12, color: "var(--text-muted)" }}>
-        part of {lot.purchaseName}
-      </Link>
-    );
-  }
-  return <>—</>;
-}
-
 function ActionCell({ lot }: { lot: StockLot }) {
   return (
     <>
@@ -175,7 +163,6 @@ export function StockTable({
             <th>On hand</th>
             <th>Best by</th>
             <th>Purchased</th>
-            <th style={{ textAlign: "right" }}>Cost</th>
             <th style={{ textAlign: "right" }}>Actions</th>
           </tr>
         </thead>
@@ -197,7 +184,6 @@ export function StockTable({
                   <td><OnHandCell lot={lot} /></td>
                   <td><BestBy d={lot.bestByDate} /></td>
                   <td><PurchasedCell lot={lot} /></td>
-                  <td style={{ textAlign: "right" }}><CostCell lot={lot} /></td>
                   <td style={{ textAlign: "right", whiteSpace: "nowrap" }}><ActionCell lot={lot} /></td>
                 </tr>
               );
@@ -233,7 +219,6 @@ export function StockTable({
                   <td style={{ color: "var(--text-bright)" }}>{onHandRollup(g.lots)}</td>
                   <td><BestBy d={soonestBestBy(g.lots)} /></td>
                   <td style={{ color: "var(--text-muted)", fontSize: 12 }}>{g.lots.length} purchases</td>
-                  <td style={{ textAlign: "right", color: "var(--text-faint)", fontSize: 12 }}>—</td>
                   <td style={{ textAlign: "right" }}></td>
                 </tr>
                 {isOpen
@@ -246,7 +231,6 @@ export function StockTable({
                         <td><OnHandCell lot={lot} /></td>
                         <td><BestBy d={lot.bestByDate} /></td>
                         <td><PurchasedCell lot={lot} /></td>
-                        <td style={{ textAlign: "right" }}><CostCell lot={lot} /></td>
                         <td style={{ textAlign: "right", whiteSpace: "nowrap" }}><ActionCell lot={lot} /></td>
                       </tr>
                     ))
