@@ -205,26 +205,22 @@ table.data td {
   vertical-align: top;
 }
 
-/* --- dashboard card rows: proportioned on wide screens, stacked when
-       narrow; cards in the same row stretch to equal height --- */
-.dash-row-main {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 20px;
-  margin-bottom: 20px;
-}
-.dash-row-three {
+/* --- dashboard: ONE shared 3-column grid so the column seams line up
+       between rows; the Active batch card spans two columns. Cards in a
+       row stretch to equal height. Stacks to a single column when narrow. --- */
+.dash-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
 }
+.dash-span-2 {
+  grid-column: span 2;
+}
 @media (max-width: 1200px) {
-  .dash-row-three {
+  .dash-grid {
     grid-template-columns: 1fr;
   }
-}
-@media (max-width: 900px) {
-  .dash-row-main {
-    grid-template-columns: 1fr;
+  .dash-span-2 {
+    grid-column: auto;
   }
 }

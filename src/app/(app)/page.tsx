@@ -70,8 +70,8 @@ export default async function DashboardPage() {
         subtitle="Your brewery at a glance — what's fermenting, what's next, what you're set up to brew"
         actions={<Link href="/batches/new" className="btn btn-solid">+ Log a batch</Link>}
       />
-      <div className="dash-row-main">
-        <div className="panel">
+      <div className="dash-grid">
+        <div className="panel dash-span-2">
           <div className="panel-heading">Active batch<Link href="/batches" style={{ fontSize: 12 }}>All batches</Link></div>
           <div className="panel-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {!active ? (
@@ -148,8 +148,6 @@ export default async function DashboardPage() {
             )}
           </div>
         </div>
-      </div>
-      <div className="dash-row-three">
         <div className="panel">
           <div className="panel-heading">My setup<Link href="/equipment" style={{ fontSize: 12 }}>Equipment</Link></div>
           <div className="panel-body">
@@ -169,21 +167,22 @@ export default async function DashboardPage() {
           <div className="panel-heading">Learned constants</div>
           <div className="panel-body">
             {kettle ? (
-              <Row label="Kettle">
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 260 }} title={kettle.name}>
-                  {kettle.name}
-                </span>
-              </Row>
+              <div style={{ padding: "8px 0", borderTop: "1px solid var(--border-row)", fontSize: 13, color: "var(--text-bright)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={kettle.name}>
+                {kettle.name}
+              </div>
             ) : null}
-            <Row label="Boil-off">
-              {constants.boilOffGalPerHr ? `${constants.boilOffGalPerHr.value.toFixed(2)} gal/hr · ${constants.boilOffGalPerHr.batches} batch${constants.boilOffGalPerHr.batches > 1 ? "es" : ""}` : <span style={{ color: "var(--danger)" }}>no measured data</span>}
-            </Row>
-            <Row label="Kettle loss">
-              {constants.kettleLossGal ? `${constants.kettleLossGal.value.toFixed(2)} gal · ${constants.kettleLossGal.batches}` : <span style={{ color: "var(--danger)" }}>no measured data</span>}
-            </Row>
-            <Row label="Chill">
-              {constants.chillMinutes ? `${constants.chillMinutes.value.toFixed(0)} min avg` : "—"}
-            </Row>
+            {/* The constants belong to the kettle above — indented under it. */}
+            <div style={{ paddingLeft: 16 }}>
+              <Row label="Boil-off">
+                {constants.boilOffGalPerHr ? `${constants.boilOffGalPerHr.value.toFixed(2)} gal/hr · ${constants.boilOffGalPerHr.batches} batch${constants.boilOffGalPerHr.batches > 1 ? "es" : ""}` : <span style={{ color: "var(--danger)" }}>no measured data</span>}
+              </Row>
+              <Row label="Kettle loss">
+                {constants.kettleLossGal ? `${constants.kettleLossGal.value.toFixed(2)} gal · ${constants.kettleLossGal.batches}` : <span style={{ color: "var(--danger)" }}>no measured data</span>}
+              </Row>
+              <Row label="Chill">
+                {constants.chillMinutes ? `${constants.chillMinutes.value.toFixed(0)} min avg` : "—"}
+              </Row>
+            </div>
             <div style={{ fontSize: 12, color: "var(--text-muted)", paddingTop: 10, borderTop: "1px solid var(--border-row)", marginTop: 4 }}>
               Learned only from measured values — estimates never feed a constant. Batch
               1&apos;s volumes were estimates; batch 2 starts the real numbers.
