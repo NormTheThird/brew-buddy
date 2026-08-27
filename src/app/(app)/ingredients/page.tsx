@@ -170,7 +170,18 @@ export default async function IngredientsPage({
                       ) : null}
                     </td>
                     <td><BestBy d={i.bestByDate} /></td>
-                    <td>{formatMonth(i.purchaseDate)}</td>
+                    <td>
+                      {i.purchaseId && purchaseNames.has(i.purchaseId) ? (
+                        <Link
+                          href={`/purchases/${i.purchaseId}`}
+                          title={`Open purchase: ${purchaseNames.get(i.purchaseId)}`}
+                        >
+                          {formatMonth(i.purchaseDate)}
+                        </Link>
+                      ) : (
+                        formatMonth(i.purchaseDate)
+                      )}
+                    </td>
                     <td style={{ textAlign: "right" }}>
                       {i.cost != null ? (
                         formatCost(i.cost)

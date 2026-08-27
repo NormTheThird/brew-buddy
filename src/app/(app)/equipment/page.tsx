@@ -150,7 +150,18 @@ export default async function EquipmentPage({
                     <td>
                       <StatusCell item={e} />
                     </td>
-                    <td>{formatMonth(e.purchaseDate)}</td>
+                    <td>
+                      {e.purchaseId && purchaseNames.has(e.purchaseId) ? (
+                        <Link
+                          href={`/purchases/${e.purchaseId}`}
+                          title={`Open purchase: ${purchaseNames.get(e.purchaseId)}`}
+                        >
+                          {formatMonth(e.purchaseDate)}
+                        </Link>
+                      ) : (
+                        formatMonth(e.purchaseDate)
+                      )}
+                    </td>
                     <td style={{ textAlign: "right" }}>
                       {e.cost != null ? (
                         formatCost(e.cost)
