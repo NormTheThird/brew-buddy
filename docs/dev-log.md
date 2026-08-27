@@ -33,9 +33,8 @@ Batch 1 reads "4 kit-priced items" and no dollar figure — correct, the
 Essential kit never itemized prices. Future batches from individually
 priced lots will sum properly.
 
-NOTE: the live DB currently holds 6 demo stock lots tagged
-notes='SAMPLE DATA' (extra US-05/Willamette/caps lots) so Trey can try the
-nested groups — he'll ask for their removal; delete WHERE notes='SAMPLE DATA'.
+(6 demo lots tagged notes='SAMPLE DATA' were added so Trey could try the
+nested groups, then removed the same day once he signed off on the design.)
 
 ---
 
