@@ -76,8 +76,18 @@ export function PurchaseForm() {
       style={{ maxWidth: 640, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}
     >
       <div>
-        <label className="field-label" htmlFor="receipt">Receipt (photo or PDF)</label>
-        <input id="receipt" name="receipt" type="file" accept="image/*,application/pdf" className="field" style={{ padding: 8 }} />
+        <label className="field-label" htmlFor="receipt">Receipt (photo or PDF) — reads automatically</label>
+        <input
+          id="receipt"
+          name="receipt"
+          type="file"
+          accept="image/*,application/pdf"
+          className="field"
+          style={{ padding: 8 }}
+          onChange={(e) => {
+            if (e.target.files?.length) runAnalyze();
+          }}
+        />
       </div>
       <div>
         <label className="field-label" htmlFor="receiptText">…or paste order text (email / order page)</label>
@@ -91,7 +101,7 @@ export function PurchaseForm() {
       </div>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <button type="button" onClick={runAnalyze} className="btn" disabled={analyzing || creating}>
-          {analyzing ? "Reading…" : "Read with AI — fill the form for me"}
+          {analyzing ? "Reading…" : "Read pasted text with AI"}
         </button>
         {analyzing ? (
           <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
