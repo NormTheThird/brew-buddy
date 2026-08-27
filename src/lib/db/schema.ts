@@ -93,6 +93,10 @@ export const equipment = sqliteTable("equipment", {
   // Vessels/instruments stay one row per unit — batches reference a specific
   // vessel — so quantity > 1 is for countable gear only.
   quantity: integer("quantity").notNull().default(1),
+  // User curated this name — receipt-import merges must NOT overwrite it.
+  preserveName: integer("preserve_name", { mode: "boolean" })
+    .notNull()
+    .default(false),
   flag: text("flag"), // badge-worthy warning: "not calibrated", "replace"
   purchaseId: text("purchase_id").references(() => purchases.id, {
     onDelete: "set null",
@@ -132,6 +136,10 @@ export const stock = sqliteTable("stock", {
     .references(() => users.id, { onDelete: "cascade" }),
   type: text("type", { enum: stockTypes }).notNull(),
   name: text("name").notNull(),
+  // User curated this name — receipt-import restocks must NOT overwrite it.
+  preserveName: integer("preserve_name", { mode: "boolean" })
+    .notNull()
+    .default(false),
   vendor: text("vendor"),
   lotNumber: text("lot_number"),
   quantity: real("quantity"), // purchased amount; null when unknown (kit contents)

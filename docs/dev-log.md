@@ -15,6 +15,25 @@ this area again.
 
 ---
 
+## 2026-08-27 — Preserve-name flag; equipment cost entry removed
+
+Two Trey rules landed:
+
+- **preserveName** (bool, equipment + stock): Trey renames items to his
+  liking ("Brewer's Edge Mash and Boil with Pump V2 (Series 2)" instead of
+  the receipt's mouthful). A checkbox under the Name field marks the name as
+  curated; applyProposal's same-item merge then keeps it (everything else —
+  cost, purchase link, specs merge, restock quantities — still updates).
+  Unchecked = receipt name wins, as before. Live ALTERs added the columns.
+- **No manual cost entry on equipment**: paid gear arrives via purchases
+  (money lives there); manually-added gear is the free stuff. Form lost its
+  Cost field (so edits can't wipe receipt-sourced costs), the Entered-costs
+  card went away, dashboard says "in gear". The list's Cost column stays —
+  receipt-fed display with "part of kit" links (shortened; full purchase
+  name in the tooltip). Equipment table: only Key specs wraps.
+
+---
+
 ## 2026-08-27 — Stock finally moves: inline adjustments + batch consumption
 
 Until now NOTHING decremented stock — batch 1's zeros were hand-seeded.

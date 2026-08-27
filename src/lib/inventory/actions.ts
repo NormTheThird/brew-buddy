@@ -91,6 +91,7 @@ function equipmentValues(formData: FormData) {
       name,
       category,
       status: status as "active" | "wanted" | "retired",
+      preserveName: formData.get("preserveName") != null,
       specs: str(formData.get("specs")),
       quantity: Math.max(1, Math.round(num(formData.get("quantity")) ?? 1)),
       flag: str(formData.get("flag")),
@@ -165,6 +166,7 @@ function stockItemValues(formData: FormData) {
     values: {
       type,
       name,
+      preserveName: formData.get("preserveName") != null,
       vendor: str(formData.get("vendor")),
       lotNumber: str(formData.get("lotNumber")),
       quantity: num(formData.get("quantity")),

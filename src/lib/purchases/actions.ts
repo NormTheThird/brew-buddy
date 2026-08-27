@@ -492,9 +492,9 @@ export async function applyProposal(formData: FormData): Promise<void> {
       const existingId = sameVal;
       {
         // The receipt becomes the source of truth: name and details update,
-        // but hand-entered specs/notes the receipt doesn't know are kept.
+        // but hand-entered specs/notes the receipt doesn't know are kept —
+        // and a row with preserveName keeps its curated name.
         const patch = {
-          name: item.name,
           ...(item.cost != null ? { cost: item.cost } : {}),
           purchaseId: p.id,
           ...(p.purchaseDate ? { purchaseDate: p.purchaseDate } : {}),
@@ -513,7 +513,11 @@ export async function applyProposal(formData: FormData): Promise<void> {
                 .join(" · ") || null;
             await db
               .update(equipment)
-              .set({ ...patch, specs: mergedSpecs })
+              .set({
+                ...patch,
+                ...(existing.preserveName ? {} : { name: item.name }),
+                specs: mergedSpecs,
+              })
               .where(eq(equipment.id, existing.id));
           }
         } else {
@@ -529,6 +533,7 @@ export async function applyProposal(formData: FormData): Promise<void> {
               .update(stock)
               .set({
                 ...patch,
+                ...(existing.preserveName ? {} : { name: item.name }),
                 quantity: (existing.quantity ?? 0) + qty,
                 quantityOnHand: existing.quantityOnHand + qty,
                 unit: existing.unit ?? item.unit ?? "ct",

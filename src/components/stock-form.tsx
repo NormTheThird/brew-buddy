@@ -155,6 +155,10 @@ export function StockForm({
         <div style={{ gridColumn: "span 2" }}>
           <label className="field-label" htmlFor="name">Name</label>
           <input id="name" name="name" className="field" defaultValue={item?.name} required />
+          <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12, color: "var(--text-muted)", marginTop: 6, cursor: "pointer" }}>
+            <input type="checkbox" name="preserveName" defaultChecked={item?.preserveName ?? false} style={{ accentColor: "var(--accent)" }} />
+            Preserve this name — receipt imports that match won&apos;t rename it
+          </label>
         </div>
       </Row>
       <Row>
