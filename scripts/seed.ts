@@ -62,7 +62,7 @@ async function seedEquipment(userId: string) {
     { category: "bottling", name: "Bottling bucket + filler + capper", specs: "6.5 gal · spigot · spring-tip filler" },
     { category: "cleaning", name: "Star San + no-rinse cleanser", specs: "1.5 tsp/gal working dilution · bottle brush" },
     { category: "water", name: "Home RO system", specs: "preferred source from batch 2 on" },
-    { category: "other", name: '21" stainless spoon + spray bottles', specs: "24 oz Veco, 360° nozzle — foam control" },
+    { category: "other", name: '21" stainless spoon + spray bottles', specs: "24 oz Veco, 360° nozzle; foam control" },
   ] as const;
   const wanted = [
     { category: "fermentation", name: "3-piece airlock", specs: "replaces the S-bubbler" },
@@ -115,7 +115,7 @@ async function seedStock(userId: string) {
       quantityOnHand: 0,
       unit: "lb",
       purchaseDate: aug2026,
-      notes: "Block Party Amber kit — amount not recorded",
+      notes: "Block Party Amber kit; amount not recorded",
     },
     {
       userId,
@@ -129,7 +129,7 @@ async function seedStock(userId: string) {
       alphaAcidPercent: 6.8,
       hopForm: "pellet",
       purchaseDate: aug2026,
-      notes: "6.8% AA vs typical 4–6 — drove batch 1 to ~22 IBU",
+      notes: "6.8% AA vs typical 4–6; drove batch 1 to ~22 IBU",
     },
     {
       userId,
@@ -139,7 +139,7 @@ async function seedStock(userId: string) {
       quantityOnHand: 0,
       unit: "gal",
       purchaseDate: new Date("2026-08-23"),
-      notes: "Used for batch 1 — RO preferred going forward",
+      notes: "Used for batch 1; RO preferred going forward",
     },
     {
       userId,
@@ -148,7 +148,7 @@ async function seedStock(userId: string) {
       quantity: null,
       quantityOnHand: 1,
       unit: "gal",
-      notes: "From the home RO system — effectively unlimited; the default from batch 2 on",
+      notes: "From the home RO system; effectively unlimited; the default from batch 2 on",
     },
     {
       // Bottles are stock, not equipment — they leave with the beer and come
@@ -159,7 +159,7 @@ async function seedStock(userId: string) {
       quantity: 50,
       quantityOnHand: 50,
       unit: "ct",
-      notes: "Non-twist-off — count is approximate; drops as beer is handed out",
+      notes: "Non-twist-off; count is approximate; drops as beer is handed out",
     },
     {
       userId,
@@ -175,7 +175,7 @@ async function seedStock(userId: string) {
       generation: 1,
       bestByDate: new Date("2028-07-01"),
       purchaseDate: aug2026,
-      notes: "Throws fusels above ~75°F — pitch ≤72°F",
+      notes: "Throws fusels above ~75°F; pitch ≤72°F",
     },
   ]);
   console.log("Seeded 4 batch-1 ingredient lots (all consumed).");
@@ -205,7 +205,7 @@ async function seedRecipesAndBatch1(userId: string) {
       targetOG: 1.044,
       targetIBU: 18,
       boilMinutes: 60,
-      notes: "Northern Brewer extract kit. Batch 1 missed OG low — see miss analysis.",
+      notes: "Northern Brewer extract kit. Batch 1 missed OG low; the analysis is in batch 1's notes.",
     })
     .returning({ id: recipes.id });
 
@@ -223,7 +223,7 @@ async function seedRecipesAndBatch1(userId: string) {
     method: "extract",
     status: "want_to_brew",
     targetVolumeGal: 5,
-    notes: "Replication target — the reason this app exists. Targets TBD.",
+    notes: "Replication target; the reason this app exists. Targets TBD.",
   });
 
   const kettle = db
@@ -262,7 +262,7 @@ async function seedRecipesAndBatch1(userId: string) {
       estimatedFields: JSON.stringify(["preBoilVolumeGal", "intoFermenterGal", "pitchTempF"]),
       notes: "Full-volume boil. Estimated ~22 IBU vs recipe ~18 (6.8% AA + full boil).",
       deviations:
-        "No finings — kit had no Whirlfloc. Foam hit the 7-gal line at hot break; spray bottle collapsed it. Chill stalled ~95–100°F after ~30 min; fridge handoff took 4+ hrs; pitched ~75°F (above the 72°F limit). Fermenting 66°F days 1–3, then 70°F.",
+        "No finings; kit had no Whirlfloc. Foam hit the 7-gal line at hot break; spray bottle collapsed it. Chill stalled ~95–100°F after ~30 min; fridge handoff took 4+ hrs; pitched ~75°F (above the 72°F limit). Fermenting 66°F days 1–3, then 70°F.",
     })
     .returning({ id: batches.id });
 
@@ -275,7 +275,7 @@ async function seedRecipesAndBatch1(userId: string) {
 
   await db.insert(batchIngredients).values([
     { batchId: b1.id, ingredientId: lot("Gold LME"), description: "Gold LME (36 PPG)", amount: 6, unit: "lb" },
-    { batchId: b1.id, ingredientId: lot("Kit steeping grains"), description: "Kit steeping grains — 155°F steep", timingMinutes: 20 },
+    { batchId: b1.id, ingredientId: lot("Kit steeping grains"), description: "Kit steeping grains; 155°F steep", timingMinutes: 20 },
     { batchId: b1.id, ingredientId: lot("Willamette, pellet"), description: "Willamette pellet · 6.8% AA · lot HP15", amount: 1, unit: "oz", timingMinutes: 60 },
     { batchId: b1.id, ingredientId: lot("SafAle US-05"), description: "SafAle US-05 · lot 250573 · gen 1", amount: 11.5, unit: "g" },
     { batchId: b1.id, ingredientId: lot("Distilled water, store-bought"), description: "Distilled water, store-bought", amount: 5.75, unit: "gal" },
