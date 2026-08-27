@@ -47,9 +47,13 @@ export default async function EquipmentPage({
 }) {
   const user = (await getCurrentUser())!;
   const { status } = await searchParams;
-  const filter = ["active", "wanted", "retired"].includes(status ?? "")
-    ? (status as "active" | "wanted" | "retired")
-    : null;
+  // Active is what matters at a glance — it's the default view.
+  const filter =
+    status === "all"
+      ? null
+      : ["wanted", "retired"].includes(status ?? "")
+        ? (status as "wanted" | "retired")
+        : "active";
 
   const all = db
     .select()
@@ -84,7 +88,12 @@ export default async function EquipmentPage({
         icon={<BoxIcon size={40} />}
         title="Equipment"
         subtitle="What you own, what it does, what it cost"
-        actions={<Link href="/equipment/new" className="btn btn-solid">+ Add equipment</Link>}
+        actions={
+          <>
+            <Link href="/equipment/new" className="btn">Add manually</Link>
+            <Link href="/purchases/new" className="btn btn-solid">+ New purchase</Link>
+          </>
+        }
       />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 20, marginBottom: 18 }}>
         <div className="panel" style={{ borderLeft: "3px solid var(--accent)", padding: "12px 16px" }}>
@@ -101,10 +110,10 @@ export default async function EquipmentPage({
         </div>
       </div>
       <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
-        <Chip href="/equipment" label="All" active={filter === null} />
-        <Chip href="/equipment?status=active" label="Active" active={filter === "active"} />
+        <Chip href="/equipment" label="Active" active={filter === "active"} />
         <Chip href="/equipment?status=wanted" label="Wanted" active={filter === "wanted"} />
         <Chip href="/equipment?status=retired" label="Retired" active={filter === "retired"} />
+        <Chip href="/equipment?status=all" label="All" active={filter === null} />
       </div>
       <div className="panel">
         <div className="panel-heading">
