@@ -15,6 +15,30 @@ this area again.
 
 ---
 
+## 2026-08-27 — Recipe polish round: filters, beer glass, targets, template
+
+- **Style family chips** on the recipes list (lib/brewing/beer-color.ts):
+  freeform style text classifies by keyword regex, ORDER MATTERS (barrel
+  before stout, IPA before pale before the "ale" catch-all). Chips render
+  only for families with recipes, so the row grows as styles arrive.
+- **Beer glass icon** per card (components/beer-glass.tsx), Untappd-style:
+  fill color from targetSRM via the standard SRM hex chart, else the
+  family's typical SRM. Real number wins when present.
+- **Block Party targets from the OFFICIAL sources** (vendor-page-first, same
+  rule as receipts): OG 1.042 from NB's kit-sheet PDF (correcting 1.044),
+  ABV 4.3% from the product page, FG 1.009 derived, IBU 18 kept as estimate
+  (NB says only "low <25"), SRM left null (not published; forum clone
+  numbers deliberately NOT used). Provenance in the recipe notes; seed
+  matches. Locked edit form now shows derived "Brewed" status, not the
+  stale stored want_to_brew.
+- **BeerXML template for AI recipe hunting** (lib/brewing/beerxml-template.ts
+  + copy button on the import page): a skeleton with unit-teaching comments
+  (liters, kilograms) that Trey pastes into an AI chat, then imports the
+  filled result. A test locks the template to parseBeerXml compatibility.
+- Breadcrumbs ("← Recipes") on recipe detail and import pages.
+
+---
+
 ## 2026-08-27 — Brewed specs lock; Duplicate makes the tweakable copy
 
 Once a recipe has batches its ingredient bill is HISTORY (batch snapshots

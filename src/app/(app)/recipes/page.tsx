@@ -8,6 +8,8 @@ import { checkBrewability } from "@/lib/brewing/brewability";
 import { inArray } from "drizzle-orm";
 import { PageHeader } from "@/components/page-header";
 import { BookIcon } from "@/components/icons";
+import { BeerGlass } from "@/components/beer-glass";
+import { recipeGlassColor, styleFamily, STYLE_FAMILIES } from "@/lib/brewing/beer-color";
 
 function Spec({ label, value }: { label: string; value: string }) {
   return (
@@ -18,14 +20,51 @@ function Spec({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default async function RecipesPage() {
+function FilterChip({ href, label, active }: { href: string; label: string; active: boolean }) {
+  return (
+    <Link
+      href={href}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "4px 14px",
+        border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
+        borderRadius: 14,
+        fontSize: 12,
+        color: active ? "var(--accent)" : "var(--nav-link)",
+      }}
+    >
+      {label}
+    </Link>
+  );
+}
+
+export default async function RecipesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ style?: string }>;
+}) {
   const user = (await getCurrentUser())!;
+  const { style: styleParam } = await searchParams;
   const all = db.select().from(recipes).where(eq(recipes.userId, user.id)).all();
   const allBatches = db
     .select({ recipeId: batches.recipeId, keeper: batches.keeper })
     .from(batches)
     .where(eq(batches.userId, user.id))
     .all();
+
+  // Family chips only render for families that actually have recipes; the
+  // list grows on its own as new styles arrive.
+  const familyOf = (style: string | null) => styleFamily(style)?.key ?? "other";
+  const counts = new Map<string, number>();
+  for (const r of all) counts.set(familyOf(r.style), (counts.get(familyOf(r.style)) ?? 0) + 1);
+  const families = STYLE_FAMILIES.filter((f) => (counts.get(f.key) ?? 0) > 0);
+  const hasOther = (counts.get("other") ?? 0) > 0;
+  const filter =
+    styleParam && (families.some((f) => f.key === styleParam) || (styleParam === "other" && hasOther))
+      ? styleParam
+      : null;
+  const shownRecipes = filter ? all.filter((r) => familyOf(r.style) === filter) : all;
   const allItems =
     all.length > 0
       ? db
@@ -49,13 +88,24 @@ export default async function RecipesPage() {
           </>
         }
       />
+      {all.length > 0 ? (
+        <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
+          <FilterChip href="/recipes" label="All" active={filter === null} />
+          {families.map((f) => (
+            <FilterChip key={f.key} href={`/recipes?style=${f.key}`} label={f.label} active={filter === f.key} />
+          ))}
+          {hasOther ? (
+            <FilterChip href="/recipes?style=other" label="Other" active={filter === "other"} />
+          ) : null}
+        </div>
+      ) : null}
       {all.length === 0 ? (
         <div className="panel" style={{ padding: "14px 16px", fontSize: 13 }}>
           No recipes yet. Create one or import a BeerXML file.
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
-          {all.map((r) => {
+          {shownRecipes.map((r) => {
             const rb = allBatches.filter((b) => b.recipeId === r.id);
             const brewability = checkBrewability(allItems.filter((i) => i.recipeId === r.id), stockRows);
             const status = recipeDisplayStatus(r, rb, brewability.verdict === "can_brew");
@@ -68,7 +118,13 @@ export default async function RecipesPage() {
                 style={{ padding: 18, display: "flex", flexDirection: "column", gap: 12, color: "inherit" }}
               >
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
-                  <span style={{ color: "var(--text-bright)", fontSize: 16 }}>{r.name}</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 10, color: "var(--text-bright)", fontSize: 16 }}>
+                    <BeerGlass
+                      color={recipeGlassColor(r.targetSRM, r.style)}
+                      title={r.targetSRM != null ? `SRM ${r.targetSRM}` : `color estimated from style`}
+                    />
+                    {r.name}
+                  </span>
                   <span className="badge" style={{ background: badge.color }}>{badge.label}</span>
                 </div>
                 <div style={{ fontSize: 12, color: "var(--text-muted)" }}>

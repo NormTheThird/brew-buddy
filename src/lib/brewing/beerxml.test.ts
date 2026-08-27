@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildBeerXml, parseBeerXml } from "./beerxml";
+import { BEERXML_TEMPLATE } from "./beerxml-template";
 import type { Recipe, RecipeItem } from "@/lib/db/schema";
 
 const SAMPLE = `<?xml version="1.0"?>
@@ -38,6 +39,15 @@ describe("parseBeerXml", () => {
 
   it("throws on a file without a recipe", () => {
     expect(() => parseBeerXml("<RECIPES></RECIPES>")).toThrow();
+  });
+
+  it("the copy-paste template parses cleanly (AI recipe-hunting flow)", () => {
+    const t = parseBeerXml(BEERXML_TEMPLATE);
+    expect(t.name).toBe("Recipe name here");
+    expect(t.method).toBe("extract");
+    expect(t.targetVolumeGal).toBeCloseTo(5, 1);
+    expect(t.items.length).toBe(3);
+    expect(t.items.map((i) => i.ingredientType)).toEqual(["fermentable", "hop", "yeast"]);
   });
 });
 
