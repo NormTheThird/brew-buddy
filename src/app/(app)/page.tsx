@@ -45,17 +45,25 @@ export default async function DashboardPage() {
   const constants = learnedConstants(kettleBatches);
   const flags = gear.filter((g) => g.flag).map((g) => `${g.name}: ${g.flag}`);
 
+  // Next up is the whole brewery's to-do list, not one batch's: aggregate
+  // every active batch, soonest first. Batch tags only appear when more
+  // than one batch is running — no noise while there's just one.
+  const activeBatchList = allBatches.filter((b) => b.status !== "completed");
   const doneKeys = new Set(
-    active
+    activeBatchList.length
       ? db
-          .select({ taskKey: taskCompletions.taskKey })
+          .select({ batchId: taskCompletions.batchId, taskKey: taskCompletions.taskKey })
           .from(taskCompletions)
-          .where(eq(taskCompletions.batchId, active.id))
+          .where(inArray(taskCompletions.batchId, activeBatchList.map((b) => b.id)))
           .all()
-          .map((c) => c.taskKey)
+          .map((c) => `${c.batchId}|${c.taskKey}`)
       : []
   );
-  const actions = active ? nextActions(active).slice(0, 4) : [];
+  const actions = activeBatchList
+    .flatMap((b) => nextActions(b).map((a) => ({ ...a, batch: b })))
+    .sort((x, y) => x.due.getTime() - y.due.getTime())
+    .slice(0, 5);
+  const multiBatch = activeBatchList.length > 1;
   const day = active ? fermentationDay(active) : null;
   const activeBadge = active ? batchStatusBadge[active.status] : null;
   const activeAbv = active?.og != null && active?.fg != null ? abv(active.og, active.fg) : null;
@@ -113,10 +121,15 @@ export default async function DashboardPage() {
               <div style={{ fontSize: 13, color: "var(--text-muted)" }}>Nothing scheduled.</div>
             ) : (
               actions.map((a, i) => {
-                const done = doneKeys.has(a.key);
+                const done = doneKeys.has(`${a.batch.id}|${a.key}`);
                 return (
-                  <div key={a.key} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 0", borderTop: i > 0 ? "1px solid var(--border-row)" : "none", fontSize: 13 }}>
+                  <div key={`${a.batch.id}|${a.key}`} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 0", borderTop: i > 0 ? "1px solid var(--border-row)" : "none", fontSize: 13 }}>
                     <span style={{ width: 8, height: 8, borderRadius: "50%", background: done ? "var(--success)" : a.overdue ? "var(--danger)" : i === 0 ? "var(--accent)" : "#4a4f5a", flexShrink: 0 }} />
+                    {multiBatch ? (
+                      <Link href={`/batches/${a.batch.id}`} title={a.batch.recipeName} style={{ color: "var(--text-faint)", fontSize: 12, flexShrink: 0 }}>
+                        #{a.batch.batchNumber}
+                      </Link>
+                    ) : null}
                     <span style={{ color: done ? "var(--text-muted)" : a.overdue ? "var(--danger)" : undefined, textDecoration: done ? "line-through" : "none" }}>
                       {a.label}
                     </span>
@@ -125,7 +138,7 @@ export default async function DashboardPage() {
                     </span>
                     {done ? (
                       <form action={uncompleteTask} style={{ display: "inline", flexShrink: 0 }}>
-                        <input type="hidden" name="batchId" value={active!.id} />
+                        <input type="hidden" name="batchId" value={a.batch.id} />
                         <input type="hidden" name="taskKey" value={a.key} />
                         <button type="submit" title="Undo" style={{ background: "none", border: "none", color: "var(--text-faint)", cursor: "pointer", fontSize: 12, padding: 0, fontFamily: "inherit" }}>
                           undo
@@ -133,7 +146,7 @@ export default async function DashboardPage() {
                       </form>
                     ) : isDue(a) ? (
                       <form action={completeTask} style={{ display: "inline", flexShrink: 0 }}>
-                        <input type="hidden" name="batchId" value={active!.id} />
+                        <input type="hidden" name="batchId" value={a.batch.id} />
                         <input type="hidden" name="taskKey" value={a.key} />
                         <button type="submit" className="btn" style={{ padding: "1px 10px", fontSize: 12 }}>
                           ✓ Done
