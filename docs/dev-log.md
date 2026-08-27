@@ -15,6 +15,20 @@ this area again.
 
 ---
 
+## 2026-08-27 — Stock availability filter; used lots link to their batch
+
+Stock now answers "what can I brew with?" by default: Available (on hand > 0)
+is the default view, with Used and All lots chips (mirrors equipment's
+Active-default pattern). A lot referenced by a batch snapshot shows
+"used in #N" linking to that batch — built from batch_ingredients joined to
+batches, deduped per batch, passed to the client table as `usedIn` on each
+lot. The links stopPropagation so they don't toggle group expansion. A lot
+at zero WITHOUT a batch reference still reads "(used)" with no link (tossed/
+spoiled). Availability filters LOTS before grouping, so a product's rollup
+total under Available counts only what's actually on hand.
+
+---
+
 ## 2026-08-27 — Stock rolls up by product, lots nest underneath
 
 Trey's ask: 15 packs of US-05 shouldn't be 15 look-alike lines. The stock

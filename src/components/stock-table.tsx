@@ -8,7 +8,11 @@ import { bestByStatus, formatCost, formatDate, formatMonthYearNumeric, formatQua
 import { typeBadge, typeLabels } from "@/lib/inventory/stock-labels";
 import { DeleteButton } from "./delete-button";
 
-export type StockLot = StockItem & { purchaseName: string | null };
+export type StockLot = StockItem & {
+  purchaseName: string | null;
+  /** Batches whose snapshot references this lot — where it went. */
+  usedIn: Array<{ id: string; label: string }>;
+};
 
 /** One product (type + name), 1..many purchase lots. The lots are the real
     rows — the group line just rolls them up so 15 packs of US-05 read as one
@@ -80,7 +84,24 @@ function OnHandCell({ lot }: { lot: StockLot }) {
   return (
     <>
       {formatQuantity(lot.quantityOnHand, lot.unit)}
-      {lot.quantityOnHand <= 0 && lot.quantity != null ? (
+      {lot.usedIn.length > 0 ? (
+        <span style={{ color: "var(--text-faint)", fontSize: 12 }}>
+          {" "}· used in{" "}
+          {lot.usedIn.map((b, i) => (
+            <React.Fragment key={b.id}>
+              {i > 0 ? ", " : null}
+              <Link
+                href={`/batches/${b.id}`}
+                style={{ color: "var(--accent)" }}
+                onClick={(e) => e.stopPropagation()}
+                title={`Open batch ${b.label}`}
+              >
+                {b.label}
+              </Link>
+            </React.Fragment>
+          ))}
+        </span>
+      ) : lot.quantityOnHand <= 0 && lot.quantity != null ? (
         <span style={{ color: "var(--text-faint)", fontSize: 12 }}> (used)</span>
       ) : null}
     </>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { stock, stockTypes, purchases, type StockType } from "@/lib/db/schema";
+import { batches, batchIngredients, stock, stockTypes, purchases, type StockType } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { typeLabels } from "@/lib/inventory/stock-labels";
 import { PageHeader } from "@/components/page-header";
@@ -11,14 +11,19 @@ import { TableSearch } from "@/components/table-search";
 
 const PAGE_SIZES = ["10", "25", "50", "all"] as const;
 
+const AVAIL = ["available", "used", "all"] as const;
+type Avail = (typeof AVAIL)[number];
+
 function pageHref(
   type: string | null,
+  avail: Avail,
   q: string,
   size: string,
   page: number
 ): string {
   const params = new URLSearchParams();
   if (type) params.set("type", type);
+  if (avail !== "available") params.set("avail", avail);
   if (q) params.set("q", q);
   if (size !== "10") params.set("size", size);
   if (page > 1) params.set("page", String(page));
@@ -29,7 +34,7 @@ function pageHref(
 export default async function StockPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; q?: string; size?: string; page?: string }>;
+  searchParams: Promise<{ type?: string; avail?: string; q?: string; size?: string; page?: string }>;
 }) {
   const user = (await getCurrentUser())!;
   const params = await searchParams;
@@ -41,6 +46,10 @@ export default async function StockPage({
   const filter = stockTypes.includes((type ?? "") as StockType)
     ? (type as StockType)
     : null;
+  // What can I brew with? is the default question — used lots are one chip away.
+  const avail: Avail = AVAIL.includes((params.avail ?? "") as Avail)
+    ? (params.avail as Avail)
+    : "available";
 
   const all = db
     .select()
@@ -57,12 +66,40 @@ export default async function StockPage({
       .map((p) => [p.id, p.name] as const)
   );
 
-  const lots: StockLot[] = (filter ? all.filter((i) => i.type === filter) : all).map(
-    (i) => ({
+  // Which batch consumed each lot — the snapshot table already knows.
+  const usedInRows = db
+    .select({
+      ingredientId: batchIngredients.ingredientId,
+      batchId: batches.id,
+      batchNumber: batches.batchNumber,
+    })
+    .from(batchIngredients)
+    .innerJoin(batches, eq(batchIngredients.batchId, batches.id))
+    .where(eq(batches.userId, user.id))
+    .all();
+  const usedIn = new Map<string, Array<{ id: string; label: string }>>();
+  for (const r of usedInRows) {
+    if (!r.ingredientId) continue;
+    const list = usedIn.get(r.ingredientId) ?? [];
+    if (!list.some((b) => b.id === r.batchId)) {
+      list.push({ id: r.batchId, label: `#${r.batchNumber}` });
+    }
+    usedIn.set(r.ingredientId, list);
+  }
+
+  const lots: StockLot[] = (filter ? all.filter((i) => i.type === filter) : all)
+    .filter((i) =>
+      avail === "available"
+        ? i.quantityOnHand > 0
+        : avail === "used"
+          ? i.quantityOnHand <= 0
+          : true
+    )
+    .map((i) => ({
       ...i,
       purchaseName: i.purchaseId ? (purchaseNames.get(i.purchaseId) ?? null) : null,
-    })
-  );
+      usedIn: usedIn.get(i.id) ?? [],
+    }));
 
   // One group per product (type + name); its lots are the real rows. 15 packs
   // of US-05 roll up to one line that expands into per-lot detail.
@@ -112,11 +149,15 @@ export default async function StockPage({
         actions={<Link href="/stock/new" className="btn btn-solid">+ Add purchase</Link>}
       />
       <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap", alignItems: "center" }}>
-        <FilterChip href={pageHref(null, q, size, 1)} label="All" active={filter === null} />
+        <FilterChip href={pageHref(filter, "available", q, size, 1)} label="Available" active={avail === "available"} />
+        <FilterChip href={pageHref(filter, "used", q, size, 1)} label="Used" active={avail === "used"} />
+        <FilterChip href={pageHref(filter, "all", q, size, 1)} label="All lots" active={avail === "all"} />
+        <span style={{ width: 1, alignSelf: "stretch", background: "var(--border)", margin: "0 4px" }} />
+        <FilterChip href={pageHref(null, avail, q, size, 1)} label="All" active={filter === null} />
         {stockTypes.map((t) => (
           <FilterChip
             key={t}
-            href={pageHref(t, q, size, 1)}
+            href={pageHref(t, avail, q, size, 1)}
             label={typeLabels[t]}
             active={filter === t}
           />
@@ -141,7 +182,7 @@ export default async function StockPage({
             {PAGE_SIZES.map((s) => (
               <Link
                 key={s}
-                href={pageHref(filter, q, s, 1)}
+                href={pageHref(filter, avail, q, s, 1)}
                 style={{ color: s === size ? "var(--accent)" : "var(--nav-link)", textDecoration: s === size ? "underline" : "none" }}
               >
                 {s}
@@ -154,21 +195,23 @@ export default async function StockPage({
             <div style={{ fontSize: 13, color: "var(--text-muted)", padding: "8px 0" }}>
               {q
                 ? `Nothing matches "${q}".`
-                : `No lots${filter ? ` of type ${typeLabels[filter]}` : ""} yet.`}
+                : avail === "available"
+                  ? "Nothing available on hand — switch to All lots to see what was used."
+                  : `No lots${filter ? ` of type ${typeLabels[filter]}` : ""} yet.`}
             </div>
           ) : (
-            <StockTable key={`${q}|${filter ?? ""}|${page}`} groups={shown} defaultOpen={Boolean(q)} />
+            <StockTable key={`${q}|${filter ?? ""}|${avail}|${page}`} groups={shown} defaultOpen={Boolean(q)} />
           )}
           {pageCount > 1 ? (
             <div style={{ display: "flex", gap: 14, alignItems: "center", paddingTop: 14, fontSize: 13 }}>
               {page > 1 ? (
-                <Link href={pageHref(filter, q, size, page - 1)} className="btn" style={{ padding: "4px 12px" }}>← Prev</Link>
+                <Link href={pageHref(filter, avail, q, size, page - 1)} className="btn" style={{ padding: "4px 12px" }}>← Prev</Link>
               ) : null}
               <span style={{ color: "var(--text-muted)" }}>
                 Page {page} of {pageCount} · {groups.length} product{groups.length === 1 ? "" : "s"}
               </span>
               {page < pageCount ? (
-                <Link href={pageHref(filter, q, size, page + 1)} className="btn" style={{ padding: "4px 12px" }}>Next →</Link>
+                <Link href={pageHref(filter, avail, q, size, page + 1)} className="btn" style={{ padding: "4px 12px" }}>Next →</Link>
               ) : null}
             </div>
           ) : null}
