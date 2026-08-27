@@ -9,6 +9,7 @@ import {
   equipmentCategories,
   ingredients,
   ingredientTypes,
+  purchases,
   type EquipmentCategory,
   type IngredientType,
 } from "@/lib/db/schema";
@@ -46,6 +47,21 @@ async function requireUser() {
   return user;
 }
 
+/** null when unset; rejects a purchase the user doesn't own. */
+function ownedPurchaseId(
+  v: FormDataEntryValue | null,
+  userId: number
+): number | null | { error: string } {
+  const id = int(v);
+  if (id == null) return null;
+  const owned = db
+    .select({ id: purchases.id })
+    .from(purchases)
+    .where(and(eq(purchases.id, id), eq(purchases.userId, userId)))
+    .all()[0];
+  return owned ? id : { error: "Unknown purchase." };
+}
+
 /* ---------------- equipment ---------------- */
 
 function equipmentValues(formData: FormData) {
@@ -80,7 +96,11 @@ export async function createEquipment(
   const user = await requireUser();
   const parsed = equipmentValues(formData);
   if ("error" in parsed) return { error: parsed.error };
-  await db.insert(equipment).values({ userId: user.id, ...parsed.values });
+  const purchaseId = ownedPurchaseId(formData.get("purchaseId"), user.id);
+  if (purchaseId != null && typeof purchaseId === "object") return purchaseId;
+  await db
+    .insert(equipment)
+    .values({ userId: user.id, purchaseId, ...parsed.values });
   revalidatePath("/equipment");
   redirect("/equipment");
 }
@@ -94,9 +114,11 @@ export async function updateEquipment(
   if (id == null) return { error: "Missing id." };
   const parsed = equipmentValues(formData);
   if ("error" in parsed) return { error: parsed.error };
+  const purchaseId = ownedPurchaseId(formData.get("purchaseId"), user.id);
+  if (purchaseId != null && typeof purchaseId === "object") return purchaseId;
   await db
     .update(equipment)
-    .set(parsed.values)
+    .set({ ...parsed.values, purchaseId })
     .where(and(eq(equipment.id, id), eq(equipment.userId, user.id)));
   revalidatePath("/equipment");
   redirect("/equipment");
@@ -161,7 +183,11 @@ export async function createIngredient(
   const user = await requireUser();
   const parsed = ingredientValues(formData);
   if ("error" in parsed) return { error: parsed.error };
-  await db.insert(ingredients).values({ userId: user.id, ...parsed.values });
+  const purchaseId = ownedPurchaseId(formData.get("purchaseId"), user.id);
+  if (purchaseId != null && typeof purchaseId === "object") return purchaseId;
+  await db
+    .insert(ingredients)
+    .values({ userId: user.id, purchaseId, ...parsed.values });
   revalidatePath("/ingredients");
   redirect("/ingredients");
 }
@@ -175,9 +201,11 @@ export async function updateIngredient(
   if (id == null) return { error: "Missing id." };
   const parsed = ingredientValues(formData);
   if ("error" in parsed) return { error: parsed.error };
+  const purchaseId = ownedPurchaseId(formData.get("purchaseId"), user.id);
+  if (purchaseId != null && typeof purchaseId === "object") return purchaseId;
   await db
     .update(ingredients)
-    .set(parsed.values)
+    .set({ ...parsed.values, purchaseId })
     .where(and(eq(ingredients.id, id), eq(ingredients.userId, user.id)));
   revalidatePath("/ingredients");
   redirect("/ingredients");

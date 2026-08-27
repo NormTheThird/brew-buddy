@@ -15,6 +15,33 @@ this area again.
 
 ---
 
+## 2026-08-26 — Milestone 2.5: purchases, kits, receipt AI import
+
+Purchases group items bought together (kits/orders) with one total cost; receipts
+attach to purchases and Claude can propose inventory rows from them.
+
+- **Schema:** `purchases` (name, vendor, date, totalCost, receiptPath/Mime,
+  proposalJson, notes); equipment + ingredients gained nullable `purchaseId`
+  (FK, on delete set null — deleting a purchase keeps the items, drops the link).
+- **Kit pricing rule implemented:** an item shows its own cost OR a "part of <kit>"
+  link — never a fabricated split. Equipment "entered costs" sums only individually
+  priced items; the Purchases page totals purchase costs. Don't double count.
+- **Receipts are private uploads:** stored under data/receipts/ (next to the DB,
+  inside the Docker volume), served ONLY through /purchases/[id]/receipt with
+  session + ownership checks — never from /public. Server-action body limit raised
+  to 15 MB in next.config for photo uploads (12 MB per-file cap in the action).
+- **AI extraction (claude-opus-5, @anthropic-ai/sdk):** image or PDF receipt →
+  base64 content block → JSON proposal stored in purchases.proposalJson. NOTHING is
+  written until the user reviews the proposal table and applies checked rows — an AI
+  misread must never silently become inventory (same principle as §10.4). Missing
+  ANTHROPIC_API_KEY → clear inline error, not a crash. Applied ingredient rows get
+  quantityOnHand = quantity (a new purchase is on the shelf).
+- Real data: "Block Party Amber kit" purchase created; the 4 batch-1 lots linked to it.
+- Gotchas: "use server" files may only export async functions (receiptsDir moved to
+  storage.ts); editing next.config.ts restarts the dev server mid-session.
+
+---
+
 ## 2026-08-26 — Milestone 2: equipment + ingredient lots
 
 Equipment and ingredient-lot CRUD, live and verified in the browser (create, list,

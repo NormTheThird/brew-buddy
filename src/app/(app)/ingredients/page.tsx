@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { ingredients, ingredientTypes, type Ingredient, type IngredientType } from "@/lib/db/schema";
+import { ingredients, ingredientTypes, purchases, type Ingredient, type IngredientType } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { deleteIngredient } from "@/lib/inventory/actions";
 import { bestByStatus, formatCost, formatMonth, formatMonthYearNumeric, formatQuantity } from "@/lib/inventory/format";
@@ -84,6 +84,15 @@ export default async function IngredientsPage({
     .where(eq(ingredients.userId, user.id))
     .all();
 
+  const purchaseNames = new Map(
+    db
+      .select({ id: purchases.id, name: purchases.name })
+      .from(purchases)
+      .where(eq(purchases.userId, user.id))
+      .all()
+      .map((p) => [p.id, p.name])
+  );
+
   const shown = (filter ? all.filter((i) => i.type === filter) : all).sort(
     (a, b) =>
       ingredientTypes.indexOf(a.type) - ingredientTypes.indexOf(b.type) ||
@@ -162,7 +171,20 @@ export default async function IngredientsPage({
                     </td>
                     <td><BestBy d={i.bestByDate} /></td>
                     <td>{formatMonth(i.purchaseDate)}</td>
-                    <td style={{ textAlign: "right" }}>{formatCost(i.cost)}</td>
+                    <td style={{ textAlign: "right" }}>
+                      {i.cost != null ? (
+                        formatCost(i.cost)
+                      ) : i.purchaseId && purchaseNames.has(i.purchaseId) ? (
+                        <Link
+                          href={`/purchases/${i.purchaseId}`}
+                          style={{ fontSize: 12, color: "var(--text-muted)" }}
+                        >
+                          part of {purchaseNames.get(i.purchaseId)}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                       <Link href={`/ingredients/${i.id}/edit`}>Edit</Link>
                       {" · "}

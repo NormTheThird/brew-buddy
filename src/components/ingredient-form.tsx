@@ -36,9 +36,11 @@ function Row({ children, cols = 3 }: { children: React.ReactNode; cols?: number 
 export function IngredientForm({
   action,
   item,
+  purchaseOptions = [],
 }: {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
   item?: Ingredient;
+  purchaseOptions?: Array<{ id: number; name: string }>;
 }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(
     action,
@@ -188,6 +190,17 @@ export function IngredientForm({
         </>
       ) : null}
 
+      {purchaseOptions.length > 0 ? (
+        <div>
+          <label className="field-label" htmlFor="purchaseId">Part of purchase</label>
+          <select id="purchaseId" name="purchaseId" className="field" defaultValue={item?.purchaseId ?? ""}>
+            <option value="">— none (priced individually)</option>
+            {purchaseOptions.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
+      ) : null}
       <div>
         <label className="field-label" htmlFor="notes">Notes</label>
         <textarea id="notes" name="notes" className="field" rows={3} defaultValue={item?.notes ?? ""} />

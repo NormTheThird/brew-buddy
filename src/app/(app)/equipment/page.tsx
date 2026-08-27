@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { equipment, type Equipment } from "@/lib/db/schema";
+import { equipment, purchases, type Equipment } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { deleteEquipment } from "@/lib/inventory/actions";
 import { formatCost, formatMonth } from "@/lib/inventory/format";
@@ -56,6 +56,15 @@ export default async function EquipmentPage({
     .from(equipment)
     .where(eq(equipment.userId, user.id))
     .all();
+
+  const purchaseNames = new Map(
+    db
+      .select({ id: purchases.id, name: purchases.name })
+      .from(purchases)
+      .where(eq(purchases.userId, user.id))
+      .all()
+      .map((p) => [p.id, p.name])
+  );
 
   const shown = (filter ? all.filter((e) => e.status === filter) : all).sort(
     (a, b) =>
@@ -133,7 +142,20 @@ export default async function EquipmentPage({
                       <StatusCell item={e} />
                     </td>
                     <td>{formatMonth(e.purchaseDate)}</td>
-                    <td style={{ textAlign: "right" }}>{formatCost(e.cost)}</td>
+                    <td style={{ textAlign: "right" }}>
+                      {e.cost != null ? (
+                        formatCost(e.cost)
+                      ) : e.purchaseId && purchaseNames.has(e.purchaseId) ? (
+                        <Link
+                          href={`/purchases/${e.purchaseId}`}
+                          style={{ fontSize: 12, color: "var(--text-muted)" }}
+                        >
+                          part of {purchaseNames.get(e.purchaseId)}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                       <Link href={`/equipment/${e.id}/edit`}>Edit</Link>
                       {" · "}

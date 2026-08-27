@@ -65,6 +65,17 @@ Long term this connects to a 4-tap kegerator setup and all-grain brewing.
 Equipment
   Id, Name, Category, PurchaseDate, Cost, Notes, Active
   Specs (JSON or typed): capacity, wattage, material, dimensions
+  PurchaseId (nullable)  -- set when the item came in a kit/order
+```
+
+### Purchase (kits and orders)
+```
+Purchase
+  Id, UserId, Name ("Block Party Amber kit"), Vendor, PurchaseDate
+  TotalCost, ReceiptFile (stored upload, viewable later), Notes
+  -- Equipment and Ingredient rows point at a Purchase via PurchaseId.
+  -- An item shows its own Cost OR "part of <kit>" — never both; totals
+  -- count the kit's TotalCost once, plus individually-priced items.
 ```
 
 ### Ingredient (per-purchase, not per-type — lot matters)
@@ -172,6 +183,13 @@ lots* to produce the actual shopping list and brew-day amounts.
 - [ ] Equipment inventory (CRUD, cost tracking, category grouping)
 - [ ] Ingredient inventory with lot numbers, AA%, best-by dates
 - [ ] Live stock levels — purchases minus usage; shopping list for a planned batch
+- [ ] Purchases & kits — a Purchase groups items bought together (a kit or one order)
+      with one total cost and vendor; items in a kit show "part of kit", not a fake
+      per-item price, and kit cost counts once in totals
+- [ ] Receipt import with AI — upload a receipt photo/PDF, Claude extracts the line
+      items, user reviews the proposed equipment/ingredient rows before anything is
+      written, receipt file stored on the Purchase for later viewing.
+      Requires an Anthropic API key (env `ANTHROPIC_API_KEY`, never committed).
 - [ ] Recipe storage — brewed recipes *and* a to-brew backlog. Status per recipe:
       Idea / Want to brew / Brewed (has batches) / Keeper
 - [ ] Brewability check — resolve any recipe against my equipment profile and current

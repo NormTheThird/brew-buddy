@@ -26,6 +26,26 @@ export const sessions = sqliteTable("sessions", {
     .$defaultFn(() => new Date()),
 });
 
+// A Purchase groups items bought together — a kit or one order — with one
+// total cost. Items in a kit show "part of <kit>", never a fake per-item price.
+export const purchases = sqliteTable("purchases", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  vendor: text("vendor"),
+  purchaseDate: integer("purchase_date", { mode: "timestamp" }),
+  totalCost: real("total_cost"),
+  receiptPath: text("receipt_path"), // stored file under data/receipts/
+  receiptMime: text("receipt_mime"),
+  proposalJson: text("proposal_json"), // pending AI-extracted items awaiting review
+  notes: text("notes"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const equipmentCategories = [
   "kettle",
   "chilling",
@@ -50,6 +70,9 @@ export const equipment = sqliteTable("equipment", {
     .default("active"),
   specs: text("specs"), // short human-readable: "7.5 gal · 110V · 1600W"
   flag: text("flag"), // badge-worthy warning: "not calibrated", "replace"
+  purchaseId: integer("purchase_id").references(() => purchases.id, {
+    onDelete: "set null",
+  }),
   purchaseDate: integer("purchase_date", { mode: "timestamp" }),
   cost: real("cost"),
   notes: text("notes"),
@@ -98,6 +121,9 @@ export const ingredients = sqliteTable("ingredients", {
   tempRangeMinF: real("temp_range_min_f"),
   tempRangeMaxF: real("temp_range_max_f"),
   attenuationPercent: real("attenuation_percent"),
+  purchaseId: integer("purchase_id").references(() => purchases.id, {
+    onDelete: "set null",
+  }),
   notes: text("notes"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
@@ -108,5 +134,6 @@ export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type Equipment = typeof equipment.$inferSelect;
 export type Ingredient = typeof ingredients.$inferSelect;
+export type Purchase = typeof purchases.$inferSelect;
 export type EquipmentCategory = (typeof equipmentCategories)[number];
 export type IngredientType = (typeof ingredientTypes)[number];

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { equipment } from "@/lib/db/schema";
+import { equipment, purchases } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { PageHeader } from "@/components/page-header";
 import { BoxIcon } from "@/components/icons";
@@ -25,13 +25,19 @@ export default async function EditEquipmentPage({
     .all()[0];
   if (!item) notFound();
 
+  const purchaseOptions = db
+    .select({ id: purchases.id, name: purchases.name })
+    .from(purchases)
+    .where(eq(purchases.userId, user.id))
+    .all();
+
   return (
     <>
       <PageHeader
         icon={<BoxIcon size={40} />}
         title={`Edit — ${item.name}`}
       />
-      <EquipmentForm action={updateEquipment} item={item} />
+      <EquipmentForm action={updateEquipment} item={item} purchaseOptions={purchaseOptions} />
     </>
   );
 }
