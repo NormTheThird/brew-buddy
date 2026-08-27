@@ -17,6 +17,7 @@ export type ProposedItem = {
 };
 
 export type ReceiptProposal = {
+  suggestedName?: string;
   vendor?: string;
   purchaseDate?: string; // YYYY-MM-DD
   totalCost?: number;
@@ -35,6 +36,7 @@ const PROMPT = `This is a receipt or order confirmation for homebrewing supplies
 
 Return ONLY a JSON object, no other text, with this shape:
 {
+  "suggestedName": "a short human name for this purchase, from its main item or kit — e.g. 'Essential Homebrew Starter Kit'",
   "vendor": "store name if visible",
   "purchaseDate": "YYYY-MM-DD if visible",
   "totalCost": 123.45,
@@ -54,7 +56,8 @@ Return ONLY a JSON object, no other text, with this shape:
 Rules:
 - kind: consumables that go into beer (malt, extract, hops, yeast, sugar, finings, chemicals like Star San) are "ingredient"; durable goods are "equipment".
 - Only include real line items — skip shipping, tax, and subtotals (they belong in totalCost context, not items).
-- Omit any field you cannot read. Never invent a price or quantity.`;
+- Omit any field you cannot read. Never invent a price or quantity.
+- If the year is not shown, omit purchaseDate entirely — never guess a year.`;
 
 export async function extractReceipt(
   fileBytes: Buffer,
@@ -113,6 +116,8 @@ export async function extractReceipt(
   }
 
   return {
+    suggestedName:
+      typeof parsed.suggestedName === "string" ? parsed.suggestedName : undefined,
     vendor: typeof parsed.vendor === "string" ? parsed.vendor : undefined,
     purchaseDate:
       typeof parsed.purchaseDate === "string" ? parsed.purchaseDate : undefined,

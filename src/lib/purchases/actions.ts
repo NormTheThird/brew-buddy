@@ -25,6 +25,7 @@ import {
 import { receiptsDir } from "./storage";
 
 export type FormState = { error?: string };
+export type AnalyzeState = { error?: string; proposal?: ReceiptProposal };
 
 const RECEIPTS_DIR = receiptsDir();
 const MAX_RECEIPT_BYTES = 12 * 1024 * 1024;
@@ -62,6 +63,45 @@ function ownedPurchase(id: number, userId: number) {
     .all()[0];
 }
 
+/** Reads the receipt/pasted text BEFORE the purchase exists, so the form can
+    pre-fill itself. Writes nothing. */
+export async function analyzeReceipt(
+  _prev: AnalyzeState,
+  formData: FormData
+): Promise<AnalyzeState> {
+  await requireUser();
+  const receipt = formData.get("receipt");
+  const pastedText = str(formData.get("receiptText"));
+  let bytes: Buffer | null = null;
+  let mime: string | null = null;
+  if (receipt instanceof File && receipt.size > 0) {
+    if (!isSupportedReceiptType(receipt.type)) {
+      return { error: "Receipt must be an image (JPG/PNG/WebP/GIF) or a PDF." };
+    }
+    if (receipt.size > MAX_RECEIPT_BYTES) {
+      return { error: "Receipt file is over 12 MB — resize the photo and retry." };
+    }
+    bytes = Buffer.from(await receipt.arrayBuffer());
+    mime = receipt.type;
+  } else if (pastedText) {
+    bytes = Buffer.from(pastedText, "utf8");
+    mime = "text/plain";
+  }
+  if (!bytes || !mime) {
+    return { error: "Attach a receipt or paste order text first." };
+  }
+  if (!hasApiKey()) {
+    return { error: "No Anthropic API key configured — add ANTHROPIC_API_KEY to .env." };
+  }
+  try {
+    return { proposal: await extractReceipt(bytes, mime) };
+  } catch (e) {
+    return {
+      error: `Reading failed: ${e instanceof Error ? e.message : "unknown error"}`,
+    };
+  }
+}
+
 export async function createPurchase(
   _prev: FormState,
   formData: FormData
@@ -89,6 +129,17 @@ export async function createPurchase(
     receiptMime = "text/plain";
   }
 
+  // A proposal from the pre-create analyze step rides along so the item
+  // review is waiting on the purchase page immediately.
+  let proposalJson: string | null = null;
+  const rawProposal = str(formData.get("proposalJson"));
+  if (rawProposal) {
+    try {
+      const parsed = JSON.parse(rawProposal) as ReceiptProposal;
+      if (Array.isArray(parsed.items)) proposalJson = rawProposal;
+    } catch {}
+  }
+
   const inserted = await db
     .insert(purchases)
     .values({
@@ -97,6 +148,7 @@ export async function createPurchase(
       vendor: str(formData.get("vendor")),
       purchaseDate: date(formData.get("purchaseDate")),
       totalCost: num(formData.get("totalCost")),
+      proposalJson,
       notes: str(formData.get("notes")),
     })
     .returning({ id: purchases.id });
