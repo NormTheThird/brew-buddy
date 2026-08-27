@@ -26,6 +26,7 @@ import {
   extractReceipt,
   hasApiKey,
   isSupportedReceiptType,
+  normalizeVendor,
   type ReceiptProposal,
 } from "./receipt-ai";
 import { receiptsDir } from "./storage";
@@ -273,7 +274,7 @@ export async function createPurchase(
     .values({
       userId: user.id,
       name,
-      vendor: str(formData.get("vendor")),
+      vendor: ((v) => (v ? normalizeVendor(v) : null))(str(formData.get("vendor"))),
       orderNumber: str(formData.get("orderNumber")),
       purchaseDate: date(formData.get("purchaseDate")),
       totalCost: num(formData.get("totalCost")),

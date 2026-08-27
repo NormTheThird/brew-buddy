@@ -37,6 +37,19 @@ export function hasApiKey(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
+/** "Amazon.com" / "Amazon (Hobby Homebrew)" → "Amazon" — one canonical name
+    per retailer, whatever the receipt says. */
+export function normalizeVendor(v: string): string {
+  let s = v
+    .replace(/\s*\([^)]*\)\s*/g, " ") // drop marketplace-seller parentheticals
+    .replace(/\.(com|net|org|co)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (/amazon/i.test(s)) s = "Amazon";
+  if (/northern\s*brewer/i.test(s)) s = "Northern Brewer";
+  return s;
+}
+
 function buildPrompt(): string {
   const today = new Date().toISOString().slice(0, 10);
   return `This is a receipt or order confirmation for homebrewing supplies (today is ${today}). Extract the line items.
@@ -44,7 +57,7 @@ function buildPrompt(): string {
 Return ONLY a JSON object as your final answer, no other text around it, with this shape:
 {
   "suggestedName": "a short human name for this purchase, from its main item or kit — e.g. 'Essential Homebrew Starter Kit'",
-  "vendor": "store name if visible",
+  "vendor": "the retailer's plain canonical name — 'Amazon' (never 'Amazon.com' or 'Amazon (Seller)'), 'Northern Brewer'; a marketplace seller goes in notes-worthy info, not vendor",
   "orderNumber": "order/invoice number if visible, e.g. 5500001631510",
   "discountCode": "promo/coupon code if one was used, e.g. WELCOME15",
   "discountAmount": 14.99,
@@ -171,7 +184,8 @@ export async function extractReceipt(
   return {
     suggestedName:
       typeof parsed.suggestedName === "string" ? parsed.suggestedName : undefined,
-    vendor: typeof parsed.vendor === "string" ? parsed.vendor : undefined,
+    vendor:
+      typeof parsed.vendor === "string" ? normalizeVendor(parsed.vendor) : undefined,
     orderNumber:
       typeof parsed.orderNumber === "string" ? parsed.orderNumber : undefined,
     discountCode:

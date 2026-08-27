@@ -134,6 +134,25 @@ async function seedIngredients(userId: number) {
     },
     {
       userId,
+      type: "water",
+      name: "Distilled water, store-bought",
+      quantity: 5.75,
+      quantityOnHand: 0,
+      unit: "gal",
+      purchaseDate: new Date("2026-08-23"),
+      notes: "Used for batch 1 — RO preferred going forward",
+    },
+    {
+      userId,
+      type: "water",
+      name: "Home RO water",
+      quantity: null,
+      quantityOnHand: 1,
+      unit: "gal",
+      notes: "From the home RO system — effectively unlimited; the default from batch 2 on",
+    },
+    {
+      userId,
       type: "yeast",
       name: "SafAle US-05",
       vendor: "Northern Brewer",
@@ -249,6 +268,7 @@ async function seedRecipesAndBatch1(userId: number) {
     { batchId: b1.id, ingredientId: lot("Kit steeping grains"), description: "Kit steeping grains — 155°F steep", timingMinutes: 20 },
     { batchId: b1.id, ingredientId: lot("Willamette, pellet"), description: "Willamette pellet · 6.8% AA · lot HP15", amount: 1, unit: "oz", timingMinutes: 60 },
     { batchId: b1.id, ingredientId: lot("SafAle US-05"), description: "SafAle US-05 · lot 250573 · gen 1", amount: 11.5, unit: "g" },
+    { batchId: b1.id, ingredientId: lot("Distilled water, store-bought"), description: "Distilled water, store-bought", amount: 5.75, unit: "gal" },
   ]);
 
   await db.insert(gravityReadings).values({
