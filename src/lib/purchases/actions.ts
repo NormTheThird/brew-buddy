@@ -290,21 +290,48 @@ export async function applyProposal(formData: FormData): Promise<void> {
     if (!item.partOfKit && sameVal && sameVal !== "new") {
       const existingId = Number(sameVal);
       if (Number.isInteger(existingId)) {
+        // The receipt becomes the source of truth: name and details update,
+        // but hand-entered specs/notes the receipt doesn't know are kept.
         const patch = {
+          name: item.name,
           ...(item.cost != null ? { cost: item.cost } : {}),
           purchaseId: p.id,
           ...(p.purchaseDate ? { purchaseDate: p.purchaseDate } : {}),
         };
         if (item.kind === "equipment") {
-          await db
-            .update(equipment)
-            .set(patch)
-            .where(and(eq(equipment.id, existingId), eq(equipment.userId, user.id)));
+          const existing = db
+            .select()
+            .from(equipment)
+            .where(and(eq(equipment.id, existingId), eq(equipment.userId, user.id)))
+            .all()[0];
+          if (existing) {
+            const mergedSpecs =
+              [item.specs, existing.specs]
+                .filter((s): s is string => Boolean(s))
+                .filter((s, i, arr) => arr.findIndex((o) => o.toLowerCase() === s.toLowerCase()) === i)
+                .join(" · ") || null;
+            await db
+              .update(equipment)
+              .set({ ...patch, specs: mergedSpecs })
+              .where(eq(equipment.id, existing.id));
+          }
         } else {
-          await db
-            .update(ingredients)
-            .set(patch)
-            .where(and(eq(ingredients.id, existingId), eq(ingredients.userId, user.id)));
+          const existing = db
+            .select()
+            .from(ingredients)
+            .where(and(eq(ingredients.id, existingId), eq(ingredients.userId, user.id)))
+            .all()[0];
+          if (existing) {
+            await db
+              .update(ingredients)
+              .set({
+                ...patch,
+                ...(existing.quantity == null && item.quantity != null
+                  ? { quantity: qty, quantityOnHand: qty, unit: item.unit ?? existing.unit }
+                  : {}),
+              })
+              .where(eq(ingredients.id, existing.id));
+          }
         }
         continue;
       }
