@@ -83,7 +83,8 @@ export default async function PurchaseDetailPage({
               action={deletePurchase}
               id={p.id}
               label="Delete purchase"
-              confirmText={`Delete "${p.name}"? Linked items stay but lose the link; the receipt file is removed.`}
+              variant="button"
+              confirmText={`Really delete "${p.name}"?\n\nThe stored receipt is removed permanently. Items imported from it stay in your inventory but lose their link to this purchase.`}
             />
           </>
         }
