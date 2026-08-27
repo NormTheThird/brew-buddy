@@ -86,7 +86,8 @@ Rules:
 - kind: consumables that go into beer (malt, extract, hops, yeast, sugar, finings, chemicals like Star San) are "ingredient"; durable goods are "equipment".
 - MIXED ORDERS: include non-brewing items (sunglasses, clothing, household goods) as rows so the totals reconcile, but set "notBrewing": true on them — the app leaves them unchecked for import.
 - AIRLOCKS ARE ALWAYS THEIR OWN EQUIPMENT ROW — they move between vessels and get replaced independently. A vessel's attached lid, spigot, or gasket folds into the vessel ("fermenter bucket with gasketed lid & spigot"); the airlock does not.
-- COUNTABLE CONSUMABLES — bottle caps, corks, muslin/hop bags, filters — are kind "ingredient" with type "supply" and a real quantity (e.g. 60 ct caps). NEVER fold a consumable into the tool that uses it: caps and capper are separate rows.
+- COUNTABLE CONSUMABLES — bottle caps, corks, filters — are kind "ingredient" with type "supply" and a real quantity (e.g. 60 ct caps). NEVER fold a consumable into the tool that uses it: caps and capper are separate rows.
+- SINGLE-USE KIT PACKAGING is not an item: a muslin/steeping bag included with a kit's grains folds into the grains row ("Kit steeping grains (with muslin bag)") — no row of its own. Bags bought SEPARATELY (reusable mesh/hop/BIAB bags) are equipment.
 - INCLUDED ACCESSORIES ARE NOT SEPARATE ITEMS: a case, sleeve, stand, storage tube, lid, spigot, or test jar that comes WITH a product is part of that product — one row, e.g. "Hydrometer with case and test jar", with the accessory noted in the name or specs. Never emit the accessory as its own row.
 - Only include real line items — skip shipping, tax, and subtotals (they belong in totalCost context, not items).
 - Omit any field you cannot read. Never invent a price.
