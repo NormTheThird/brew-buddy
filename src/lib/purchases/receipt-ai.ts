@@ -65,6 +65,7 @@ Return ONLY a JSON object as your final answer, no other text around it, with th
 
 Rules:
 - kind: consumables that go into beer (malt, extract, hops, yeast, sugar, finings, chemicals like Star San) are "ingredient"; durable goods are "equipment".
+- INCLUDED ACCESSORIES ARE NOT SEPARATE ITEMS: a case, sleeve, stand, storage tube, lid, spigot, or test jar that comes WITH a product is part of that product — one row, e.g. "Hydrometer with case and test jar", with the accessory noted in the name or specs. Never emit the accessory as its own row.
 - Only include real line items — skip shipping, tax, and subtotals (they belong in totalCost context, not items).
 - Omit any field you cannot read. Never invent a price.
 - QUANTITY IS REQUIRED on every item row: use the stated amount and unit when given; otherwise quantity 1 (unit "ct" for countable things). Never leave quantity out.

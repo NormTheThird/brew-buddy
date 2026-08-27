@@ -57,6 +57,7 @@ Return ONLY a JSON object, no other text:
 
 Rules:
 - Cleaners/sanitizers/water treatment are type "chemical".
+- An included case, tube, or jar is part of the product — mention it in notes, never as a separate thing.
 - Read ONLY what is printed — omit any field you cannot actually see. Never guess a lot number, date, or AA%.
 - Lot/batch codes are often stamped near the seam or best-by date.`;
 }
