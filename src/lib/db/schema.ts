@@ -91,6 +91,11 @@ export const equipment = sqliteTable("equipment", {
   }),
   purchaseDate: integer("purchase_date", { mode: "timestamp" }),
   cost: real("cost"),
+  // True when the row was CREATED by a receipt import — deleting the purchase
+  // removes these; merged/manual rows survive with the link cleared.
+  createdByImport: integer("created_by_import", { mode: "boolean" })
+    .notNull()
+    .default(false),
   notes: text("notes"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
@@ -145,6 +150,9 @@ export const ingredients = sqliteTable("ingredients", {
   // Photo of the actual packet/label — AI reads lot, AA%, best-by from it.
   photoPath: text("photo_path"),
   photoMime: text("photo_mime"),
+  createdByImport: integer("created_by_import", { mode: "boolean" })
+    .notNull()
+    .default(false),
   notes: text("notes"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()

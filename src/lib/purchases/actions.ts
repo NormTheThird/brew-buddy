@@ -257,9 +257,18 @@ export async function deletePurchase(formData: FormData): Promise<void> {
       fs.unlinkSync(path.join(RECEIPTS_DIR, p.receiptPath));
     } catch {}
   }
-  // purchaseId on items goes null via FK; the items themselves stay.
+  // Items CREATED by this purchase's receipt import go with it; items that
+  // existed before and were merely linked survive (FK clears the link).
+  await db
+    .delete(equipment)
+    .where(and(eq(equipment.purchaseId, id), eq(equipment.createdByImport, true)));
+  await db
+    .delete(ingredients)
+    .where(and(eq(ingredients.purchaseId, id), eq(ingredients.createdByImport, true)));
   await db.delete(purchases).where(eq(purchases.id, id));
   revalidatePath("/purchases");
+  revalidatePath("/equipment");
+  revalidatePath("/ingredients");
   redirect("/purchases");
 }
 
@@ -445,6 +454,7 @@ export async function applyProposal(formData: FormData): Promise<void> {
         cost: item.cost ?? null,
         purchaseDate: p.purchaseDate,
         purchaseId: p.id,
+        createdByImport: true,
       });
     } else {
       const type = ingredientTypes.includes(item.type as IngredientType)
@@ -461,6 +471,7 @@ export async function applyProposal(formData: FormData): Promise<void> {
         cost: item.cost ?? null,
         purchaseDate: p.purchaseDate,
         purchaseId: p.id,
+        createdByImport: true,
       });
     }
   }
