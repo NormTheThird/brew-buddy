@@ -51,7 +51,12 @@ export function ResetPasswordForm({ userId, userName }: { userId: string; userNa
         required
         style={{ width: 180, padding: "5px 8px", fontSize: 12 }}
       />
-      <button type="submit" className="btn" style={{ padding: "4px 10px", fontSize: 12 }} disabled={pending}>
+      <button
+        type="submit"
+        className="btn"
+        style={{ padding: "4px 12px", fontSize: 12, borderColor: "var(--warning)", color: "var(--warning)" }}
+        disabled={pending}
+      >
         {pending ? "…" : "Reset"}
       </button>
       {state.error ? <span style={{ color: "var(--danger)", fontSize: 12 }}>{state.error}</span> : null}

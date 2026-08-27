@@ -15,6 +15,19 @@ this area again.
 
 ---
 
+## 2026-08-27 — Admin users: search/pagination, inline edit, real buttons
+
+Users page gets the standard treatment (TableSearch + 10/25/50/all) and an
+inline per-row Edit (name/email/role) via a client table. Guards in
+updateUser: email uniqueness, and you can't demote yourself (another admin
+has to). Buttons instead of text links: Deactivate is red (.btn-danger),
+Reset orange (--warning), Reactivate green. SECURITY note worth keeping:
+the client table takes AdminUserRow (picked columns), never full user rows;
+passing db rows to a client component would ship password hashes in the RSC
+payload.
+
+---
+
 ## 2026-08-27 — No em dashes in UI copy; theme applies on click
 
 Trey's style call: no em dashes in interface text ("Bottling — gate: two

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { sessions, users } from "@/lib/db/schema";
@@ -46,6 +46,35 @@ export async function createUser(
   });
   revalidatePath("/admin/users");
   return { message: `Created ${name}. Share the password with them privately.` };
+}
+
+export async function updateUser(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const admin = await requireAdmin();
+  const id = str(formData.get("id"));
+  const name = str(formData.get("name"));
+  const email = str(formData.get("email"))?.toLowerCase();
+  const role = str(formData.get("role"));
+  if (!id) return { error: "Missing user." };
+  if (!name || !email || !email.includes("@")) {
+    return { error: "Name and a valid email are required." };
+  }
+  if (role !== "admin" && role !== "user") return { error: "Invalid role." };
+  if (id === admin.id && role !== "admin") {
+    return { error: "You can't demote yourself; another admin has to." };
+  }
+  const taken = db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(eq(users.email, email), ne(users.id, id)))
+    .all();
+  if (taken.length > 0) return { error: "That email belongs to another account." };
+
+  await db.update(users).set({ name, email, role }).where(eq(users.id, id));
+  revalidatePath("/admin/users");
+  return { message: "Saved." };
 }
 
 export async function setUserActive(formData: FormData): Promise<void> {
