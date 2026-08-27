@@ -265,12 +265,19 @@ export async function applyProposal(formData: FormData): Promise<void> {
       const category = equipmentCategories.includes(item.category as EquipmentCategory)
         ? (item.category as EquipmentCategory)
         : "other";
+      // Countable equipment (caps, bottles) keeps its count in specs.
+      const qtyNote =
+        item.quantity != null ? `${item.quantity}${item.unit ? ` ${item.unit}` : " count"}` : null;
+      const specs =
+        [item.specs, qtyNote && !(item.specs ?? "").includes(qtyNote) ? qtyNote : null]
+          .filter(Boolean)
+          .join(" · ") || null;
       await db.insert(equipment).values({
         userId: user.id,
         name: item.name,
         category,
         status: "active",
-        specs: item.specs ?? null,
+        specs,
         cost: item.cost ?? null,
         purchaseDate: p.purchaseDate,
         purchaseId: p.id,
