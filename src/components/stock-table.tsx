@@ -81,12 +81,15 @@ function soonestBestBy(lots: StockLot[]): Date | null {
 }
 
 function OnHandCell({ lot }: { lot: StockLot }) {
+  // Fully consumed by a batch: the zero says nothing — the batch link is
+  // the whole story. Partially used lots keep quantity AND the link.
+  const depleted = lot.quantityOnHand <= 0;
   return (
     <>
-      {formatQuantity(lot.quantityOnHand, lot.unit)}
+      {depleted && lot.usedIn.length > 0 ? null : formatQuantity(lot.quantityOnHand, lot.unit)}
       {lot.usedIn.length > 0 ? (
         <span style={{ color: "var(--text-faint)", fontSize: 12 }}>
-          {" "}· used in{" "}
+          {depleted ? "used in " : " · used in "}
           {lot.usedIn.map((b, i) => (
             <React.Fragment key={b.id}>
               {i > 0 ? ", " : null}
