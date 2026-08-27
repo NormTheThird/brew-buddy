@@ -23,13 +23,11 @@ export default async function PurchaseDetailPage({
 }) {
   const user = (await getCurrentUser())!;
   const { id } = await params;
-  const numId = Number(id);
-  if (!Number.isInteger(numId)) notFound();
 
   const p = db
     .select()
     .from(purchases)
-    .where(and(eq(purchases.id, numId), eq(purchases.userId, user.id)))
+    .where(and(eq(purchases.publicId, id), eq(purchases.userId, user.id)))
     .all()[0];
   if (!p) notFound();
 
@@ -104,7 +102,7 @@ export default async function PurchaseDetailPage({
                 {isImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={`/purchases/${p.id}/receipt`}
+                    src={`/purchases/${p.publicId}/receipt`}
                     alt={`Receipt for ${p.name}`}
                     style={{ maxWidth: "100%", borderRadius: 3, border: "1px solid var(--border)" }}
                   />
@@ -113,7 +111,7 @@ export default async function PurchaseDetailPage({
                     {p.receiptMime === "text/plain" ? "Pasted order text stored." : "PDF receipt stored."}
                   </div>
                 )}
-                <Link href={`/purchases/${p.id}/receipt`} target="_blank" style={{ fontSize: 13 }}>
+                <Link href={`/purchases/${p.publicId}/receipt`} target="_blank" style={{ fontSize: 13 }}>
                   Open full receipt
                 </Link>
               </div>

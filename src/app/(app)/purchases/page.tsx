@@ -127,13 +127,13 @@ export default async function PurchasesPage({
                   {shown.map((p) => (
                     <tr key={p.id}>
                       <td style={{ color: "var(--text-bright)" }}>
-                        <Link href={`/purchases/${p.id}`}>{p.name}</Link>
+                        <Link href={`/purchases/${p.publicId}`}>{p.name}</Link>
                       </td>
                       <td>{p.vendor ?? "—"}</td>
                       <td>{p.orderNumber ?? "—"}</td>
                       <td>{formatDate(p.purchaseDate)}</td>
                       <td>{itemCount(p.id)}</td>
-                      <td>{p.receiptPath ? <Link href={`/purchases/${p.id}/receipt`} target="_blank">view</Link> : "—"}</td>
+                      <td>{p.receiptPath ? <Link href={`/purchases/${p.publicId}/receipt`} target="_blank">view</Link> : "—"}</td>
                       <td style={{ textAlign: "right" }}>{formatCost(p.totalCost)}</td>
                     </tr>
                   ))}

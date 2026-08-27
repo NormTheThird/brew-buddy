@@ -30,6 +30,11 @@ export const sessions = sqliteTable("sessions", {
 // total cost. Items in a kit show "part of <kit>", never a fake per-item price.
 export const purchases = sqliteTable("purchases", {
   id: integer("id").primaryKey({ autoIncrement: true }),
+  // URLs use this GUID — integer ids stay internal (they leak record counts).
+  publicId: text("public_id")
+    .notNull()
+    .unique()
+    .$defaultFn(() => crypto.randomUUID()),
   userId: integer("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),

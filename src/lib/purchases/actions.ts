@@ -38,7 +38,7 @@ export type AnalyzeState = {
   proposal?: ReceiptProposal;
   /** An existing purchase this receipt appears to duplicate — user decides. */
   duplicateOf?: {
-    id: number;
+    publicId: string;
     name: string;
     totalCost: number | null;
     date: string | null;
@@ -190,7 +190,7 @@ export async function analyzeReceipt(
       ...(dup
         ? {
             duplicateOf: {
-              id: dup.id,
+              publicId: dup.publicId,
               name: dup.name,
               totalCost: dup.totalCost,
               date: dup.purchaseDate
@@ -288,7 +288,7 @@ export async function createPurchase(
       proposalJson,
       notes,
     })
-    .returning({ id: purchases.id });
+    .returning({ id: purchases.id, publicId: purchases.publicId });
   const id = inserted[0].id;
 
   if (receiptBytes && receiptMime) {
@@ -308,7 +308,7 @@ export async function createPurchase(
   }
 
   revalidatePath("/purchases");
-  redirect(`/purchases/${id}`);
+  redirect(`/purchases/${inserted[0].publicId}`);
 }
 
 export async function deletePurchase(formData: FormData): Promise<void> {
@@ -420,7 +420,7 @@ export async function runReceiptExtraction(
     .update(purchases)
     .set({ proposalJson: JSON.stringify(proposal) })
     .where(eq(purchases.id, id));
-  revalidatePath(`/purchases/${id}`);
+  revalidatePath(`/purchases/${p.publicId}`);
   return {};
 }
 
@@ -462,7 +462,7 @@ export async function rescanReceipt(
       error: `Rescan failed: ${e instanceof Error ? e.message : "unknown error"}`,
     };
   }
-  revalidatePath(`/purchases/${id}`);
+  revalidatePath(`/purchases/${p.publicId}`);
   return {};
 }
 
@@ -584,10 +584,10 @@ export async function applyProposal(formData: FormData): Promise<void> {
     .update(purchases)
     .set({ proposalJson: null, proposalAppliedAt: new Date() })
     .where(eq(purchases.id, id));
-  revalidatePath(`/purchases/${id}`);
+  revalidatePath(`/purchases/${p.publicId}`);
   revalidatePath("/equipment");
   revalidatePath("/ingredients");
-  redirect(`/purchases/${id}`);
+  redirect(`/purchases/${p.publicId}`);
 }
 
 /** Combine user-selected proposal rows into one item (AI names it, costs
@@ -626,8 +626,8 @@ export async function combineProposalItems(formData: FormData): Promise<void> {
       } catch {}
     }
   } catch {}
-  revalidatePath(`/purchases/${id}`);
-  redirect(`/purchases/${id}`);
+  revalidatePath(`/purchases/${p.publicId}`);
+  redirect(`/purchases/${p.publicId}`);
 }
 
 /** Removes one imported item (equipment or ingredient row) from a purchase —
@@ -638,7 +638,8 @@ export async function removePurchaseItem(formData: FormData): Promise<void> {
   const itemId = num(formData.get("itemId"));
   const kind = str(formData.get("kind"));
   if (purchaseId == null || itemId == null) return;
-  if (!ownedPurchase(purchaseId, user.id)) return;
+  const p = ownedPurchase(purchaseId, user.id);
+  if (!p) return;
   if (kind === "equipment") {
     await db
       .delete(equipment)
@@ -650,7 +651,7 @@ export async function removePurchaseItem(formData: FormData): Promise<void> {
       .where(and(eq(ingredients.id, itemId), eq(ingredients.userId, user.id), eq(ingredients.purchaseId, purchaseId)));
     revalidatePath("/ingredients");
   }
-  revalidatePath(`/purchases/${purchaseId}`);
+  revalidatePath(`/purchases/${p.publicId}`);
 }
 
 export async function discardProposal(formData: FormData): Promise<void> {
@@ -660,6 +661,6 @@ export async function discardProposal(formData: FormData): Promise<void> {
   const p = ownedPurchase(id, user.id);
   if (!p) return;
   await db.update(purchases).set({ proposalJson: null }).where(eq(purchases.id, id));
-  revalidatePath(`/purchases/${id}`);
-  redirect(`/purchases/${id}`);
+  revalidatePath(`/purchases/${p.publicId}`);
+  redirect(`/purchases/${p.publicId}`);
 }

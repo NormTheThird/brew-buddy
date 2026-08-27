@@ -17,13 +17,11 @@ export async function GET(
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
 
   const { id } = await params;
-  const numId = Number(id);
-  if (!Number.isInteger(numId)) return new NextResponse("Bad id", { status: 400 });
 
   const p = db
     .select()
     .from(purchases)
-    .where(and(eq(purchases.id, numId), eq(purchases.userId, user.id)))
+    .where(and(eq(purchases.publicId, id), eq(purchases.userId, user.id)))
     .all()[0];
   if (!p?.receiptPath || !p.receiptMime) {
     return new NextResponse("Not found", { status: 404 });
