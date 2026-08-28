@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { logAiUsage, type AiRuntime } from "@/lib/ai/runtime";
 import { equipmentCategories, stockTypes } from "@/lib/db/schema";
 
 /* AI receipt extraction. The model proposes items; nothing is written until
@@ -109,11 +110,12 @@ export type ExtractOptions = {
 };
 
 export async function extractReceipt(
+  rt: AiRuntime,
   fileBytes: Buffer,
   mime: string,
   opts: ExtractOptions = {}
 ): Promise<ReceiptProposal> {
-  const client = new Anthropic();
+  const client = rt.client;
 
   let prompt = buildPrompt();
   if (opts.previous) {
@@ -156,6 +158,10 @@ export async function extractReceipt(
   const messages: Anthropic.MessageParam[] = [{ role: "user", content }];
   // Receipts read once (results are logged/cached), so use the strongest
   // model at full effort — accuracy beats per-read cost here.
+  const logRound = async (resp: Anthropic.Message) => {
+    const searches = resp.content.filter((b) => b.type === "server_tool_use").length;
+    await logAiUsage(rt, "claude-opus-5", resp.usage, searches);
+  };
   let response = await client.messages.create({
     model: "claude-opus-5",
     max_tokens: 16000,
@@ -163,6 +169,7 @@ export async function extractReceipt(
     tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }],
     messages,
   });
+  await logRound(response);
 
   // Server tools can pause the turn; resume until the answer is complete.
   for (let i = 0; i < 3 && response.stop_reason === "pause_turn"; i++) {
@@ -173,6 +180,7 @@ export async function extractReceipt(
       tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }],
       messages,
     });
+    await logRound(response);
   }
 
   if (response.stop_reason === "refusal") {
@@ -229,8 +237,8 @@ export async function extractReceipt(
 }
 
 /** Merge user-selected proposal rows into one item: AI names it, costs sum. */
-export async function combineItems(items: ProposedItem[]): Promise<ProposedItem> {
-  const client = new Anthropic();
+export async function combineItems(rt: AiRuntime, items: ProposedItem[]): Promise<ProposedItem> {
+  const client = rt.client;
   const response = await client.messages.create({
     model: "claude-sonnet-5",
     max_tokens: 1000,
@@ -247,6 +255,7 @@ Return ONLY JSON: {"name": "combined name, main product first with accessories a
       },
     ],
   });
+  await logAiUsage(rt, "claude-sonnet-5", response.usage);
   let text = "";
   for (const block of response.content) {
     if (block.type === "text") text += block.text;
@@ -273,11 +282,12 @@ Return ONLY JSON: {"name": "combined name, main product first with accessories a
 /** After a mixed-order apply, rename the purchase for what was KEPT — the
     sunglasses don't belong in the title of a brewing purchase. */
 export async function nameForAccepted(
+  rt: AiRuntime,
   originalName: string,
   keptNames: string[],
   vendor: string | null
 ): Promise<string> {
-  const client = new Anthropic();
+  const client = rt.client;
   const response = await client.messages.create({
     model: "claude-sonnet-5",
     max_tokens: 200,
@@ -299,6 +309,7 @@ Return ONLY JSON: {"name": "short purchase title"}`,
     if (block.type === "text") text += block.text;
   }
   const jsonMatch = text.match(/\{[\s\S]*\}/);
+  await logAiUsage(rt, "claude-sonnet-5", response.usage);
   if (!jsonMatch) throw new Error("No JSON in rename response.");
   const p = JSON.parse(jsonMatch[0]) as { name?: unknown };
   if (typeof p.name !== "string" || !p.name.trim()) {

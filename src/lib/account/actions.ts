@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
+import { encryptSecret } from "@/lib/ai/runtime";
 
 export type FormState = { error?: string; message?: string };
 
@@ -42,6 +43,36 @@ export async function updateProfile(
   // The name in the top bar lives in the layout.
   revalidatePath("/", "layout");
   return { message: "Profile saved." };
+}
+
+/** BYOK: the user's own Anthropic key runs their AI calls. Encrypted at
+    rest; never rendered back to the client. */
+export async function setAnthropicKey(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not signed in." };
+  const key = str(formData.get("apiKey"));
+  if (!key || !key.startsWith("sk-ant-")) {
+    return { error: "That doesn't look like an Anthropic API key (sk-ant-…)." };
+  }
+  await db
+    .update(users)
+    .set({ anthropicApiKey: encryptSecret(key) })
+    .where(eq(users.id, user.id));
+  revalidatePath("/settings");
+  return { message: "Key saved. AI features now run on your key." };
+}
+
+export async function clearAnthropicKey(): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+  await db
+    .update(users)
+    .set({ anthropicApiKey: null })
+    .where(eq(users.id, user.id));
+  revalidatePath("/settings");
 }
 
 /** Theme applies the moment it's picked; no Save button involved. */

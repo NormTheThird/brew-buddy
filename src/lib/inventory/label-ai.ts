@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { logAiUsage, type AiRuntime } from "@/lib/ai/runtime";
 import { stockTypes } from "@/lib/db/schema";
 
 /* AI label reading: a photo of the actual packet (hop bag, yeast sachet,
@@ -63,10 +64,11 @@ Rules:
 }
 
 export async function extractLabel(
+  rt: AiRuntime,
   fileBytes: Buffer,
   mime: string
 ): Promise<LabelProposal> {
-  const client = new Anthropic();
+  const client = rt.client;
   const response = await client.messages.create({
     model: "claude-sonnet-5",
     max_tokens: 8000,
@@ -89,6 +91,7 @@ export async function extractLabel(
     ],
   });
 
+  await logAiUsage(rt, "claude-sonnet-5", response.usage);
   if (response.stop_reason === "refusal") {
     throw new Error("The model declined to read this photo.");
   }

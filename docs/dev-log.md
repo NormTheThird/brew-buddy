@@ -42,6 +42,32 @@ Trey's follow-ups to the recipe lookup, all live-tested with a Sonnet
 
 ---
 
+## 2026-08-28 — BYOK + usage metering: the two-tier foundation
+
+Trey's plan: a free bring-your-own-key tier and a paid hosted-key tier with
+caps. The foundation is in (caps/billing deliberately NOT built until a
+real second user exists):
+
+- **lib/ai/runtime.ts** is now the only way AI calls get a client:
+  `aiRuntime(user, feature)` returns the user's own key (BYOK) else the
+  house key, tagged source byok|house. User keys are AES-256-GCM encrypted
+  with APP_SECRET (new .env var — MUST be set in production too, and
+  changing it orphans stored keys). Keys are never sent to the client;
+  settings only learns a boolean.
+- **ai_usage table**: every API response logs feature/model/source/tokens/
+  searches/estCostUsd (PRICING map in runtime.ts is estimates for metering,
+  not invoices). All five AI features wired through: receipt, rescan,
+  label, recipe-lookup, combine, rename. logAiUsage never throws.
+- **Settings → AI panel**: paste/replace/remove your key; shows this
+  month's call count and ~cost. The future cap reads these same rows.
+- hasApiKey() checks became userHasAiAccess(user) (own key OR house key).
+- smoke-receipt/smoke-label scripts build a manual rt.
+
+Next per the plan: deploy first, structure only until demand: per-user
+caps + rate limits + billing wait for a real paying user.
+
+---
+
 ## 2026-08-27 — AI recipe lookup: "Caffrey's clone" → top 3 candidates
 
 New recipe page gained a lookup box (components/recipe-lookup.tsx +

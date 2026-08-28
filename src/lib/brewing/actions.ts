@@ -21,7 +21,8 @@ import {
 } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { parseBeerXml } from "./beerxml";
-import { hasApiKey, suggestRecipes, type SuggestedRecipe } from "./recipe-ai";
+import { suggestRecipes, type SuggestedRecipe } from "./recipe-ai";
+import { aiRuntime, userHasAiAccess } from "@/lib/ai/runtime";
 
 export type FormState = { error?: string };
 export type RecipeLookupState = {
@@ -217,13 +218,12 @@ export async function lookupRecipes(
   _prev: RecipeLookupState,
   formData: FormData
 ): Promise<RecipeLookupState> {
-  await requireUser();
+  const user = await requireUser();
   const query = str(formData.get("query"));
   if (!query) return { error: "Describe the beer first, e.g. \"Caffrey's clone\"." };
-  if (!hasApiKey()) {
-    return { error: "No Anthropic API key configured. Add ANTHROPIC_API_KEY to .env." };
+  if (!userHasAiAccess(user)) {
+    return { error: "No AI access: add your Anthropic key in My settings." };
   }
-  const user = await requireUser();
   // Ingredients are buyable; equipment decides brewability, so the model
   // judges each candidate against what the brewer actually owns.
   const gear = db
@@ -238,7 +238,7 @@ export async function lookupRecipes(
     return { error: "Unknown recipe." };
   }
   try {
-    const suggestions = await suggestRecipes(query, gear);
+    const suggestions = await suggestRecipes(aiRuntime(user, "recipe-lookup"), query, gear);
     // Keep every lookup: revisitable later without asking Claude again.
     const saved = await db
       .insert(recipeLookups)

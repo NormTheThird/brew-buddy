@@ -25,12 +25,12 @@ import {
   combineItems,
   extractReceipt,
   EXTRACTION_RULES_VERSION,
-  hasApiKey,
   isSupportedReceiptType,
   nameForAccepted,
   normalizeVendor,
   type ReceiptProposal,
 } from "./receipt-ai";
+import { aiRuntime, userHasAiAccess, type AiRuntime } from "@/lib/ai/runtime";
 import { receiptsDir } from "./storage";
 
 export type FormState = { error?: string };
@@ -113,15 +113,15 @@ async function logProposal(userId: string, hash: string, proposal: ReceiptPropos
 /** Read from the log if this exact receipt was read before; otherwise call
     the AI once and log the result. */
 async function extractOnce(
-  userId: string,
+  rt: AiRuntime,
   bytes: Buffer,
   mime: string
 ): Promise<ReceiptProposal> {
   const hash = receiptHash(bytes);
-  const cached = loggedProposal(userId, hash);
+  const cached = loggedProposal(rt.userId, hash);
   if (cached) return cached;
-  const proposal = await extractReceipt(bytes, mime);
-  await logProposal(userId, hash, proposal);
+  const proposal = await extractReceipt(rt, bytes, mime);
+  await logProposal(rt.userId, hash, proposal);
   return proposal;
 }
 
@@ -160,11 +160,11 @@ export async function analyzeReceipt(
   if (!bytes || !mime) {
     return { error: "Attach a receipt or paste order text first." };
   }
-  if (!hasApiKey()) {
-    return { error: "No Anthropic API key configured. Add ANTHROPIC_API_KEY to .env." };
+  if (!userHasAiAccess(user)) {
+    return { error: "No AI access: add your Anthropic key in My settings." };
   }
   try {
-    const proposal = await extractOnce(user.id, bytes, mime);
+    const proposal = await extractOnce(aiRuntime(user, "receipt"), bytes, mime);
 
     // Duplicate check: same order number, or same vendor + same total, as an
     // existing purchase. Flag it — the user decides.
@@ -400,17 +400,14 @@ export async function runReceiptExtraction(
       };
     }
   }
-  if (!hasApiKey()) {
-    return {
-      error:
-        "No Anthropic API key configured. Add ANTHROPIC_API_KEY=... to the .env file and restart the app.",
-    };
+  if (!userHasAiAccess(user)) {
+    return { error: "No AI access: add your Anthropic key in My settings." };
   }
 
   let proposal: ReceiptProposal;
   try {
     const bytes = fs.readFileSync(path.join(RECEIPTS_DIR, p.receiptPath));
-    proposal = await extractOnce(user.id, bytes, p.receiptMime);
+    proposal = await extractOnce(aiRuntime(user, "receipt"), bytes, p.receiptMime);
   } catch (e) {
     return {
       error: `Receipt reading failed: ${e instanceof Error ? e.message : "unknown error"}`,
@@ -438,8 +435,8 @@ export async function rescanReceipt(
   if (!p?.receiptPath || !p.receiptMime) {
     return { error: "This purchase has no stored receipt." };
   }
-  if (!hasApiKey()) {
-    return { error: "No Anthropic API key configured. Add ANTHROPIC_API_KEY to .env." };
+  if (!userHasAiAccess(user)) {
+    return { error: "No AI access: add your Anthropic key in My settings." };
   }
 
   const hint = str(formData.get("hint")) ?? undefined;
@@ -452,7 +449,7 @@ export async function rescanReceipt(
 
   try {
     const bytes = fs.readFileSync(path.join(RECEIPTS_DIR, p.receiptPath));
-    const proposal = await extractReceipt(bytes, p.receiptMime, { previous, hint });
+    const proposal = await extractReceipt(aiRuntime(user, "receipt-rescan"), bytes, p.receiptMime, { previous, hint });
     await logProposal(user.id, receiptHash(bytes), proposal);
     await db
       .update(purchases)
@@ -606,9 +603,9 @@ export async function applyProposal(formData: FormData): Promise<void> {
     const keptNames = accepted
       .map((i) => proposal.items[i]?.name)
       .filter((n): n is string => Boolean(n));
-    if (keptNames.length && hasApiKey()) {
+    if (keptNames.length && userHasAiAccess(user)) {
       try {
-        trimmed.name = await nameForAccepted(p.name, keptNames, p.vendor);
+        trimmed.name = await nameForAccepted(aiRuntime(user, "rename"), p.name, keptNames, p.vendor);
       } catch {
         // Keep the original name — the trim note still explains the total.
       }
@@ -633,7 +630,7 @@ export async function combineProposalItems(formData: FormData): Promise<void> {
   const id = str(formData.get("id"));
   if (id == null) return;
   const p = ownedPurchase(id, user.id);
-  if (!p?.proposalJson || !hasApiKey()) return;
+  if (!p?.proposalJson || !userHasAiAccess(user)) return;
   const indexes = formData
     .getAll("combine")
     .map((v) => Number(v))
@@ -645,7 +642,7 @@ export async function combineProposalItems(formData: FormData): Promise<void> {
   if (selected.length < 2) return;
 
   try {
-    const combined = await combineItems(selected);
+    const combined = await combineItems(aiRuntime(user, "combine"), selected);
     const first = Math.min(...indexes);
     const items = proposal.items.filter((_, i) => !indexes.includes(i));
     items.splice(Math.min(first, items.length), 0, combined);

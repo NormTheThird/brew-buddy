@@ -1,13 +1,55 @@
 "use client";
 
 import { useActionState } from "react";
-import { changePassword, setTheme, updateProfile, type FormState } from "@/lib/account/actions";
+import { changePassword, clearAnthropicKey, setAnthropicKey, setTheme, updateProfile, type FormState } from "@/lib/account/actions";
 import type { User } from "@/lib/db/schema";
 
 const themes = [
   { value: "copper", label: "Copper", swatch: "#c1703f" },
   { value: "stainless", label: "Stainless", swatch: "#a9b7c6" },
 ] as const;
+
+/** BYOK: paste an Anthropic key so AI features run on the user's account.
+    The stored key never comes back to the client; only hasKey does. */
+export function ApiKeyForm({ hasKey }: { hasKey: boolean }) {
+  const [state, formAction, pending] = useActionState<FormState, FormData>(setAnthropicKey, {});
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {hasKey ? (
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", fontSize: 13 }}>
+          <span style={{ color: "var(--success)" }}>✓ Using your own Anthropic key</span>
+          <form action={clearAnthropicKey} className="form-inline-flex">
+            <button type="submit" className="btn" style={{ padding: "4px 12px", fontSize: 12, borderColor: "var(--danger)", color: "var(--danger)" }}>
+              Remove key
+            </button>
+          </form>
+        </div>
+      ) : (
+        <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
+          AI features currently run on the house key. Paste your own Anthropic
+          key (console.anthropic.com) to run them on your account instead.
+        </div>
+      )}
+      <form action={formAction} className="form-row">
+        <input
+          name="apiKey"
+          type="password"
+          className="field"
+          placeholder="sk-ant-…"
+          autoComplete="off"
+          style={{ flex: 1, minWidth: 260 }}
+          required
+        />
+        <button type="submit" className="btn" disabled={pending}>
+          {pending ? "Saving…" : hasKey ? "Replace key" : "Save key"}
+        </button>
+      </form>
+      {state.error ? <div style={{ color: "var(--danger)", fontSize: 13 }}>{state.error}</div> : null}
+      {state.message ? <div style={{ color: "var(--success)", fontSize: 13 }}>{state.message}</div> : null}
+    </div>
+  );
+}
 
 /** Picking a theme applies it immediately; there is nothing to save. */
 export function ThemePicker({ user }: { user: User }) {

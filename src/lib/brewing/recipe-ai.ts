@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { stockTypes, type StockType } from "@/lib/db/schema";
+import { logAiUsage, type AiRuntime } from "@/lib/ai/runtime";
 
 /* AI recipe lookup: "I want to brew a Caffrey's clone" → the top 3 recipe
    candidates, each a complete spec + ingredient bill the user can adopt with
@@ -48,10 +49,6 @@ export type SuggestedRecipe = {
   equipment: EquipmentCheck;
   items: SuggestedItem[];
 };
-
-export function hasApiKey(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
-}
 
 function prompt(query: string, equipment: string[]): string {
   return `You are helping a homebrewer find a recipe. Their request: "${query}"
@@ -121,10 +118,11 @@ function str(v: unknown): string | null {
 }
 
 export async function suggestRecipes(
+  rt: AiRuntime,
   query: string,
   equipment: string[]
 ): Promise<SuggestedRecipe[]> {
-  const client = new Anthropic();
+  const client = rt.client;
   const messages: Anthropic.MessageParam[] = [
     { role: "user", content: prompt(query, equipment) },
   ];
@@ -148,6 +146,8 @@ export async function suggestRecipes(
     console.log(
       `[recipe-ai] round ${n}: stop=${resp.stop_reason} in=${resp.usage.input_tokens} out=${resp.usage.output_tokens} cacheRead=${resp.usage.cache_read_input_tokens ?? 0}`
     );
+    const searches = resp.content.filter((b) => b.type === "server_tool_use").length;
+    await logAiUsage(rt, req.model, resp.usage, searches);
     return resp;
   };
   let response = await round(0);

@@ -11,13 +11,15 @@ if (fs.existsSync(".env")) {
 
 async function main() {
   const { extractLabel } = await import("../src/lib/inventory/label-ai");
+  const Anthropic = (await import("@anthropic-ai/sdk")).default;
+  const rt = { client: new Anthropic(), userId: "smoke-test", feature: "smoke", source: "house" as const };
   const file = process.argv[2];
   if (!file) {
     console.error("usage: tsx scripts/smoke-label.ts <image>");
     process.exit(1);
   }
   const mime = file.endsWith(".jpg") || file.endsWith(".jpeg") ? "image/jpeg" : "image/png";
-  const proposal = await extractLabel(fs.readFileSync(file), mime);
+  const proposal = await extractLabel(rt, fs.readFileSync(file), mime);
   console.log(JSON.stringify(proposal, null, 2));
 }
 

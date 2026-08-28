@@ -11,6 +11,10 @@ export const users = sqliteTable("users", {
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   phone: text("phone"),
+  // The user's own Anthropic key (AES-256-GCM encrypted with APP_SECRET) —
+  // BYOK: AI calls burn their key instead of the house key. Never sent to
+  // the client; My settings shows only that one is set.
+  anthropicApiKey: text("anthropic_api_key"),
   theme: text("theme", { enum: ["copper", "stainless"] })
     .notNull()
     .default("copper"),
@@ -339,6 +343,26 @@ export const taskCompletions = sqliteTable("task_completions", {
     .references(() => batches.id, { onDelete: "cascade" }),
   taskKey: text("task_key").notNull(),
   completedAt: integer("completed_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+// Every AI call's metered usage — the raw material for per-user caps on a
+// future hosted-key paid tier, and the admin's cost visibility.
+export const aiUsage = sqliteTable("ai_usage", {
+  id: text("id").primaryKey().$defaultFn(uuid),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  feature: text("feature").notNull(), // receipt | label | recipe-lookup | combine | rename
+  model: text("model").notNull(),
+  source: text("source", { enum: ["byok", "house"] }).notNull(),
+  inputTokens: integer("input_tokens").notNull(),
+  outputTokens: integer("output_tokens").notNull(),
+  cacheReadTokens: integer("cache_read_tokens").notNull().default(0),
+  webSearches: integer("web_searches").notNull().default(0),
+  estCostUsd: real("est_cost_usd").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
 });

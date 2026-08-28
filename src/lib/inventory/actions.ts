@@ -7,7 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { db } from "@/lib/db";
 import { extractLabel, isSupportedLabelType, type LabelProposal } from "./label-ai";
-import { hasApiKey } from "@/lib/purchases/receipt-ai";
+import { aiRuntime, userHasAiAccess } from "@/lib/ai/runtime";
 import {
   equipment,
   equipmentCategories,
@@ -196,7 +196,7 @@ export async function analyzeLabel(
   _prev: LabelAnalyzeState,
   formData: FormData
 ): Promise<LabelAnalyzeState> {
-  await requireUser();
+  const user = await requireUser();
   const photo = formData.get("photo");
   if (!(photo instanceof File) || photo.size === 0) {
     return { error: "Choose a photo of the packet first." };
@@ -207,11 +207,12 @@ export async function analyzeLabel(
   if (photo.size > MAX_PHOTO_BYTES) {
     return { error: "Photo is over 12 MB. Resize and retry." };
   }
-  if (!hasApiKey()) {
-    return { error: "No Anthropic API key configured. Add ANTHROPIC_API_KEY to .env." };
+  if (!userHasAiAccess(user)) {
+    return { error: "No AI access: add your Anthropic key in My settings." };
   }
   try {
     const proposal = await extractLabel(
+      aiRuntime(user, "label"),
       Buffer.from(await photo.arrayBuffer()),
       photo.type
     );

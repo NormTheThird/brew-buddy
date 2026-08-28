@@ -11,6 +11,8 @@ if (fs.existsSync(".env")) {
 
 async function main() {
   const { extractReceipt } = await import("../src/lib/purchases/receipt-ai");
+  const Anthropic = (await import("@anthropic-ai/sdk")).default;
+  const rt = { client: new Anthropic(), userId: "smoke-test", feature: "smoke", source: "house" as const };
   const file = process.argv[2];
   if (!file) {
     console.error("usage: tsx scripts/smoke-receipt.ts <image-or-pdf>");
@@ -21,7 +23,7 @@ async function main() {
     : file.endsWith(".txt")
       ? "text/plain"
       : "image/png";
-  const proposal = await extractReceipt(fs.readFileSync(file), mime);
+  const proposal = await extractReceipt(rt, fs.readFileSync(file), mime);
   console.log(JSON.stringify(proposal, null, 2));
 }
 
