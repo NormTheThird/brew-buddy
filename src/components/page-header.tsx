@@ -10,22 +10,15 @@ export function PageHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 16,
-        marginBottom: 20,
-      }}
-    >
-      {icon ? <span style={{ color: "var(--accent)", display: "flex" }}>{icon}</span> : null}
+    <div className="page-header">
+      {icon ? <span className="page-header-icon">{icon}</span> : null}
       <div>
         <h1 style={{ fontSize: 19 }}>{title}</h1>
         {subtitle ? (
           <div style={{ fontSize: 13, color: "var(--text-muted)" }}>{subtitle}</div>
         ) : null}
       </div>
-      {actions ? <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>{actions}</div> : null}
+      {actions ? <div className="page-header-actions">{actions}</div> : null}
     </div>
   );
 }

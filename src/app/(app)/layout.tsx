@@ -21,14 +21,7 @@ export default async function AppLayout({
       <TopBar userName={user.name} />
       <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
         <SideNav isAdmin={user.role === "admin"} />
-        <main
-          style={{
-            flex: 1,
-            background: "var(--bg-radial)",
-            padding: "24px 30px",
-            minWidth: 0,
-          }}
-        >
+        <main className="app-main">
           <DueTasksBanner userId={user.id} />
           {children}
         </main>

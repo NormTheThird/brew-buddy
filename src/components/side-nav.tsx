@@ -33,58 +33,28 @@ function NavLink({
   active: boolean;
 }) {
   return (
-    <Link
-      href={href}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: active ? "9px 15px 9px 19px" : "9px 15px 9px 25px",
-        borderLeft: active ? "6px solid var(--accent)" : "none",
-        color: active ? "var(--nav-link-active)" : "var(--nav-link)",
-        fontSize: 13,
-      }}
-    >
+    <Link href={href} className={`side-nav-link${active ? " active" : ""}`}>
       <Icon size={16} />
       {label}
     </Link>
   );
 }
 
+// Styled entirely from globals.css (.side-nav*): a left rail on desktop,
+// a fixed bottom tab bar under 768px.
 export function SideNav({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <nav
-      style={{
-        width: 200,
-        background: "var(--chrome)",
-        paddingTop: 15,
-        flexShrink: 0,
-        display: "flex",
-        flexDirection: "column",
-        gap: 2,
-      }}
-    >
+    <nav className="side-nav">
       {items.map((it) => (
         <NavLink key={it.href} {...it} active={isActive(it.href)} />
       ))}
       {isAdmin ? (
         <>
-          <div
-            style={{
-              marginTop: 18,
-              padding: "10px 15px 4px 25px",
-              fontSize: 10,
-              letterSpacing: 1,
-              color: "var(--text-bright)",
-              textTransform: "uppercase",
-            }}
-          >
-            Admin
-          </div>
+          <div className="side-nav-admin">Admin</div>
           <NavLink
             href="/admin/users"
             label="Users"
