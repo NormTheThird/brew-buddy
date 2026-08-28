@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { batches, recipes } from "@/lib/db/schema";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireUser } from "@/lib/auth/session";
 import { PageHeader } from "@/components/page-header";
 import { BookIcon } from "@/components/icons";
 import { RecipeForm } from "@/components/recipe-form";
@@ -13,7 +13,7 @@ export default async function EditRecipePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = (await getCurrentUser())!;
+  const user = await requireUser();
   const { id } = await params;
   const item = db
     .select()

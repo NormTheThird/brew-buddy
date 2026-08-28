@@ -2,7 +2,7 @@ import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { batches, recipeItems, recipes, stock } from "@/lib/db/schema";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireUser } from "@/lib/auth/session";
 import { recipeDisplayStatus, statusBadge, methodLabels } from "@/lib/brewing/display";
 import { checkBrewability } from "@/lib/brewing/brewability";
 import { inArray } from "drizzle-orm";
@@ -44,7 +44,7 @@ export default async function RecipesPage({
 }: {
   searchParams: Promise<{ style?: string }>;
 }) {
-  const user = (await getCurrentUser())!;
+  const user = await requireUser();
   const { style: styleParam } = await searchParams;
   const all = db.select().from(recipes).where(eq(recipes.userId, user.id)).all();
   const allBatches = db

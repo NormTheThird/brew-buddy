@@ -2,7 +2,7 @@ import Link from "next/link";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { batches, equipment, stock, recipeItems, recipes, taskCompletions } from "@/lib/db/schema";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireUser } from "@/lib/auth/session";
 import { isEstimated, batchStatusBadge, recipeDisplayStatus, statusBadge } from "@/lib/brewing/display";
 import { learnedConstants } from "@/lib/brewing/constants";
 import { isDue, nextActions, fermentationDay } from "@/lib/brewing/schedule";
@@ -22,7 +22,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 export default async function DashboardPage() {
-  const user = (await getCurrentUser())!;
+  const user = await requireUser();
 
   const allBatches = db.select().from(batches).where(eq(batches.userId, user.id)).all();
   const active = allBatches

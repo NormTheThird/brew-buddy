@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { cache } from "react";
 import { eq } from "drizzle-orm";
 import crypto from "node:crypto";
@@ -57,3 +58,12 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
   }
   return row.user;
 });
+
+// For pages under (app): the layout also redirects, but Next renders layout
+// and page in parallel, so a page must never assume the user exists — an
+// unauthenticated hit would crash the page render while the redirect races it.
+export async function requireUser(): Promise<User> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  return user;
+}

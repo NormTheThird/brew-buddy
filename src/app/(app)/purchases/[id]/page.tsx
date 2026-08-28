@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { equipment, stock, purchases } from "@/lib/db/schema";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireUser } from "@/lib/auth/session";
 import { applyProposal, combineProposalItems, deletePurchase, discardProposal } from "@/lib/purchases/actions";
 import type { ReceiptProposal } from "@/lib/purchases/receipt-ai";
 import { formatCost, formatDate } from "@/lib/inventory/format";
@@ -21,7 +21,7 @@ export default async function PurchaseDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = (await getCurrentUser())!;
+  const user = await requireUser();
   const { id } = await params;
 
   const p = db

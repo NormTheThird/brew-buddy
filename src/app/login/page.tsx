@@ -2,9 +2,14 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { LoginForm } from "./login-form";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const user = await getCurrentUser();
   if (user) redirect("/");
+  const { error } = await searchParams;
 
   return (
     <div
@@ -34,7 +39,7 @@ export default async function LoginPage() {
           homebrew, measured
         </div>
       </div>
-      <LoginForm />
+      <LoginForm error={Boolean(error)} />
       <div style={{ fontSize: 11, color: "#5c626b" }}>
         Self-hosted · accounts created by the admin
       </div>

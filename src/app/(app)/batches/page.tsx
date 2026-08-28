@@ -2,14 +2,14 @@ import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { batches } from "@/lib/db/schema";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireUser } from "@/lib/auth/session";
 import { isEstimated, batchStatusBadge, methodLabels } from "@/lib/brewing/display";
 import { abv } from "@/lib/calc/gravity";
 import { PageHeader } from "@/components/page-header";
 import { LayersIcon } from "@/components/icons";
 
 export default async function BatchesPage() {
-  const user = (await getCurrentUser())!;
+  const user = await requireUser();
   const all = db
     .select()
     .from(batches)

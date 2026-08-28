@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { batches, batchIngredients, gravityReadings, purchases, stock } from "@/lib/db/schema";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireUser } from "@/lib/auth/session";
 import {
   addGravityReading,
   deleteBatch,
@@ -44,7 +44,7 @@ export default async function BatchDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = (await getCurrentUser())!;
+  const user = await requireUser();
   const { id } = await params;
 
   const b = db

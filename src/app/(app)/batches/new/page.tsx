@@ -1,7 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { batches, equipment, recipes } from "@/lib/db/schema";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireUser } from "@/lib/auth/session";
 import { PageHeader } from "@/components/page-header";
 import { LayersIcon } from "@/components/icons";
 import { BatchForm } from "@/components/batch-form";
@@ -12,7 +12,7 @@ export default async function NewBatchPage({
 }: {
   searchParams: Promise<{ recipe?: string }>;
 }) {
-  const user = (await getCurrentUser())!;
+  const user = await requireUser();
   const { recipe } = await searchParams;
 
   const recipeOptions = db

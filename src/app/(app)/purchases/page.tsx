@@ -2,7 +2,7 @@ import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { equipment, stock, purchases } from "@/lib/db/schema";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireUser } from "@/lib/auth/session";
 import { formatCost, formatDate } from "@/lib/inventory/format";
 import { PageHeader } from "@/components/page-header";
 import { ReceiptIcon } from "@/components/icons";
@@ -24,7 +24,7 @@ export default async function PurchasesPage({
 }: {
   searchParams: Promise<{ q?: string; size?: string; page?: string }>;
 }) {
-  const user = (await getCurrentUser())!;
+  const user = await requireUser();
   const params = await searchParams;
   const q = (params.q ?? "").trim();
   const size = PAGE_SIZES.includes((params.size ?? "") as (typeof PAGE_SIZES)[number])

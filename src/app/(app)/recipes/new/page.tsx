@@ -2,7 +2,7 @@ import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { recipeLookups } from "@/lib/db/schema";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireUser } from "@/lib/auth/session";
 import { PageHeader } from "@/components/page-header";
 import { BookIcon } from "@/components/icons";
 import { RecipeForm } from "@/components/recipe-form";
@@ -16,7 +16,7 @@ export default async function NewRecipePage({
 }: {
   searchParams: Promise<{ lookup?: string }>;
 }) {
-  const user = (await getCurrentUser())!;
+  const user = await requireUser();
   const { lookup } = await searchParams;
 
   // Every AI lookup is kept; reopening one costs nothing and asks no one.

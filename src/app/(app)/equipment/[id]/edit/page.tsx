@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { equipment, purchases } from "@/lib/db/schema";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireUser } from "@/lib/auth/session";
 import { PageHeader } from "@/components/page-header";
 import { BoxIcon } from "@/components/icons";
 import { EquipmentForm } from "@/components/equipment-form";
@@ -13,7 +13,7 @@ export default async function EditEquipmentPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = (await getCurrentUser())!;
+  const user = await requireUser();
   const { id } = await params;
 
   const item = db

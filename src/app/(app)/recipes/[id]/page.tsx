@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { batches, recipeItems, recipeLookups, recipes, stock } from "@/lib/db/schema";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireUser } from "@/lib/auth/session";
 import { addRecipeItem, deleteRecipeItem, deleteRecipe, duplicateRecipe } from "@/lib/brewing/actions";
 import { recipeDisplayStatus, statusBadge, methodLabels, batchStatusBadge } from "@/lib/brewing/display";
 import { checkBrewability } from "@/lib/brewing/brewability";
@@ -20,7 +20,7 @@ export default async function RecipeDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = (await getCurrentUser())!;
+  const user = await requireUser();
   const { id } = await params;
 
   const recipe = db

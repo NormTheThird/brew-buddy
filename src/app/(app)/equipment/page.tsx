@@ -2,7 +2,7 @@ import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { equipment, purchases, type Equipment } from "@/lib/db/schema";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireUser } from "@/lib/auth/session";
 import { deleteEquipment } from "@/lib/inventory/actions";
 import { formatCost, formatDate } from "@/lib/inventory/format";
 import { PageHeader } from "@/components/page-header";
@@ -63,7 +63,7 @@ export default async function EquipmentPage({
 }: {
   searchParams: Promise<{ status?: string; q?: string; size?: string; page?: string }>;
 }) {
-  const user = (await getCurrentUser())!;
+  const user = await requireUser();
   const params = await searchParams;
   const { status } = params;
   const q = (params.q ?? "").trim();

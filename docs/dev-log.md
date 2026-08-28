@@ -15,7 +15,32 @@ this area again.
 
 ---
 
-## 2026-08-28 — Live on Lightsail: brew.unieksoftware.com
+## 2026-08-28 — Login hardened to a native form; requireUser() for pages
+
+Trey's first sign-in on prod failed silently, retry worked, same for a test
+account. Reproduced locally on a production build: on a cold login page a
+fast submit can be eaten by the server-action machinery before hydration
+finishes (the network trace showed the action POST 303 then aborted, a stray
+native POST to the wrong URL killing the navigation, and no session row
+created). Retrying always works because the page is hydrated by then. Over
+the internet that pre-hydration window is easily 1-3 seconds, exactly when
+someone with autofill hits Sign in.
+
+Two changes:
+
+- **Login is now a plain HTML form POSTing to `/api/login`** (route handler:
+  same credential logic, cookie via setSessionCookie, 303 redirects with
+  RELATIVE Location so the Caddy proxy can't cause an http hop; failures
+  redirect to `/login?error=1` which the page renders). No client JS, no
+  hydration dependency, works from first paint. The old `login` server
+  action is gone; `logout` stays an action since it only runs from hydrated
+  pages. Don't convert login back to a server action.
+- **Pages under (app) use `requireUser()`** (session.ts) instead of
+  `(await getCurrentUser())!`. The layout's redirect does NOT protect pages:
+  Next renders layout and page in parallel, so every unauthenticated hit to
+  a page crashed its render with "Cannot read properties of null" (noisy in
+  prod logs, and one race away from a user-visible error page). New pages
+  must call requireUser(), never assert non-null.
 
 First production deploy, done live with Trey. The app runs at
 https://brew.unieksoftware.com on a Lightsail $7/1GB Ubuntu 24.04 instance

@@ -1,7 +1,7 @@
 import { and, eq, gte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { aiUsage } from "@/lib/db/schema";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireUser } from "@/lib/auth/session";
 import { PageHeader } from "@/components/page-header";
 import { UserIcon } from "@/components/icons";
 import { ApiKeyForm, PasswordForm, ProfileForm, ThemePicker } from "@/components/settings-forms";
@@ -9,7 +9,7 @@ import { ApiKeyForm, PasswordForm, ProfileForm, ThemePicker } from "@/components
 // Self-service account page — regular users never see the admin section,
 // so name/email/phone/password/theme/AI key live here for everyone.
 export default async function SettingsPage() {
-  const user = (await getCurrentUser())!;
+  const user = await requireUser();
 
   // This calendar month's metered AI spend — the future paid tier's cap
   // reads from the same rows.
