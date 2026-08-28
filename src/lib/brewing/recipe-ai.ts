@@ -139,7 +139,7 @@ export async function suggestRecipes(
   const opts = { timeout: 120_000, maxRetries: 0 };
   const req = {
     model: "claude-sonnet-5" as const,
-    max_tokens: 10000,
+    max_tokens: 16000, // room for search reasoning + 3 full recipes; 10k truncated mid-answer
     tools: [{ type: "web_search_20260209" as const, name: "web_search" as const, max_uses: 2 }],
   };
   const round = async (n: number) => {

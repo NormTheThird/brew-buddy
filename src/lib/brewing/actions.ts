@@ -329,13 +329,34 @@ export async function applySuggestionToRecipe(formData: FormData): Promise<void>
   redirect(`/recipes/${recipeId}`);
 }
 
-/** A used lookup is consumed: adopting removes it from Past lookups. */
+/** Using a suggestion consumes ONLY that card: its siblings stay in Past
+    lookups. The row disappears when the last candidate is spent. */
 async function consumeLookup(formData: FormData, userId: string) {
   const lookupId = str(formData.get("lookupId"));
   if (lookupId == null) return;
-  await db
-    .delete(recipeLookups)
-    .where(and(eq(recipeLookups.id, lookupId), eq(recipeLookups.userId, userId)));
+  const row = db
+    .select()
+    .from(recipeLookups)
+    .where(and(eq(recipeLookups.id, lookupId), eq(recipeLookups.userId, userId)))
+    .all()[0];
+  if (!row) return;
+  let usedName: string | null = null;
+  try {
+    usedName = (JSON.parse(str(formData.get("suggestion")) ?? "") as SuggestedRecipe).name ?? null;
+  } catch {}
+  let remaining: SuggestedRecipe[] = [];
+  try {
+    const all = JSON.parse(row.suggestionsJson) as SuggestedRecipe[];
+    remaining = usedName == null ? [] : all.filter((s) => s.name !== usedName);
+  } catch {}
+  if (remaining.length === 0) {
+    await db.delete(recipeLookups).where(eq(recipeLookups.id, row.id));
+  } else {
+    await db
+      .update(recipeLookups)
+      .set({ suggestionsJson: JSON.stringify(remaining) })
+      .where(eq(recipeLookups.id, row.id));
+  }
   revalidatePath("/recipes/new");
 }
 
