@@ -32,10 +32,14 @@ sudo usermod -aG docker ubuntu && exit   # reconnect after this
 git clone https://github.com/NormTheThird/brew-buddy.git
 cd brew-buddy
 
-# Config — never commit this file
+# Config — never commit this file.
+# APP_SECRET encrypts users' stored bring-your-own API keys: make it a long
+# random string (e.g. `openssl rand -base64 36`) and NEVER change it after
+# users have saved keys, or those keys become unreadable.
 cat > .env <<'EOF'
 DOMAIN=brew.example.com
 ANTHROPIC_API_KEY=sk-ant-...
+APP_SECRET=paste-a-long-random-string-here
 EOF
 
 docker compose up -d --build

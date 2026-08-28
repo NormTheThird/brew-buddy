@@ -1,5 +1,6 @@
 # Brew Buddy production stack: the app + Caddy for automatic HTTPS.
-# Set DOMAIN and ANTHROPIC_API_KEY in a .env file next to this compose file.
+# Set DOMAIN, ANTHROPIC_API_KEY, and APP_SECRET in a .env file next to
+# this compose file.
 services:
   app:
     build: .
@@ -7,6 +8,9 @@ services:
     environment:
       - DATABASE_PATH=/data/brewbuddy.db
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # Encrypts users' stored BYOK API keys. Long random string; changing
+      # it later orphans every stored key.
+      - APP_SECRET=${APP_SECRET:-}
     volumes:
       - app-data:/data
     expose:
