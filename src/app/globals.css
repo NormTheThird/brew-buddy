@@ -226,8 +226,10 @@ table.data td {
 }
 
 /* --- app chrome: top bar + side nav. Desktop is the layout you see in the
-       components; under 768px the side nav becomes a fixed bottom tab bar
-       (thumb-reachable on a phone, PWA-style) and the logo block shrinks. --- */
+       components; at 1024px and below the side nav becomes a fixed bottom
+       tab bar (phones AND iPads in portrait — iPads are 768-834px wide, so
+       a 768px cutoff missed them) and the logo block shrinks. iPad
+       landscape (1180px+) keeps the desktop rail. --- */
 .top-bar {
   height: 60px;
   background: var(--chrome);
@@ -300,7 +302,7 @@ table.data td {
   gap: 10px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .top-bar-logo {
     width: auto;
     padding: 0 16px;

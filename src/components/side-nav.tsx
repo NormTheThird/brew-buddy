@@ -41,7 +41,7 @@ function NavLink({
 }
 
 // Styled entirely from globals.css (.side-nav*): a left rail on desktop,
-// a fixed bottom tab bar under 768px.
+// a fixed bottom tab bar at 1024px and below (phones + iPad portrait).
 export function SideNav({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
   const isActive = (href: string) =>

@@ -22,7 +22,9 @@ ate half a phone screen and squeezed content into word-per-line wrapping.
 
 - App chrome styles moved from inline props into globals.css classes
   (.top-bar*, .side-nav*, .app-main, .page-header*) so media queries can
-  reshape them. Under 768px: the side nav becomes a fixed bottom tab bar
+  reshape them. At 1024px and below (phones AND iPads in portrait — iPads
+  are 768-834px wide, so a 768px cutoff missed them; Trey asked for the tab
+  bar on his iPad): the side nav becomes a fixed bottom tab bar
   (icon + tiny label, copper top-border on the active tab, safe-area inset
   for iOS), the logo block shrinks to fit, main padding tightens and clears
   the tab bar, the big page-header icon hides, and headers wrap. Desktop
