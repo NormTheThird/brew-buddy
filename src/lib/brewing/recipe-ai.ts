@@ -135,26 +135,25 @@ export async function suggestRecipes(
   // The SDK default timeout is ~10 min with retries; an interactive form
   // should fail fast instead of hanging, so cap each request.
   const opts = { timeout: 120_000, maxRetries: 1 };
-  let response = await client.messages.create(
-    {
-      model: "claude-sonnet-5",
-      max_tokens: 20000,
-      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 5 }],
-      messages,
-    },
-    opts
-  );
+  const req = {
+    model: "claude-sonnet-5",
+    max_tokens: 10000,
+    tools: [{ type: "web_search_20260209" as const, name: "web_search" as const, max_uses: 3 }],
+  };
+  let response = await client.messages.create({ ...req, messages }, opts);
+  // COST CONTROL: each pause_turn resume re-sends the whole conversation
+  // (prompt + every search result) and would re-bill it at full price.
+  // A cache breakpoint on each appended round makes resumes re-read the
+  // prior pile at ~10% of the input rate. Max 4 resumes = max 4 breakpoints,
+  // exactly the API limit.
   for (let i = 0; i < 4 && response.stop_reason === "pause_turn"; i++) {
-    messages.push({ role: "assistant", content: response.content });
-    response = await client.messages.create(
-      {
-        model: "claude-sonnet-5",
-        max_tokens: 20000,
-        tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 5 }],
-        messages,
-      },
-      opts
+    const blocks = response.content.map((b, j) =>
+      j === response.content.length - 1
+        ? ({ ...b, cache_control: { type: "ephemeral" } } as Anthropic.ContentBlockParam)
+        : (b as Anthropic.ContentBlockParam)
     );
+    messages.push({ role: "assistant", content: blocks });
+    response = await client.messages.create({ ...req, messages }, opts);
   }
   if (response.stop_reason === "refusal") {
     throw new Error("The model declined this request.");
