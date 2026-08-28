@@ -132,15 +132,25 @@ export async function suggestRecipes(
   // gets reviewed before adoption, so speed/cost beat maximum accuracy here
   // (unlike receipts, which are read once and cached). Web search still on
   // so clones get published numbers instead of vibes.
-  // The SDK default timeout is ~10 min with retries; an interactive form
-  // should fail fast instead of hanging, so cap each request.
-  const opts = { timeout: 120_000, maxRetries: 1 };
+  // STREAMING, not a single silent HTTP call: long non-streaming requests
+  // get killed by intermediaries while the API keeps generating (and
+  // billing), and the SDK then retries the whole thing — the "hangs forever
+  // while money burns" failure. Streamed rounds keep bytes flowing.
+  const opts = { timeout: 120_000, maxRetries: 0 };
   const req = {
-    model: "claude-sonnet-5",
+    model: "claude-sonnet-5" as const,
     max_tokens: 10000,
-    tools: [{ type: "web_search_20260209" as const, name: "web_search" as const, max_uses: 3 }],
+    tools: [{ type: "web_search_20260209" as const, name: "web_search" as const, max_uses: 2 }],
   };
-  let response = await client.messages.create({ ...req, messages }, opts);
+  const round = async (n: number) => {
+    const stream = client.messages.stream({ ...req, messages }, opts);
+    const resp = await stream.finalMessage();
+    console.log(
+      `[recipe-ai] round ${n}: stop=${resp.stop_reason} in=${resp.usage.input_tokens} out=${resp.usage.output_tokens} cacheRead=${resp.usage.cache_read_input_tokens ?? 0}`
+    );
+    return resp;
+  };
+  let response = await round(0);
   // COST CONTROL: each pause_turn resume re-sends the whole conversation
   // (prompt + every search result) and would re-bill it at full price.
   // A cache breakpoint on each appended round makes resumes re-read the
@@ -153,7 +163,7 @@ export async function suggestRecipes(
         : (b as Anthropic.ContentBlockParam)
     );
     messages.push({ role: "assistant", content: blocks });
-    response = await client.messages.create({ ...req, messages }, opts);
+    response = await round(i + 1);
   }
   if (response.stop_reason === "refusal") {
     throw new Error("The model declined this request.");
@@ -164,7 +174,10 @@ export async function suggestRecipes(
     if (block.type === "text") text += block.text;
   }
   const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("No JSON found in the model response.");
+  if (!jsonMatch) {
+    console.error("[recipe-ai] no JSON; stop_reason:", response.stop_reason, "text head:", text.slice(0, 300));
+    throw new Error("No JSON found in the model response.");
+  }
   const parsed = JSON.parse(jsonMatch[0]) as { recipes?: unknown[] };
   if (!Array.isArray(parsed.recipes) || parsed.recipes.length === 0) {
     throw new Error("The model returned no recipes.");

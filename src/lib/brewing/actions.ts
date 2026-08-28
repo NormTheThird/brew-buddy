@@ -245,6 +245,7 @@ export async function lookupRecipes(
     if (recipeId != null) revalidatePath(`/recipes/${recipeId}`);
     return { suggestions };
   } catch (e) {
+    console.error("[recipe-lookup] failed:", e);
     return { error: `Lookup failed: ${e instanceof Error ? e.message : "unknown error"}` };
   }
 }
