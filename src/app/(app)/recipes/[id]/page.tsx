@@ -143,7 +143,7 @@ export default async function RecipeDetailPage({
                     <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 14, borderTop: "1px solid var(--border-row)", paddingTop: 10 }}>
                       Last lookup for this recipe: &quot;{lastLookup!.query}&quot;
                     </div>
-                    <SuggestionCards suggestions={lastSuggestions} targetRecipeId={recipe.id} />
+                    <SuggestionCards suggestions={lastSuggestions} targetRecipeId={recipe.id} lookupId={lastLookup!.id} />
                   </>
                 ) : null}
               </div>

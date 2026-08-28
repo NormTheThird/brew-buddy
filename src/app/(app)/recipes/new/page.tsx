@@ -85,7 +85,7 @@ export default async function NewRecipePage({
             ))}
           </div>
           {openedSuggestions.length > 0 ? (
-            <SuggestionCards suggestions={openedSuggestions} />
+            <SuggestionCards suggestions={openedSuggestions} lookupId={opened!.id} />
           ) : opened ? (
             <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 12 }}>
               This lookup could not be read back.

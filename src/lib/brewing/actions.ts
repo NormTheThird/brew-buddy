@@ -24,7 +24,12 @@ import { parseBeerXml } from "./beerxml";
 import { hasApiKey, suggestRecipes, type SuggestedRecipe } from "./recipe-ai";
 
 export type FormState = { error?: string };
-export type RecipeLookupState = { error?: string; suggestions?: SuggestedRecipe[] };
+export type RecipeLookupState = {
+  error?: string;
+  suggestions?: SuggestedRecipe[];
+  /** History row these suggestions live in; adopting one consumes it. */
+  lookupId?: string;
+};
 
 function str(v: FormDataEntryValue | null): string | null {
   const s = String(v ?? "").trim();
@@ -235,15 +240,18 @@ export async function lookupRecipes(
   try {
     const suggestions = await suggestRecipes(query, gear);
     // Keep every lookup: revisitable later without asking Claude again.
-    await db.insert(recipeLookups).values({
-      userId: user.id,
-      recipeId,
-      query,
-      suggestionsJson: JSON.stringify(suggestions),
-    });
+    const saved = await db
+      .insert(recipeLookups)
+      .values({
+        userId: user.id,
+        recipeId,
+        query,
+        suggestionsJson: JSON.stringify(suggestions),
+      })
+      .returning({ id: recipeLookups.id });
     revalidatePath("/recipes/new");
     if (recipeId != null) revalidatePath(`/recipes/${recipeId}`);
-    return { suggestions };
+    return { suggestions, lookupId: saved[0].id };
   } catch (e) {
     console.error("[recipe-lookup] failed:", e);
     return { error: `Lookup failed: ${e instanceof Error ? e.message : "unknown error"}` };
@@ -276,9 +284,13 @@ export async function applySuggestionToRecipe(formData: FormData): Promise<void>
         ? `Needs gear: ${s.equipment.missing.join(", ")}.`
         : null)
     : null;
+  await consumeLookup(formData, user.id);
   await db
     .update(recipes)
     .set({
+      // The suggestion's name wins: "Pete's Wicked Clone (True to Tap)"
+      // says which take was chosen better than the original placeholder.
+      name: String(s.name ?? recipe.name).slice(0, 200),
       style: recipe.style ?? s.style ?? null,
       method: ["extract", "partial_mash", "all_grain"].includes(s.method)
         ? s.method
@@ -317,6 +329,16 @@ export async function applySuggestionToRecipe(formData: FormData): Promise<void>
   redirect(`/recipes/${recipeId}`);
 }
 
+/** A used lookup is consumed: adopting removes it from Past lookups. */
+async function consumeLookup(formData: FormData, userId: string) {
+  const lookupId = str(formData.get("lookupId"));
+  if (lookupId == null) return;
+  await db
+    .delete(recipeLookups)
+    .where(and(eq(recipeLookups.id, lookupId), eq(recipeLookups.userId, userId)));
+  revalidatePath("/recipes/new");
+}
+
 /** Adopt one suggestion: create the recipe + its ingredient bill, land on it. */
 export async function adoptSuggestedRecipe(formData: FormData): Promise<void> {
   const user = await requireUser();
@@ -329,6 +351,7 @@ export async function adoptSuggestedRecipe(formData: FormData): Promise<void> {
     return;
   }
   if (!s?.name) return;
+  await consumeLookup(formData, user.id);
   // The ratings and equipment verdict ride along in the notes so they
   // survive past the lookup screen.
   const ratingLine = s.ratings

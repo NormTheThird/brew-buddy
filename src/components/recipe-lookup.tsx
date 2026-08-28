@@ -39,7 +39,7 @@ export function RecipeLookup() {
       {state.error ? (
         <div style={{ color: "var(--danger)", fontSize: 13, marginTop: 8 }}>{state.error}</div>
       ) : null}
-      {state.suggestions?.length ? <SuggestionCards suggestions={state.suggestions} /> : null}
+      {state.suggestions?.length ? <SuggestionCards suggestions={state.suggestions} lookupId={state.lookupId} /> : null}
     </div>
   );
 }

@@ -22,10 +22,13 @@ const sourceBadge: Record<string, { label: string; color: string }> = {
 export function SuggestionCards({
   suggestions,
   targetRecipeId,
+  lookupId,
 }: {
   suggestions: SuggestedRecipe[];
   /** When set, "use" fills THIS recipe instead of creating a new one. */
   targetRecipeId?: string;
+  /** History row these cards came from; using one consumes it. */
+  lookupId?: string;
 }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, marginTop: 16 }}>
@@ -103,6 +106,9 @@ export function SuggestionCards({
               <input type="hidden" name="suggestion" value={JSON.stringify(s)} />
               {targetRecipeId ? (
                 <input type="hidden" name="recipeId" value={targetRecipeId} />
+              ) : null}
+              {lookupId ? (
+                <input type="hidden" name="lookupId" value={lookupId} />
               ) : null}
               <button type="submit" className="btn" style={{ marginTop: "auto" }}>
                 {targetRecipeId ? "Use for this recipe" : "Use this recipe"}
