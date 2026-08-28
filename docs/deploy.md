@@ -6,8 +6,10 @@ parts only the account owner can do, plus the commands to run once you're on the
 ## 1. One-time AWS setup (you, in the browser)
 
 1. **Lightsail instance**: AWS Console → Lightsail → Create instance →
-   Linux, **Ubuntu 24.04 LTS**, the **$5/month plan** (1 GB RAM) is enough.
-   Name it `brew-buddy`. Create.
+   platform "Linux operating system", blueprint **Ubuntu 24.04 LTS**,
+   General purpose, Dual-stack, the **$7/month plan** (1 GB RAM, 2 vCPU,
+   40 GB). The $5/512 MB plan OOMs during the Docker build. Enable
+   automatic snapshots. Name it `brew-buddy`. Create.
 2. **Static IP**: Lightsail → Networking → Create static IP → attach to the instance.
    (Without this, the IP changes on reboot and DNS breaks.)
 3. **Open ports**: on the instance → Networking → add firewall rules for
@@ -24,6 +26,11 @@ parts only the account owner can do, plus the commands to run once you're on the
 ## 2. On the instance (SSH from Lightsail's browser terminal)
 
 ```bash
+# Swap first: 1 GB RAM needs headroom for the Docker build
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
 # Docker
 curl -fsSL https://get.docker.com | sudo sh
 sudo usermod -aG docker ubuntu && exit   # reconnect after this
