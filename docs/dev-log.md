@@ -15,7 +15,37 @@ this area again.
 
 ---
 
-## 2026-08-27 — Lookup ratings, equipment check, and saved history
+## 2026-08-28 — Live on Lightsail: brew.unieksoftware.com
+
+First production deploy, done live with Trey. The app runs at
+https://brew.unieksoftware.com on a Lightsail $7/1GB Ubuntu 24.04 instance
+(static IP 18.116.225.61, us-east-2), Docker compose (app + Caddy), 2G swap
+(the build needs it), Cloudflare DNS-only A record so Caddy could get its
+Let's Encrypt cert (which it did on first try).
+
+Decisions a future session should know:
+
+- **Production was NOT seeded.** Instead of `db:push` + `db:seed`, the local
+  `data/` folder (checkpointed brewbuddy.db + receipts/) was scp'd up and
+  copied into the `brew-buddy_app-data` volume. Prod carries the full local
+  history: users, purchases, receipts, batch #1, lookup history. From today,
+  **prod is the real data home and local is a stale fork** — don't copy local
+  over prod again without asking; that would erase live data.
+- Receipts and labels resolve to `dirname(DATABASE_PATH)/receipts|labels`,
+  so in the container they live inside the `/data` volume alongside the DB.
+  One volume backs up everything.
+- When replacing the DB file in the volume, stop the app first and delete any
+  leftover `brewbuddy.db-wal`/`-shm` from a previous run before restarting —
+  they belong to the old file.
+- Server `.env` (only on the box, never committed): DOMAIN, the rotated
+  ANTHROPIC_API_KEY, and APP_SECRET (never rotate; it encrypts stored BYOK
+  keys). Local `.env` has the same rotated key.
+- Updating prod: `cd brew-buddy && git pull && docker compose up -d --build`
+  (deploy.md §5).
+- Still pending: S3 backup bucket + cron (deploy.md §1.5/1.6/3), deleting the
+  old Anthropic key from the console (new key verified working), PWA install.
+
+
 
 Trey's follow-ups to the recipe lookup, all live-tested with a Sonnet
 "Old Speckled Hen clone" run:
