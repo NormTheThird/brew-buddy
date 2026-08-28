@@ -132,20 +132,29 @@ export async function suggestRecipes(
   // gets reviewed before adoption, so speed/cost beat maximum accuracy here
   // (unlike receipts, which are read once and cached). Web search still on
   // so clones get published numbers instead of vibes.
-  let response = await client.messages.create({
-    model: "claude-sonnet-5",
-    max_tokens: 20000,
-    tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 5 }],
-    messages,
-  });
-  for (let i = 0; i < 4 && response.stop_reason === "pause_turn"; i++) {
-    messages.push({ role: "assistant", content: response.content });
-    response = await client.messages.create({
+  // The SDK default timeout is ~10 min with retries; an interactive form
+  // should fail fast instead of hanging, so cap each request.
+  const opts = { timeout: 120_000, maxRetries: 1 };
+  let response = await client.messages.create(
+    {
       model: "claude-sonnet-5",
       max_tokens: 20000,
       tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 5 }],
       messages,
-    });
+    },
+    opts
+  );
+  for (let i = 0; i < 4 && response.stop_reason === "pause_turn"; i++) {
+    messages.push({ role: "assistant", content: response.content });
+    response = await client.messages.create(
+      {
+        model: "claude-sonnet-5",
+        max_tokens: 20000,
+        tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 5 }],
+        messages,
+      },
+      opts
+    );
   }
   if (response.stop_reason === "refusal") {
     throw new Error("The model declined this request.");

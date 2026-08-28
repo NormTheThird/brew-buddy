@@ -1,4 +1,4 @@
-import { adoptSuggestedRecipe } from "@/lib/brewing/actions";
+import { adoptSuggestedRecipe, applySuggestionToRecipe } from "@/lib/brewing/actions";
 import type { SuggestedRecipe } from "@/lib/brewing/recipe-ai";
 
 /* Candidate recipe cards, shared by the live lookup and lookup history.
@@ -19,7 +19,14 @@ const sourceBadge: Record<string, { label: string; color: string }> = {
   constructed: { label: "AI CONSTRUCTED", color: "var(--warning)" },
 };
 
-export function SuggestionCards({ suggestions }: { suggestions: SuggestedRecipe[] }) {
+export function SuggestionCards({
+  suggestions,
+  targetRecipeId,
+}: {
+  suggestions: SuggestedRecipe[];
+  /** When set, "use" fills THIS recipe instead of creating a new one. */
+  targetRecipeId?: string;
+}) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, marginTop: 16 }}>
       {suggestions.map((s, i) => {
@@ -89,10 +96,16 @@ export function SuggestionCards({ suggestions }: { suggestions: SuggestedRecipe[
                 </li>
               ))}
             </ul>
-            <form action={adoptSuggestedRecipe} className="form-inline-flex">
+            <form
+              action={targetRecipeId ? applySuggestionToRecipe : adoptSuggestedRecipe}
+              className="form-inline-flex"
+            >
               <input type="hidden" name="suggestion" value={JSON.stringify(s)} />
+              {targetRecipeId ? (
+                <input type="hidden" name="recipeId" value={targetRecipeId} />
+              ) : null}
               <button type="submit" className="btn" style={{ marginTop: "auto" }}>
-                Use this recipe
+                {targetRecipeId ? "Use for this recipe" : "Use this recipe"}
               </button>
             </form>
           </div>

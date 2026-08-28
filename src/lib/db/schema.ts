@@ -315,6 +315,11 @@ export const recipeLookups = sqliteTable("recipe_lookups", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  // Set when the lookup was run FROM a recipe ("fill in this spec") — the
+  // recipe page shows its latest lookup with apply-here buttons.
+  recipeId: text("recipe_id").references(() => recipes.id, {
+    onDelete: "set null",
+  }),
   query: text("query").notNull(),
   suggestionsJson: text("suggestions_json").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" })

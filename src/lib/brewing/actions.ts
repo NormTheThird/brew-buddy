@@ -227,19 +227,93 @@ export async function lookupRecipes(
     .where(and(eq(equipment.userId, user.id), eq(equipment.status, "active")))
     .all()
     .map((g) => `${g.name} (${g.category})`);
+  // Set when the lookup runs FROM a recipe page ("fill in this spec").
+  const recipeId = str(formData.get("recipeId"));
+  if (recipeId != null && !ownedRecipe(recipeId, user.id)) {
+    return { error: "Unknown recipe." };
+  }
   try {
     const suggestions = await suggestRecipes(query, gear);
     // Keep every lookup: revisitable later without asking Claude again.
     await db.insert(recipeLookups).values({
       userId: user.id,
+      recipeId,
       query,
       suggestionsJson: JSON.stringify(suggestions),
     });
     revalidatePath("/recipes/new");
+    if (recipeId != null) revalidatePath(`/recipes/${recipeId}`);
     return { suggestions };
   } catch (e) {
     return { error: `Lookup failed: ${e instanceof Error ? e.message : "unknown error"}` };
   }
+}
+
+/** Apply a suggestion to an EXISTING unbrewed recipe: fill targets/method/
+    boil, append the provenance notes, and replace the ingredient bill. The
+    recipe keeps its own name and status. */
+export async function applySuggestionToRecipe(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const recipeId = str(formData.get("recipeId"));
+  const raw = str(formData.get("suggestion"));
+  if (recipeId == null || raw == null) return;
+  const recipe = ownedRecipe(recipeId, user.id);
+  if (!recipe) return;
+  if (recipeIsBrewed(recipeId)) return; // brewed specs are history
+  let s: SuggestedRecipe;
+  try {
+    s = JSON.parse(raw) as SuggestedRecipe;
+  } catch {
+    return;
+  }
+  const ratingLine = s.ratings
+    ? `Clone ratings: fidelity ${s.ratings.fidelity}/5${s.ratings.fidelityWhy ? ` (${s.ratings.fidelityWhy})` : ""}; brew-day simplicity ${s.ratings.simplicity}/5; source: ${s.ratings.source}${s.ratings.sourceName ? ` (${s.ratings.sourceName})` : ""}.`
+    : null;
+  const equipLine = s.equipment
+    ? s.equipment.notes ??
+      (!s.equipment.ready && s.equipment.missing?.length
+        ? `Needs gear: ${s.equipment.missing.join(", ")}.`
+        : null)
+    : null;
+  await db
+    .update(recipes)
+    .set({
+      style: recipe.style ?? s.style ?? null,
+      method: ["extract", "partial_mash", "all_grain"].includes(s.method)
+        ? s.method
+        : recipe.method,
+      targetVolumeGal: s.targetVolumeGal ?? recipe.targetVolumeGal,
+      targetOG: s.targetOG,
+      targetFG: s.targetFG,
+      targetIBU: s.targetIBU,
+      targetSRM: s.targetSRM,
+      targetABV: s.targetABV,
+      boilMinutes: s.boilMinutes ?? recipe.boilMinutes,
+      notes: [recipe.notes, s.notes, ratingLine, equipLine].filter(Boolean).join("\n"),
+    })
+    .where(and(eq(recipes.id, recipeId), eq(recipes.userId, user.id)));
+  // Replace the bill wholesale: the recipe is unbrewed and the user chose
+  // this spec deliberately.
+  await db.delete(recipeItems).where(eq(recipeItems.recipeId, recipeId));
+  const items = Array.isArray(s.items) ? s.items.slice(0, 30) : [];
+  for (const [idx, it] of items.entries()) {
+    const type = stockTypes.includes(it.ingredientType) ? it.ingredientType : "adjunct";
+    await db.insert(recipeItems).values({
+      recipeId,
+      ingredientType: type,
+      name: String(it.name ?? "Ingredient").slice(0, 200),
+      amount: typeof it.amount === "number" && Number.isFinite(it.amount) ? it.amount : null,
+      unit: String(it.unit ?? "oz").slice(0, 10),
+      timingMinutes:
+        typeof it.timingMinutes === "number" && Number.isFinite(it.timingMinutes)
+          ? Math.trunc(it.timingMinutes)
+          : null,
+      stage: it.stage ? String(it.stage).slice(0, 20) : null,
+      sortOrder: idx,
+    });
+  }
+  revalidatePath("/recipes");
+  redirect(`/recipes/${recipeId}`);
 }
 
 /** Adopt one suggestion: create the recipe + its ingredient bill, land on it. */

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { batches, recipeItems, recipes, stock } from "@/lib/db/schema";
+import { batches, recipeItems, recipeLookups, recipes, stock } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { addRecipeItem, deleteRecipeItem, deleteRecipe, duplicateRecipe } from "@/lib/brewing/actions";
 import { recipeDisplayStatus, statusBadge, methodLabels, batchStatusBadge } from "@/lib/brewing/display";
@@ -11,6 +11,9 @@ import { formatMonth } from "@/lib/inventory/format";
 import { PageHeader } from "@/components/page-header";
 import { BookIcon } from "@/components/icons";
 import { DeleteButton } from "@/components/delete-button";
+import { RecipeFill } from "@/components/recipe-fill";
+import { SuggestionCards } from "@/components/suggestion-cards";
+import type { SuggestedRecipe } from "@/lib/brewing/recipe-ai";
 
 export default async function RecipeDetailPage({
   params,
@@ -46,6 +49,26 @@ export default async function RecipeDetailPage({
   const badge = statusBadge[status];
   // Brewed once = the spec is history; tweaks happen on a duplicate.
   const brewed = recipeBatches.length > 0;
+  // An empty, unbrewed spec can be filled in by Claude; the latest lookup
+  // run from this recipe is shown so results survive leaving the page.
+  const specEmpty = !brewed && items.length === 0;
+  const lastLookup = specEmpty
+    ? db
+        .select()
+        .from(recipeLookups)
+        .where(and(eq(recipeLookups.recipeId, recipe.id), eq(recipeLookups.userId, user.id)))
+        .orderBy(desc(recipeLookups.createdAt))
+        .limit(1)
+        .all()[0]
+    : undefined;
+  let lastSuggestions: SuggestedRecipe[] = [];
+  if (lastLookup) {
+    try {
+      lastSuggestions = JSON.parse(lastLookup.suggestionsJson) as SuggestedRecipe[];
+    } catch {
+      lastSuggestions = [];
+    }
+  }
 
   return (
     <>
@@ -103,6 +126,29 @@ export default async function RecipeDetailPage({
           ) : null}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {specEmpty ? (
+            <div className="panel" style={{ borderLeft: "3px solid var(--accent)" }}>
+              <div className="panel-heading">Fill in with Claude</div>
+              <div className="panel-body">
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>
+                  This spec is empty. Describe the beer and Claude proposes the
+                  targets and ingredient bill; picking one fills THIS recipe.
+                </div>
+                <RecipeFill
+                  recipeId={recipe.id}
+                  defaultQuery={`${recipe.name}${recipe.style ? ` (${recipe.style})` : ""}`}
+                />
+                {lastSuggestions.length > 0 ? (
+                  <>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 14, borderTop: "1px solid var(--border-row)", paddingTop: 10 }}>
+                      Last lookup for this recipe: &quot;{lastLookup!.query}&quot;
+                    </div>
+                    <SuggestionCards suggestions={lastSuggestions} targetRecipeId={recipe.id} />
+                  </>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
           <div className="panel">
             <div className="panel-heading">Ingredients (spec)</div>
             <div className="panel-body">
