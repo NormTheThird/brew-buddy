@@ -15,7 +15,38 @@ this area again.
 
 ---
 
-## 2026-08-28 — Mobile layout: bottom tab bar; real home-screen icon
+## 2026-09-04 — "Talk to this batch": photo check-ins with Claude
+
+Trey's ask: "give it a picture for Claude to look at and tell it what's
+going on as it's happening, such as the gravity reading on day 10."
+
+- New `batch_checkins` table: one row per exchange (note, optional photo,
+  Claude's reply, an optional structured reading proposal, and the id of the
+  gravity reading it became once logged). The conversation renders on the
+  batch page as a permanent sidecar log; the last 8 exchanges also feed the
+  next prompt so Claude remembers what it said.
+- `lib/brewing/batch-chat.ts`: Sonnet + image input, streaming with
+  maxRetries 0 (the recipe-lookup billing lesson), effort low, ~1 cent per
+  check-in (verified via ai_usage: ~1k in / ~450 out tokens). The prompt
+  carries batch context (recipe targets, fermentation day, all readings,
+  prior check-ins) and demands JSON {reply, reading|null}. The model
+  sometimes emits literal newlines inside the reply string — invalid JSON —
+  so the parser escapes control characters inside string literals before a
+  retry parse. Keep that repair if the prompt changes.
+- Reading proposals are never auto-logged (same rule as receipts/labels):
+  "Log this reading" copies the raw value + temp into gravity_readings with
+  the check-in's timestamp and stamps loggedReadingId so the button
+  becomes "logged ✓".
+- Photos live in dirname(DATABASE_PATH)/batch-photos, served owner-only via
+  /batches/checkins/[id]/photo, mobile capture="environment" so the phone
+  opens the camera. 12 MB cap like labels.
+- Live-tested end to end with a synthetic seven-segment "1.014 / 68F"
+  display photo: Claude read both numbers, computed attenuation from the
+  batch's OG and prior reading, advised recheck in 2-3 days, and one click
+  logged Sep 4 · 1.014 · 68F into the readings table.
+- Prod schema migration for this: `git pull` then run db:push in a
+  throwaway node:22-alpine container mounting the checkout and the
+  app-data volume (host has no Node; the runtime image has no drizzle-kit).
 
 Trey installed the PWA and it "did not look good": the fixed 200px side nav
 ate half a phone screen and squeezed content into word-per-line wrapping.

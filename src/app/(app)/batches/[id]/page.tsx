@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { batches, batchIngredients, gravityReadings, purchases, stock } from "@/lib/db/schema";
+import { batches, batchCheckins, batchIngredients, gravityReadings, purchases, stock } from "@/lib/db/schema";
 import { requireUser } from "@/lib/auth/session";
 import {
   addGravityReading,
@@ -18,6 +18,7 @@ import { PageHeader } from "@/components/page-header";
 import { LayersIcon } from "@/components/icons";
 import { DeleteButton } from "@/components/delete-button";
 import { GravityCalc } from "@/components/gravity-calc";
+import { BatchChat, type CheckinView } from "@/components/batch-chat";
 
 function Chip({ batch, field }: { batch: Parameters<typeof isEstimated>[0]; field: string }) {
   return isEstimated(batch, field) ? (
@@ -65,6 +66,22 @@ export default async function BatchDetailPage({
     .where(eq(gravityReadings.batchId, b.id))
     .all()
     .sort((a, c) => a.takenAt.getTime() - c.takenAt.getTime());
+
+  const checkinViews: CheckinView[] = db
+    .select()
+    .from(batchCheckins)
+    .where(eq(batchCheckins.batchId, b.id))
+    .all()
+    .sort((a, c) => a.createdAt.getTime() - c.createdAt.getTime())
+    .map((c) => ({
+      id: c.id,
+      note: c.note,
+      reply: c.reply,
+      when: c.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      hasPhoto: Boolean(c.photoPath),
+      proposal: c.proposedReadingJson ? JSON.parse(c.proposedReadingJson) : null,
+      logged: Boolean(c.loggedReadingId),
+    }));
 
   // What the batch cost: each snapshot line looks up its lot's price. A lot
   // only partially used is prorated by amount/lot quantity (same unit). Kit
@@ -405,6 +422,9 @@ export default async function BatchDetailPage({
           </div>
         </div>
       ) : null}
+      <div style={{ marginTop: 16 }}>
+        <BatchChat batchId={b.id} checkins={checkinViews} />
+      </div>
     </>
   );
 }

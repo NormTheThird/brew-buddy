@@ -2,10 +2,14 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import { db } from "@/lib/db";
 import {
   batches,
+  batchCheckins,
   batchIngredients,
   batchStatuses,
   equipment,
@@ -22,6 +26,7 @@ import {
 import { getCurrentUser } from "@/lib/auth/session";
 import { parseBeerXml } from "./beerxml";
 import { suggestRecipes, type SuggestedRecipe } from "./recipe-ai";
+import { askBatchAi, isSupportedCheckinPhoto, type ProposedReading } from "./batch-chat";
 import { aiRuntime, userHasAiAccess } from "@/lib/ai/runtime";
 
 export type FormState = { error?: string };
@@ -777,4 +782,120 @@ export async function deleteBatchIngredient(formData: FormData): Promise<void> {
     .delete(batchIngredients)
     .where(and(eq(batchIngredients.id, id), eq(batchIngredients.batchId, batchId)));
   revalidatePath(`/batches/${batchId}`);
+}
+
+/* ---------------- talk to this batch ---------------- */
+
+// Check-in photos live next to the SQLite file, like receipts and labels.
+const BATCH_PHOTOS_DIR = path.join(
+  path.dirname(process.env.DATABASE_PATH ?? "./data/brewbuddy.db"),
+  "batch-photos"
+);
+const MAX_CHECKIN_PHOTO_BYTES = 12 * 1024 * 1024;
+
+export type BatchChatState = { error?: string };
+
+/** One check-in: note (+ optional photo) in, Claude's read on the batch out.
+    Everything is saved as a batch_checkins row so the conversation is the
+    batch's permanent sidecar log. */
+export async function askBatch(
+  _prev: BatchChatState,
+  formData: FormData
+): Promise<BatchChatState> {
+  const user = await requireUser();
+  const batchId = str(formData.get("batchId"));
+  const note = str(formData.get("note"));
+  if (batchId == null || !note) return { error: "Write a note first." };
+  const batch = ownedBatch(batchId, user.id);
+  if (!batch) return { error: "Batch not found." };
+  if (!userHasAiAccess(user)) {
+    return { error: "No API key available. Add your Anthropic key in My settings." };
+  }
+
+  let photo: { bytes: Buffer; mime: "image/jpeg" | "image/png" | "image/gif" | "image/webp" } | undefined;
+  let photoPath: string | null = null;
+  const file = formData.get("photo");
+  if (file instanceof File && file.size > 0) {
+    if (!isSupportedCheckinPhoto(file.type)) {
+      return { error: "Photo must be a JPEG, PNG, GIF, or WebP image." };
+    }
+    if (file.size > MAX_CHECKIN_PHOTO_BYTES) {
+      return { error: "Photo is too large (12 MB max)." };
+    }
+    photo = { bytes: Buffer.from(await file.arrayBuffer()), mime: file.type };
+  }
+
+  const recipe = batch.recipeId
+    ? db.select().from(recipes).where(eq(recipes.id, batch.recipeId)).all()[0]
+    : undefined;
+  const readings = db
+    .select()
+    .from(gravityReadings)
+    .where(eq(gravityReadings.batchId, batchId))
+    .orderBy(asc(gravityReadings.takenAt))
+    .all();
+  const prior = db
+    .select()
+    .from(batchCheckins)
+    .where(eq(batchCheckins.batchId, batchId))
+    .orderBy(asc(batchCheckins.createdAt))
+    .all()
+    .slice(-8); // recent context is plenty; the full log stays on the page
+
+  let result;
+  try {
+    const rt = aiRuntime(user, "batch_chat");
+    result = await askBatchAi(rt, batch, recipe, readings, prior, note, photo);
+  } catch (e) {
+    console.error("[batch-chat] failed:", e);
+    return { error: e instanceof Error ? e.message : "Claude could not answer. Try again." };
+  }
+
+  if (photo) {
+    const ext = photo.mime === "image/jpeg" ? "jpg" : photo.mime.split("/")[1];
+    photoPath = `${crypto.randomUUID()}.${ext}`;
+    fs.mkdirSync(BATCH_PHOTOS_DIR, { recursive: true });
+    fs.writeFileSync(path.join(BATCH_PHOTOS_DIR, photoPath), photo.bytes);
+  }
+
+  await db.insert(batchCheckins).values({
+    batchId,
+    userId: user.id,
+    note,
+    photoPath,
+    photoMime: photo?.mime ?? null,
+    reply: result.reply,
+    proposedReadingJson: result.reading ? JSON.stringify(result.reading) : null,
+  });
+  revalidatePath(`/batches/${batchId}`);
+  return {};
+}
+
+/** Log the gravity value Claude read off a check-in photo as a real reading.
+    Never automatic: the row keeps the proposal until Trey clicks. */
+export async function logCheckinReading(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const checkinId = str(formData.get("checkinId"));
+  if (checkinId == null) return;
+  const checkin = db
+    .select()
+    .from(batchCheckins)
+    .where(and(eq(batchCheckins.id, checkinId), eq(batchCheckins.userId, user.id)))
+    .all()[0];
+  if (!checkin?.proposedReadingJson || checkin.loggedReadingId) return;
+  const reading = JSON.parse(checkin.proposedReadingJson) as ProposedReading;
+  const readingId = crypto.randomUUID();
+  await db.insert(gravityReadings).values({
+    id: readingId,
+    batchId: checkin.batchId,
+    takenAt: checkin.createdAt,
+    value: reading.value,
+    tempF: reading.tempF ?? null,
+    stage: reading.stage ?? "fermentation",
+  });
+  await db
+    .update(batchCheckins)
+    .set({ loggedReadingId: readingId })
+    .where(eq(batchCheckins.id, checkinId));
+  revalidatePath(`/batches/${checkin.batchId}`);
 }

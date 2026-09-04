@@ -312,6 +312,31 @@ export const gravityReadings = sqliteTable("gravity_readings", {
   stage: text("stage"), // og | fermentation | fg
 });
 
+// "Talk to this batch": each row is one exchange — Trey's note (plus an
+// optional photo, e.g. the hydrometer on day 10) and Claude's reply, kept
+// forever as the batch's running conversation. If Claude read a gravity
+// value off the photo it lands in proposedReadingJson; logging it copies it
+// into gravity_readings and stamps loggedReadingId (never silently written).
+export const batchCheckins = sqliteTable("batch_checkins", {
+  id: text("id").primaryKey().$defaultFn(uuid),
+  batchId: text("batch_id")
+    .notNull()
+    .references(() => batches.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  note: text("note").notNull(),
+  photoPath: text("photo_path"),
+  photoMime: text("photo_mime"),
+  reply: text("reply").notNull(),
+  proposedReadingJson: text("proposed_reading_json"),
+  loggedReadingId: text("logged_reading_id"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+export type BatchCheckin = typeof batchCheckins.$inferSelect;
+
 // Every AI recipe lookup is kept: the query and the full suggestions JSON,
 // so past candidates are revisitable without asking (or paying) Claude again.
 export const recipeLookups = sqliteTable("recipe_lookups", {
