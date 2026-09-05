@@ -10,6 +10,7 @@ import { checkBrewability } from "@/lib/brewing/brewability";
 import { formatMonth } from "@/lib/inventory/format";
 import { PageHeader } from "@/components/page-header";
 import { BookIcon } from "@/components/icons";
+import { ActionsMenu } from "@/components/actions-menu";
 import { DeleteButton } from "@/components/delete-button";
 import { RecipeFill } from "@/components/recipe-fill";
 import { SuggestionCards } from "@/components/suggestion-cards";
@@ -83,21 +84,24 @@ export default async function RecipeDetailPage({
           <>
             <span className="badge" style={{ background: badge.color, alignSelf: "center" }}>{badge.label}</span>
             <Link href={`/batches/new?recipe=${recipe.id}`} className="btn btn-solid">Brew this</Link>
-            <Link href={`/recipes/${recipe.id}/edit`} className="btn">Edit</Link>
-            <Link href={`/recipes/${recipe.id}/beerxml`} className="btn">Export BeerXML</Link>
-            <form action={duplicateRecipe} className="form-inline-flex">
-              <input type="hidden" name="id" value={recipe.id} />
-              <button type="submit" className="btn" title="Copy this recipe and its ingredients to tweak your own version">
-                Duplicate
-              </button>
-            </form>
-            <DeleteButton
-              action={deleteRecipe}
-              id={recipe.id}
-              label="Delete"
-              variant="button"
-              confirmText={`Delete recipe "${recipe.name}"? Batches keep their snapshot of it.`}
-            />
+            <ActionsMenu>
+              <Link href={`/recipes/${recipe.id}/edit`} className="menu-item">Edit recipe</Link>
+              <form action={duplicateRecipe} className="form-block">
+                <input type="hidden" name="id" value={recipe.id} />
+                <button type="submit" className="menu-item" title="Copy this recipe and its ingredients to tweak your own version">
+                  Duplicate
+                </button>
+              </form>
+              <Link href={`/recipes/${recipe.id}/beerxml`} className="menu-item">Export BeerXML</Link>
+              <div style={{ borderTop: "1px solid var(--border)", margin: "6px 0" }} />
+              <DeleteButton
+                action={deleteRecipe}
+                id={recipe.id}
+                label="Delete recipe"
+                variant="menu"
+                confirmText={`Delete recipe "${recipe.name}"? Batches keep their snapshot of it.`}
+              />
+            </ActionsMenu>
           </>
         }
       />
