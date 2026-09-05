@@ -302,6 +302,28 @@ table.data td {
   gap: 10px;
 }
 
+/* Items inside an ActionsMenu dropdown (links or form buttons). */
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 16px;
+  color: var(--nav-link);
+  font-size: 13px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+.menu-item:hover {
+  background: var(--field);
+}
+.menu-item.danger {
+  color: var(--danger);
+}
+
 /* Phone-first content swaps: a page renders BOTH a detailed desktop view and
    a task-oriented phone view; these classes pick one. Phones only (≤768px) —
    iPads keep the full tables under the tab bar. */
@@ -372,6 +394,7 @@ table.data td {
    NEVER put a style prop on a form element: use these classes, or wrap the
    form contents in a styled div. */
 .form-inline { display: inline; }
+.form-block { display: block; }
 .form-inline-flex { display: inline-flex; gap: 6px; align-items: center; }
 .form-stack { display: flex; flex-direction: column; gap: 14px; }
 .form-stack.gap-sm { gap: 8px; }

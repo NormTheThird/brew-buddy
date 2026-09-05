@@ -11,7 +11,8 @@ export function DeleteButton({
   id: string | number;
   label?: string;
   confirmText: string;
-  variant?: "link" | "button";
+  /** "menu" renders a full-width row for use inside an ActionsMenu. */
+  variant?: "link" | "button" | "menu";
 }) {
   const linkStyle = {
     background: "none",
@@ -29,13 +30,17 @@ export function DeleteButton({
       onSubmit={(e) => {
         if (!window.confirm(confirmText)) e.preventDefault();
       }}
-      className={variant === "button" ? "form-inline-flex" : "form-inline"}
+      className={
+        variant === "button" ? "form-inline-flex" : variant === "menu" ? "form-block" : "form-inline"
+      }
     >
       <input type="hidden" name="id" value={id} />
       <button
         type="submit"
-        className={variant === "button" ? "btn btn-danger" : undefined}
-        style={variant === "button" ? undefined : linkStyle}
+        className={
+          variant === "button" ? "btn btn-danger" : variant === "menu" ? "menu-item danger" : undefined
+        }
+        style={variant === "link" ? linkStyle : undefined}
       >
         {label}
       </button>

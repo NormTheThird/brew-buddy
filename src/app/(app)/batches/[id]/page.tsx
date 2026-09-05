@@ -17,6 +17,7 @@ import { abv, apparentAttenuation, correctedSg } from "@/lib/calc/gravity";
 import { describeAction, type ProposedAction } from "@/lib/brewing/batch-chat";
 import { PageHeader } from "@/components/page-header";
 import { LayersIcon } from "@/components/icons";
+import { ActionsMenu } from "@/components/actions-menu";
 import { DeleteButton } from "@/components/delete-button";
 import { GravityCalc } from "@/components/gravity-calc";
 import { BatchChat, type CheckinView } from "@/components/batch-chat";
@@ -230,8 +231,11 @@ export default async function BatchDetailPage({
           <>
             <span className="badge" style={{ background: badge.color, alignSelf: "center" }}>{badge.label}</span>
             {b.keeper ? <span className="badge" style={{ background: "var(--success)", alignSelf: "center" }}>KEEPER</span> : null}
-            <Link href={`/batches/${b.id}/edit`} className="btn">Edit</Link>
-            <DeleteButton action={deleteBatch} id={b.id} label="Delete" confirmText={`Delete batch #${b.batchNumber}? Readings go with it.`} />
+            <ActionsMenu>
+              <Link href={`/batches/${b.id}/edit`} className="menu-item">Edit batch</Link>
+              <div style={{ borderTop: "1px solid var(--border)", margin: "6px 0" }} />
+              <DeleteButton action={deleteBatch} id={b.id} label={`Delete batch #${b.batchNumber}`} confirmText={`Delete batch #${b.batchNumber}? Readings go with it.`} variant="menu" />
+            </ActionsMenu>
           </>
         }
       />
