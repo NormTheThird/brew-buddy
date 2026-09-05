@@ -7,8 +7,8 @@ export function TopBar({ userName }: { userName: string }) {
     <header className="top-bar">
       <div className="top-bar-logo">
         BREW BUDDY
-        <span style={{ fontSize: 11, letterSpacing: 0, color: "var(--accent-tint)" }}>
-          v1
+        <span style={{ fontSize: 10, letterSpacing: 0, color: "var(--accent-tint)" }}>
+          v{process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0"}
         </span>
       </div>
       <div
