@@ -1,5 +1,27 @@
 # Dev Log
 
+## 2026-09-05 — Actions menus, version stamp, batch page stacks
+
+- **ActionsMenu component** (.menu-item styles, DeleteButton "menu"
+  variant): batch header is badge + Actions (Edit / Delete); recipe header
+  keeps "Brew this" as the primary button with Edit / Duplicate / Export
+  BeerXML / Delete in the menu. Reuse this for future header actions.
+- **Version in the top bar**, stacked under BREW BUDDY: v1.0.<git commit
+  count> baked at build via next.config env (NEXT_PUBLIC_APP_VERSION). The
+  Docker build stage now installs git and .git is no longer dockerignored so
+  the count computes in the container; fallback is 1.0.0. Trey and I agreed
+  this IS 1.0 (production, real data, v1 brief complete); bump the base to
+  1.1 by hand when brew-day mode ships.
+- **Batch page layout** (Trey: no dead vertical space, phone reads top-down):
+  .bp-grid is two INDEPENDENT flex stacks — left Volumes/Process/Ingredients,
+  right Gravity/Readings/Quick calc — so a short panel never couples to a
+  tall neighbor's row height. At ≤768px the columns dissolve
+  (display: contents) and CSS order re-sorts to phone priority: Gravity,
+  Readings, Quick calc, Ingredients, Volumes, Process. Pattern to copy for
+  other multi-panel pages; the "Bottling gate" pseudo-task removal and the
+  earlier bits are in the entries below.
+
+
 One entry per meaningful change: what changed, why, when. Not a chat
 transcript, not a commit-by-commit list, the reasoning that would otherwise
 only exist in whichever session it happened in.

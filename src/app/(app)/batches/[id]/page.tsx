@@ -239,8 +239,9 @@ export default async function BatchDetailPage({
           </>
         }
       />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 16, alignItems: "start" }}>
-        <div className="panel">
+      <div className="bp-grid">
+        <div className="bp-col">
+        <div className="panel bp-volumes">
           <div className="panel-heading">Volumes</div>
           <div className="panel-body">
             <Row label="Pre-boil">
@@ -261,31 +262,7 @@ export default async function BatchDetailPage({
             {kettleLoss != null ? <Row label="→ Kettle loss">{kettleLoss.toFixed(2)} gal</Row> : null}
           </div>
         </div>
-        <div className="panel">
-          <div className="panel-heading">Gravity</div>
-          <div className="panel-body">
-            <Row label="OG" sub={b.og != null ? corrSub(b.og, b.ogTempF) : undefined}>
-              {ogC != null && b.og != null ? <>{ogC.toFixed(3)} <Chip batch={b} field="og" /></> : "—"}
-            </Row>
-            <Row label="FG" sub={b.fg != null ? corrSub(b.fg, b.fgTempF) : undefined}>
-              {fgC != null && b.fg != null ? <>{fgC.toFixed(3)} <Chip batch={b} field="fg" /></> : "pending"}
-            </Row>
-            <Row label="ABV">{abvVal != null ? `${abvVal.toFixed(1)}%` : "needs OG + FG"}</Row>
-            <Row label="Attenuation">
-              {atten != null ? `${atten.toFixed(0)}%` : "—"}
-              {atten != null && yeastPublished != null ? (
-                attenSuspect ? (
-                  <span className="badge" style={{ background: "var(--warning)" }} title={`Yeast lot lists ~${yeastPublished}%. A big gap usually means instrument calibration, not the beer.`}>
-                    VS ~{yeastPublished}% PUBLISHED
-                  </span>
-                ) : (
-                  <span style={{ color: "var(--text-faint)", fontSize: 12 }}>yeast lists ~{yeastPublished}%</span>
-                )
-              ) : null}
-            </Row>
-          </div>
-        </div>
-        <div className="panel">
+        <div className="panel bp-process">
           <div className="panel-heading">Process</div>
           <div className="panel-body">
             <Row label="Steep">{b.steepTempF != null || b.steepMinutes != null ? `${b.steepTempF ?? "—"}°F · ${b.steepMinutes ?? "—"} min` : "—"}</Row>
@@ -302,7 +279,7 @@ export default async function BatchDetailPage({
             </Row>
           </div>
         </div>
-        <div className="panel">
+        <div className="panel bp-ingredients">
           <div className="panel-heading">
             Ingredients as brewed
             {b.status !== "planned" && ingredientRows.length > 0 ? (
@@ -418,7 +395,33 @@ export default async function BatchDetailPage({
             ) : null}
           </div>
         </div>
-        <div className="panel">
+        </div>
+        <div className="bp-col">
+        <div className="panel bp-gravity">
+          <div className="panel-heading">Gravity</div>
+          <div className="panel-body">
+            <Row label="OG" sub={b.og != null ? corrSub(b.og, b.ogTempF) : undefined}>
+              {ogC != null && b.og != null ? <>{ogC.toFixed(3)} <Chip batch={b} field="og" /></> : "—"}
+            </Row>
+            <Row label="FG" sub={b.fg != null ? corrSub(b.fg, b.fgTempF) : undefined}>
+              {fgC != null && b.fg != null ? <>{fgC.toFixed(3)} <Chip batch={b} field="fg" /></> : "pending"}
+            </Row>
+            <Row label="ABV">{abvVal != null ? `${abvVal.toFixed(1)}%` : "needs OG + FG"}</Row>
+            <Row label="Attenuation">
+              {atten != null ? `${atten.toFixed(0)}%` : "—"}
+              {atten != null && yeastPublished != null ? (
+                attenSuspect ? (
+                  <span className="badge" style={{ background: "var(--warning)" }} title={`Yeast lot lists ~${yeastPublished}%. A big gap usually means instrument calibration, not the beer.`}>
+                    VS ~{yeastPublished}% PUBLISHED
+                  </span>
+                ) : (
+                  <span style={{ color: "var(--text-faint)", fontSize: 12 }}>yeast lists ~{yeastPublished}%</span>
+                )
+              ) : null}
+            </Row>
+          </div>
+        </div>
+        <div className="panel bp-readings">
           <div className="panel-heading">Gravity readings</div>
           <div className="panel-body">
             {readings.length > 0 ? (
@@ -478,7 +481,7 @@ export default async function BatchDetailPage({
             </div>
           </div>
         </div>
-        <div className="panel">
+        <div className="panel bp-calc">
           <div className="panel-heading">Gravity quick calc</div>
           <GravityCalc
             og={ogC}
@@ -486,6 +489,7 @@ export default async function BatchDetailPage({
             instrumentName={instrument ? instrument.name.split(",")[0] : null}
             calibrationTempF={instrument?.calibrationTempF}
           />
+        </div>
         </div>
       </div>
       {b.notes || b.deviations ? (

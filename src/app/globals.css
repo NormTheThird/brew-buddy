@@ -244,9 +244,10 @@ table.data td {
   background: var(--accent);
   color: var(--on-accent);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 4px;
   font-size: 15px;
   letter-spacing: 3px;
 }
@@ -322,6 +323,38 @@ table.data td {
 }
 .menu-item.danger {
   color: var(--danger);
+}
+
+/* Batch page layout: two INDEPENDENT stacks on desktop (no row coupling, so
+   a short panel never leaves dead space beside a tall one). On phones the
+   columns dissolve (display: contents) into one list re-ordered for what a
+   phone visit is about: gravity status first, then readings, then the rest. */
+.bp-grid {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.bp-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+@media (max-width: 768px) {
+  .bp-grid {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .bp-col {
+    display: contents;
+  }
+  .bp-gravity { order: 1; }
+  .bp-readings { order: 2; }
+  .bp-calc { order: 3; }
+  .bp-ingredients { order: 4; }
+  .bp-volumes { order: 5; }
+  .bp-process { order: 6; }
 }
 
 /* Phone-first content swaps: a page renders BOTH a detailed desktop view and
