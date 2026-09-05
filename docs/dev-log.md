@@ -38,6 +38,11 @@ Trey's issue list, same day:
   future pages: render both views, CSS picks one.
 - Brew-day mode (timers/stopwatches, brief v2) is still NOT built; it's the
   next major feature and should get its own session.
+- Follow-up same day: the "Bottling (needs two matching readings)" pseudo-
+  task is GONE from the derived schedule — Trey: "it is not an action." The
+  gate rule stays as the note under the gravity table; the dashboard card's
+  "Bottling ~" estimate is now confirming-reading due (overrides included)
+  plus 2 days of cold crash, so it tracks reality when tasks move.
 
 Driven by Trey's SOLIGT calibration doc (RO water at 60F read 0.995) and
 "I need a way to talk to Claude with the batch and change the data."

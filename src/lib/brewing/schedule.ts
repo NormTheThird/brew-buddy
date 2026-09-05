@@ -44,7 +44,9 @@ export function nextActions(
     mark("raise-temp-d4", "Raise fridge to 70°F (day 4)", addDays(d, 4));
     mark("reading-d10", "First gravity reading (day 10)", addDays(d, 10));
     mark("reading-d13", "Confirming reading (day 13)", addDays(d, 13));
-    mark("bottling-gate", "Bottling (needs two matching readings)", addDays(d, 14));
+    // No bottling pseudo-task: bottling is a GATE (two matching readings),
+    // not an action — it lives as a note on the batch page, and the
+    // dashboard card estimates the date from the confirming reading.
   }
 
   if (batch.status === "conditioning" && batch.bottledDate) {

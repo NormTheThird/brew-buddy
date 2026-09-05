@@ -83,7 +83,12 @@ export default async function DashboardPage() {
   const activeTasks = active
     ? nextActions(active, taskAdjustments.filter((t) => t.batchId === active.id))
     : [];
-  const bottlingDue = activeTasks.find((a) => a.key === "bottling-gate")?.due ?? null;
+  // Estimated bottling day: the confirming reading (wherever it actually
+  // sits, overrides included) plus ~2 days of cold crash.
+  const confirmDue = activeTasks.find((a) => a.key === "reading-d13")?.due ?? null;
+  const bottlingDue = confirmDue
+    ? new Date(confirmDue.getTime() + 2 * 24 * 60 * 60 * 1000)
+    : null;
   const bottleDay =
     active?.status === "conditioning" && active.bottledDate
       ? Math.floor((Date.now() - active.bottledDate.getTime()) / (24 * 60 * 60 * 1000))
