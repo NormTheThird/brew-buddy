@@ -76,6 +76,42 @@ export default async function PurchasesPage({
         subtitle="Kits and orders: one total cost, receipt attached, items linked"
         actions={<Link href="/purchases/new" className="btn btn-solid">+ New purchase</Link>}
       />
+      {/* Phone: buying happens in a store with a receipt in hand. One big
+          scan button, then a plain list — the detail lives on desktop. */}
+      <div className="mobile-only">
+        <Link
+          href="/purchases/new"
+          className="btn btn-solid"
+          style={{ display: "flex", justifyContent: "center", padding: "16px 0", fontSize: 15, marginBottom: 14 }}
+        >
+          Scan a receipt
+        </Link>
+        <div className="panel">
+          <div className="panel-body">
+            {shown.length === 0 ? (
+              <div style={{ fontSize: 13, color: "var(--text-muted)", padding: "8px 0" }}>No purchases yet.</div>
+            ) : (
+              shown.map((p, i) => (
+                <Link
+                  key={p.id}
+                  href={`/purchases/${p.id}`}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 0", borderTop: i > 0 ? "1px solid var(--border-row)" : "none", fontSize: 14 }}
+                >
+                  <span style={{ color: "var(--text-bright)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {p.name}
+                  </span>
+                  {!p.proposalAppliedAt && p.proposalJson ? (
+                    <span className="badge" style={{ background: "var(--accent)", flexShrink: 0 }}>REVIEW</span>
+                  ) : null}
+                  <span style={{ color: "var(--text-muted)", fontSize: 12, flexShrink: 0 }}>{formatDate(p.purchaseDate)}</span>
+                  <span style={{ color: "var(--text-bright)", flexShrink: 0 }}>{formatCost(p.totalCost)}</span>
+                </Link>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="desktop-only">
       <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap", marginBottom: 18 }}>
         <div style={{ display: "flex", gap: 8, flex: 1, minWidth: 260 }}>
           <TableSearch basePath="/purchases" placeholder="Type 3+ letters to filter: name, vendor, order #, notes…" />
@@ -180,6 +216,7 @@ export default async function PurchasesPage({
             </div>
           ) : null}
         </div>
+      </div>
       </div>
     </>
   );

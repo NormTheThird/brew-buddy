@@ -15,7 +15,29 @@ this area again.
 
 ---
 
-## 2026-09-05 — Instrument calibration, schedule reality, chat that edits
+## 2026-09-05 — Snapshot lock, lifecycle card, phone-first pages
+
+Trey's issue list, same day:
+
+- **Batch ingredient snapshot locks once brewing starts** (status leaves
+  "planned"): remove buttons hidden AND deleteBatchIngredient refuses
+  server-side. Same principle as brewed recipes: the snapshot is history.
+  Additions stay allowed (bottling supplies land later); the panel heading
+  says "locked: this is history now".
+- **Active batch card follows the batch to the glass**: while fermenting it
+  shows "Bottling ~<date>" from the (adjustment-aware) bottling-gate task;
+  once conditioning it shows "In bottles day N of ~14 · First pour ~<date>"
+  with a green progress bar. A batch stays the active batch until completed
+  — "not complete till I can drink a beer".
+- **Phone views are task-oriented, not shrunken desktop** (new
+  .mobile-only/.desktop-only classes, ≤768px — iPads keep full tables):
+  Purchases on a phone is a big "Scan a receipt" button plus a plain list
+  (name, REVIEW badge for pending proposals, date, total); Stock is a
+  shopping list grouped by kind with total on hand per product (water shows
+  unlimited), no lots, no search, no chips. Desktop unchanged. Pattern for
+  future pages: render both views, CSS picks one.
+- Brew-day mode (timers/stopwatches, brief v2) is still NOT built; it's the
+  next major feature and should get its own session.
 
 Driven by Trey's SOLIGT calibration doc (RO water at 60F read 0.995) and
 "I need a way to talk to Claude with the batch and change the data."

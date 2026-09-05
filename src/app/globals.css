@@ -302,6 +302,21 @@ table.data td {
   gap: 10px;
 }
 
+/* Phone-first content swaps: a page renders BOTH a detailed desktop view and
+   a task-oriented phone view; these classes pick one. Phones only (≤768px) —
+   iPads keep the full tables under the tab bar. */
+.mobile-only {
+  display: none;
+}
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none;
+  }
+  .mobile-only {
+    display: block;
+  }
+}
+
 @media (max-width: 1024px) {
   .top-bar-logo {
     width: auto;

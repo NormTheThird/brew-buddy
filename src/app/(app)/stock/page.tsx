@@ -148,6 +148,44 @@ export default async function StockPage({
         subtitle="Ingredients, supplies, chemicals, water: tracked per purchase lot, in and out on quantity"
         actions={<Link href="/stock/new" className="btn btn-solid">+ Add purchase</Link>}
       />
+      {/* Phone: a shopping list, not a ledger. What's on hand grouped by
+          kind, totals only — lot numbers and history live on desktop. */}
+      <div className="mobile-only">
+        <div className="panel">
+          <div className="panel-body">
+            {groups.length === 0 ? (
+              <div style={{ fontSize: 13, color: "var(--text-muted)", padding: "8px 0" }}>
+                Nothing on hand.
+              </div>
+            ) : (
+              stockTypes
+                .filter((t) => groups.some((g) => g.type === t))
+                .map((t) => (
+                  <div key={t} style={{ paddingBottom: 6 }}>
+                    <div style={{ fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-muted)", padding: "12px 0 4px" }}>
+                      {typeLabels[t]}
+                    </div>
+                    {groups
+                      .filter((g) => g.type === t)
+                      .map((g) => {
+                        const onHand = g.lots.reduce((s, l) => s + l.quantityOnHand, 0);
+                        const unit = g.lots[0]?.unit ?? "";
+                        return (
+                          <div key={g.key} style={{ display: "flex", alignItems: "baseline", gap: 10, padding: "7px 0", borderTop: "1px solid var(--border-row)", fontSize: 14 }}>
+                            <span style={{ color: "var(--text-bright)", flex: 1, minWidth: 0 }}>{g.name}</span>
+                            <span style={{ color: onHand > 0 || t === "water" ? "var(--text-bright)" : "var(--danger)", flexShrink: 0 }}>
+                              {t === "water" ? "unlimited" : `${Math.round(onHand * 100) / 100} ${unit}`}
+                            </span>
+                          </div>
+                        );
+                      })}
+                  </div>
+                ))
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="desktop-only">
       <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap", alignItems: "center" }}>
         <FilterChip href={pageHref(filter, "available", q, size, 1)} label="Available" active={avail === "available"} />
         <FilterChip href={pageHref(filter, "used", q, size, 1)} label="Used" active={avail === "used"} />
@@ -220,6 +258,7 @@ export default async function StockPage({
             packet at 4.3% AA means weighing ~1.6 oz, not 1 oz, to hit the same IBU.
           </div>
         </div>
+      </div>
       </div>
     </>
   );

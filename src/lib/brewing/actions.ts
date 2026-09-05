@@ -784,7 +784,11 @@ export async function deleteBatchIngredient(formData: FormData): Promise<void> {
   const id = str(formData.get("id"));
   const batchId = str(formData.get("batchId"));
   if (id == null || batchId == null) return;
-  if (!ownedBatch(batchId, user.id)) return;
+  const batch = ownedBatch(batchId, user.id);
+  if (!batch) return;
+  // Once brewing starts the snapshot is history — same rule as brewed
+  // recipes. Corrections before brew day (status planned) are fine.
+  if (batch.status !== "planned") return;
   await db
     .delete(batchIngredients)
     .where(and(eq(batchIngredients.id, id), eq(batchIngredients.batchId, batchId)));

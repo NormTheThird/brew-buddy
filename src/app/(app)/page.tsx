@@ -78,6 +78,21 @@ export default async function DashboardPage() {
   const multiBatch = activeBatchList.length > 1;
   const day = active ? fermentationDay(active) : null;
   const activeBadge = active ? batchStatusBadge[active.status] : null;
+  // The batch isn't done until there's a beer in hand: surface bottling
+  // while fermenting, and days-in-bottle until the first pour after.
+  const activeTasks = active
+    ? nextActions(active, taskAdjustments.filter((t) => t.batchId === active.id))
+    : [];
+  const bottlingDue = activeTasks.find((a) => a.key === "bottling-gate")?.due ?? null;
+  const bottleDay =
+    active?.status === "conditioning" && active.bottledDate
+      ? Math.floor((Date.now() - active.bottledDate.getTime()) / (24 * 60 * 60 * 1000))
+      : null;
+  const firstPour = active?.bottledDate
+    ? new Date(active.bottledDate.getTime() + 14 * 24 * 60 * 60 * 1000)
+    : null;
+  const shortDate = (d: Date) =>
+    d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
   // Show gravities corrected by the calibrated hydrometer, same as the
   // batch page. gear is already this user's active equipment.
   const instrument = gear
@@ -111,6 +126,13 @@ export default async function DashboardPage() {
                 </div>
                 <div style={{ display: "flex", gap: 24, fontSize: 13, flexWrap: "wrap" }}>
                   {day != null && active.status === "fermenting" ? <span>Day {day} of ~14</span> : null}
+                  {active.status === "fermenting" && bottlingDue ? (
+                    <span style={{ color: "var(--text-muted)" }}>Bottling ~{shortDate(bottlingDue)}</span>
+                  ) : null}
+                  {bottleDay != null ? <span>In bottles day {bottleDay} of ~14</span> : null}
+                  {active.status === "conditioning" && firstPour ? (
+                    <span style={{ color: "var(--text-muted)" }}>First pour ~{shortDate(firstPour)}</span>
+                  ) : null}
                   {activeOgC != null ? (
                     <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       OG {activeOgC.toFixed(3)}{" "}
@@ -123,6 +145,10 @@ export default async function DashboardPage() {
                 {day != null && active.status === "fermenting" ? (
                   <div style={{ background: "var(--field)", borderRadius: 3, height: 8, overflow: "hidden", margin: "6px 0" }}>
                     <div style={{ background: "var(--accent)", height: 8, width: `${Math.min(100, Math.max(2, (day / 14) * 100))}%` }} />
+                  </div>
+                ) : bottleDay != null ? (
+                  <div style={{ background: "var(--field)", borderRadius: 3, height: 8, overflow: "hidden", margin: "6px 0" }}>
+                    <div style={{ background: "var(--success)", height: 8, width: `${Math.min(100, Math.max(2, (bottleDay / 14) * 100))}%` }} />
                   </div>
                 ) : null}
                 <div style={{ display: "flex", gap: 10 }}>

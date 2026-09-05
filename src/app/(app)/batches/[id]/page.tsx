@@ -299,7 +299,14 @@ export default async function BatchDetailPage({
           </div>
         </div>
         <div className="panel">
-          <div className="panel-heading">Ingredients as brewed</div>
+          <div className="panel-heading">
+            Ingredients as brewed
+            {b.status !== "planned" && ingredientRows.length > 0 ? (
+              <span style={{ fontSize: 11, color: "var(--text-faint)", fontWeight: 400 }}>
+                locked: this is history now
+              </span>
+            ) : null}
+          </div>
           <div className="panel-body">
             {ingredientRows.length === 0 ? (
               <div style={{ fontSize: 13, color: "var(--text-muted)" }}>No snapshot recorded.</div>
@@ -321,6 +328,7 @@ export default async function BatchDetailPage({
                           kit
                         </span>
                       ) : null}
+                      {b.status !== "planned" ? null : (
                       <form action={deleteBatchIngredient} className="form-inline">
                         <input type="hidden" name="id" value={ir.id} />
                         <input type="hidden" name="batchId" value={b.id} />
@@ -332,6 +340,7 @@ export default async function BatchDetailPage({
                           remove
                         </button>
                       </form>
+                      )}
                     </Row>
                   );
                 })}
