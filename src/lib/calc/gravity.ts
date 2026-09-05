@@ -30,12 +30,29 @@ export function correctForTemperature(
 }
 
 /**
- * Apply a per-instrument offset from a distilled-water-at-calibration test
- * (brief §10.1): a hydrometer reading 1.001 in distilled water has an
- * offset of +0.001, which must be subtracted from every reading.
+ * Apply a per-instrument offset from a water-at-calibration-temp test.
+ * Convention (matches the stored equipment.calibrationOffset): the offset is
+ * ADDED to every raw reading. A hydrometer showing 0.995 in 60°F RO water
+ * reads 5 points low, so its offset is +0.005.
  */
 export function applyInstrumentOffset(reading: number, offset: number): number {
-  return reading - offset;
+  return reading + offset;
+}
+
+/** The full correction an instrument-aware display uses: raw + instrument
+    offset, then temperature vs the scale's calibration temp. Raw readings
+    are stored untouched; this always runs at display time. */
+export function correctedSg(
+  raw: number,
+  sampleTempF: number | null,
+  instrument?: { calibrationOffset: number | null; calibrationTempF: number | null } | null
+): number {
+  const offset = instrument?.calibrationOffset ?? 0;
+  const calTemp = instrument?.calibrationTempF ?? 60;
+  const withOffset = raw + offset;
+  return sampleTempF != null
+    ? correctForTemperature(withOffset, sampleTempF, calTemp)
+    : withOffset;
 }
 
 /** Gravity points from fermentables: Σ(lbs × PPG) / volumeGal (brief §4). */

@@ -50,12 +50,14 @@ describe("correctForTemperature", () => {
 });
 
 describe("applyInstrumentOffset", () => {
-  it("subtracts the distilled-water offset from a reading", () => {
-    expect(applyInstrumentOffset(1.041, 0.001)).toBeCloseTo(1.04, 6);
+  // Convention: the offset is ADDED. An instrument showing 0.995 in 60°F
+  // water reads low; its offset is +0.005 (Trey's SOLIGT calibration).
+  it("adds the offset for an instrument that reads low", () => {
+    expect(applyInstrumentOffset(1.006, 0.005)).toBeCloseTo(1.011, 6);
   });
 
-  it("handles a negative offset (instrument reads low)", () => {
-    expect(applyInstrumentOffset(1.041, -0.001)).toBeCloseTo(1.042, 6);
+  it("handles a negative offset (instrument reads high)", () => {
+    expect(applyInstrumentOffset(1.041, -0.001)).toBeCloseTo(1.04, 6);
   });
 });
 

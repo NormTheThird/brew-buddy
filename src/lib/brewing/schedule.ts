@@ -1,4 +1,4 @@
-import type { Batch } from "@/lib/db/schema";
+import type { Batch, BatchTask } from "@/lib/db/schema";
 
 /* Next-up actions derived from batch state and dates — brief §6 v3's schedule,
    in its simplest useful form. Fermentation plan from the brief: raise temp
@@ -23,14 +23,20 @@ function todayDay(now: Date): number {
   return Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / DAY;
 }
 
-export function nextActions(batch: Batch, now = new Date()): NextAction[] {
+/** Derived plan + reality: rows with a taskKey override that derived task's
+    due date (and label); rows without one are custom tasks appended under
+    key "custom:<id>". Chat proposals and future UI both write batch_tasks. */
+export function nextActions(
+  batch: Batch,
+  adjustments: BatchTask[] = [],
+  now = new Date()
+): NextAction[] {
   const actions: NextAction[] = [];
   const mark = (key: string, label: string, due: Date) =>
     actions.push({ key, label, due, overdue: dueDay(due) < todayDay(now) });
 
-  if (batch.status === "planned") {
-    if (batch.brewDate) mark("brew-day", "Brew day", batch.brewDate);
-    return actions;
+  if (batch.status === "planned" && batch.brewDate) {
+    mark("brew-day", "Brew day", batch.brewDate);
   }
 
   if (batch.status === "fermenting" && batch.brewDate) {
@@ -47,6 +53,20 @@ export function nextActions(batch: Batch, now = new Date()): NextAction[] {
     mark("tasting-4w", "Tasting notes: 4 weeks", addDays(d, 28));
     mark("tasting-8w", "Tasting notes: 8 weeks", addDays(d, 56));
   }
+
+  for (const adj of adjustments) {
+    if (adj.taskKey) {
+      const target = actions.find((a) => a.key === adj.taskKey);
+      if (target) {
+        target.due = adj.dueAt;
+        target.overdue = dueDay(adj.dueAt) < todayDay(now);
+        if (adj.label) target.label = adj.label;
+        continue;
+      }
+    }
+    mark(`custom:${adj.id}`, adj.label ?? "Task", adj.dueAt);
+  }
+  actions.sort((a, b) => a.due.getTime() - b.due.getTime());
 
   return actions.filter((a) => a.due.getTime() > now.getTime() - 30 * DAY);
 }

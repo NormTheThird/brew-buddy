@@ -2,7 +2,12 @@
 
 import { useRef } from "react";
 import { useActionState } from "react";
-import { askBatch, logCheckinReading, type BatchChatState } from "@/lib/brewing/actions";
+import {
+  askBatch,
+  applyCheckinAction,
+  logCheckinReading,
+  type BatchChatState,
+} from "@/lib/brewing/actions";
 
 /** Serialized check-in for the client (dates as preformatted strings). */
 export type CheckinView = {
@@ -11,12 +16,16 @@ export type CheckinView = {
   reply: string;
   when: string;
   hasPhoto: boolean;
+  /** v2 change proposals, pre-described server-side. */
+  actions: { index: number; text: string; applied: boolean }[];
+  /** v1 rows: a single reading proposal. */
   proposal: { value: number; tempF?: number; stage?: string } | null;
   logged: boolean;
 };
 
-/** "Talk to this batch": running conversation plus the ask box. A photo is
-    optional but the point — hydrometer in the jar, krausen, a pour. */
+/** "Talk to this batch": running conversation plus the ask box. Claude can
+    propose changes (log or fix a reading, move or add a task, correct a
+    field); each renders as a button and nothing applies without a click. */
 export function BatchChat({ batchId, checkins }: { batchId: string; checkins: CheckinView[] }) {
   const [state, formAction, pending] = useActionState<BatchChatState, FormData>(askBatch, {});
   const fileRef = useRef<HTMLInputElement>(null);
@@ -28,7 +37,8 @@ export function BatchChat({ batchId, checkins }: { batchId: string; checkins: Ch
       </div>
       <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 14 }}>
         Snap the hydrometer, the krausen, a pour. Claude answers with this
-        batch&apos;s recipe, day, and readings in mind, and can log what it reads.
+        batch&apos;s recipe, day, readings, and schedule in mind, and can propose
+        fixes (move a task, log or correct a reading) that you approve.
       </div>
 
       {checkins.map((c) => (
@@ -55,6 +65,22 @@ export function BatchChat({ batchId, checkins }: { batchId: string; checkins: Ch
           <div style={{ whiteSpace: "pre-wrap", marginTop: 4, color: "var(--text-bright)" }}>
             {c.reply}
           </div>
+          {c.actions.map((a) => (
+            <div key={a.index} style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+              <span style={{ color: "var(--text-muted)", fontSize: 12 }}>{a.text}</span>
+              {a.applied ? (
+                <span style={{ color: "var(--success)", fontSize: 12 }}>applied ✓</span>
+              ) : (
+                <form action={applyCheckinAction} className="form-inline">
+                  <input type="hidden" name="checkinId" value={c.id} />
+                  <input type="hidden" name="index" value={a.index} />
+                  <button type="submit" className="btn" style={{ padding: "2px 12px", fontSize: 12 }}>
+                    Apply
+                  </button>
+                </form>
+              )}
+            </div>
+          ))}
           {c.proposal ? (
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
               <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
@@ -85,7 +111,7 @@ export function BatchChat({ batchId, checkins }: { batchId: string; checkins: Ch
             className="field"
             rows={2}
             required
-            placeholder='What&apos;s happening? e.g. "Day 10 gravity reading, does this look done?"'
+            placeholder='What&apos;s happening? e.g. "Move the confirm reading to Sunday and add a cold crash after"'
             style={{ width: "100%", resize: "vertical" }}
           />
         </div>
@@ -106,7 +132,7 @@ export function BatchChat({ batchId, checkins }: { batchId: string; checkins: Ch
         </div>
         {pending ? (
           <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-            Reading the photo against this batch&apos;s history; usually 10 to 30 seconds.
+            Reading this against the batch&apos;s history; usually 10 to 30 seconds.
           </div>
         ) : null}
         {state.error ? (

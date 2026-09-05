@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { batches, taskCompletions } from "@/lib/db/schema";
+import { batches, batchTasks, taskCompletions } from "@/lib/db/schema";
 import { completeTask } from "@/lib/brewing/actions";
 import { isDue, nextActions } from "@/lib/brewing/schedule";
 
@@ -26,8 +26,14 @@ export async function DueTasksBanner({ userId }: { userId: string }) {
       .map((c) => `${c.batchId}|${c.taskKey}`)
   );
 
+  const adjustments = db
+    .select()
+    .from(batchTasks)
+    .where(inArray(batchTasks.batchId, activeBatches.map((b) => b.id)))
+    .all();
+
   const due = activeBatches.flatMap((b) =>
-    nextActions(b)
+    nextActions(b, adjustments.filter((t) => t.batchId === b.id))
       .filter((a) => isDue(a) && !done.has(`${b.id}|${a.key}`))
       .map((a) => ({ batch: b, action: a }))
   );

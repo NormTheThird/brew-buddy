@@ -12,6 +12,7 @@ import {
   batchCheckins,
   batchIngredients,
   batchStatuses,
+  batchTasks,
   equipment,
   gravityReadings,
   stock,
@@ -26,7 +27,13 @@ import {
 import { getCurrentUser } from "@/lib/auth/session";
 import { parseBeerXml } from "./beerxml";
 import { suggestRecipes, type SuggestedRecipe } from "./recipe-ai";
-import { askBatchAi, isSupportedCheckinPhoto, type ProposedReading } from "./batch-chat";
+import {
+  askBatchAi,
+  isSupportedCheckinPhoto,
+  type ProposedAction,
+  type ProposedReading,
+} from "./batch-chat";
+import { nextActions } from "./schedule";
 import { aiRuntime, userHasAiAccess } from "@/lib/ai/runtime";
 
 export type FormState = { error?: string };
@@ -841,11 +848,34 @@ export async function askBatch(
     .orderBy(asc(batchCheckins.createdAt))
     .all()
     .slice(-8); // recent context is plenty; the full log stays on the page
+  const instrument = calibratedInstrument(user.id);
+  const taskRows = db
+    .select()
+    .from(batchTasks)
+    .where(eq(batchTasks.batchId, batchId))
+    .all();
+  const doneKeys = new Set(
+    db
+      .select({ taskKey: taskCompletions.taskKey })
+      .from(taskCompletions)
+      .where(eq(taskCompletions.batchId, batchId))
+      .all()
+      .map((c) => c.taskKey)
+  );
+  const tasks = nextActions(batch, taskRows).map((a) => ({
+    ...a,
+    done: doneKeys.has(a.key),
+  }));
 
   let result;
   try {
     const rt = aiRuntime(user, "batch_chat");
-    result = await askBatchAi(rt, batch, recipe, readings, prior, note, photo);
+    result = await askBatchAi(
+      rt,
+      { batch, recipe, readings, prior, instrument, tasks },
+      note,
+      photo
+    );
   } catch (e) {
     console.error("[batch-chat] failed:", e);
     return { error: e instanceof Error ? e.message : "Claude could not answer. Try again." };
@@ -865,10 +895,150 @@ export async function askBatch(
     photoPath,
     photoMime: photo?.mime ?? null,
     reply: result.reply,
-    proposedReadingJson: result.reading ? JSON.stringify(result.reading) : null,
+    proposedActionsJson: result.actions.length ? JSON.stringify(result.actions) : null,
   });
   revalidatePath(`/batches/${batchId}`);
   return {};
+}
+
+/** The user's calibrated hydrometer, newest test first. One-instrument
+    assumption: Trey owns one hydrometer; readings don't carry an
+    instrument FK until a second one shows up. */
+function calibratedInstrument(userId: string) {
+  return db
+    .select()
+    .from(equipment)
+    .where(and(eq(equipment.userId, userId), eq(equipment.status, "active")))
+    .all()
+    .filter((g) => g.calibrationOffset != null)
+    .sort(
+      (a, b) => (b.lastCalibratedAt?.getTime() ?? 0) - (a.lastCalibratedAt?.getTime() ?? 0)
+    )[0];
+}
+
+/** Apply ONE proposed change from a check-in, by index. Every kind
+    revalidates the batch page; schedule changes also refresh the banner. */
+export async function applyCheckinAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const checkinId = str(formData.get("checkinId"));
+  const index = int(formData.get("index"));
+  if (checkinId == null || index == null) return;
+  const checkin = db
+    .select()
+    .from(batchCheckins)
+    .where(and(eq(batchCheckins.id, checkinId), eq(batchCheckins.userId, user.id)))
+    .all()[0];
+  if (!checkin?.proposedActionsJson) return;
+  const actions = JSON.parse(checkin.proposedActionsJson) as ProposedAction[];
+  const applied: number[] = checkin.appliedActionsJson
+    ? JSON.parse(checkin.appliedActionsJson)
+    : [];
+  const action = actions[index];
+  if (!action || applied.includes(index)) return;
+  const batchId = checkin.batchId;
+  if (!ownedBatch(batchId, user.id)) return;
+
+  const day = (iso: string) => new Date(iso); // YYYY-MM-DD parses as UTC midnight
+
+  switch (action.kind) {
+    case "add_reading":
+      await db.insert(gravityReadings).values({
+        batchId,
+        takenAt: action.dateISO ? day(action.dateISO) : checkin.createdAt,
+        value: action.value,
+        tempF: action.tempF ?? null,
+        stage: action.stage ?? "fermentation",
+      });
+      break;
+    case "update_reading": {
+      const owned = db
+        .select()
+        .from(gravityReadings)
+        .where(and(eq(gravityReadings.id, action.readingId), eq(gravityReadings.batchId, batchId)))
+        .all()[0];
+      if (!owned) return;
+      await db
+        .update(gravityReadings)
+        .set({
+          ...(action.value != null ? { value: action.value } : {}),
+          ...(action.tempF != null ? { tempF: action.tempF } : {}),
+          ...(action.stage ? { stage: action.stage } : {}),
+          ...(action.dateISO ? { takenAt: day(action.dateISO) } : {}),
+        })
+        .where(eq(gravityReadings.id, action.readingId));
+      break;
+    }
+    case "move_task": {
+      if (action.taskKey.startsWith("custom:")) {
+        const id = action.taskKey.slice("custom:".length);
+        await db
+          .update(batchTasks)
+          .set({ dueAt: day(action.dueISO), ...(action.label ? { label: action.label } : {}) })
+          .where(and(eq(batchTasks.id, id), eq(batchTasks.batchId, batchId)));
+      } else {
+        const existing = db
+          .select()
+          .from(batchTasks)
+          .where(and(eq(batchTasks.batchId, batchId), eq(batchTasks.taskKey, action.taskKey)))
+          .all()[0];
+        if (existing) {
+          await db
+            .update(batchTasks)
+            .set({ dueAt: day(action.dueISO), ...(action.label ? { label: action.label } : {}) })
+            .where(eq(batchTasks.id, existing.id));
+        } else {
+          await db.insert(batchTasks).values({
+            batchId,
+            userId: user.id,
+            taskKey: action.taskKey,
+            label: action.label ?? null,
+            dueAt: day(action.dueISO),
+          });
+        }
+      }
+      break;
+    }
+    case "add_task":
+      await db.insert(batchTasks).values({
+        batchId,
+        userId: user.id,
+        taskKey: null,
+        label: action.label,
+        dueAt: day(action.dueISO),
+      });
+      break;
+    case "update_batch": {
+      const v = action.value;
+      const set: Partial<typeof batches.$inferInsert> = {};
+      if (action.field === "og" || action.field === "fg") {
+        const n = Number(v);
+        if (!Number.isFinite(n) || n <= 0.9 || n >= 1.2) return;
+        set[action.field] = n;
+      } else if (action.field === "ogTempF" || action.field === "fgTempF") {
+        const n = Number(v);
+        if (!Number.isFinite(n)) return;
+        set[action.field] = n;
+      } else if (action.field === "brewDate" || action.field === "bottledDate") {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+        set[action.field] = day(v);
+      } else if (action.field === "status") {
+        if (!(batchStatuses as readonly string[]).includes(v)) return;
+        set.status = v as (typeof batchStatuses)[number];
+      } else {
+        return;
+      }
+      await db.update(batches).set(set).where(eq(batches.id, batchId));
+      break;
+    }
+  }
+
+  await db
+    .update(batchCheckins)
+    .set({ appliedActionsJson: JSON.stringify([...applied, index]) })
+    .where(eq(batchCheckins.id, checkinId));
+  // Schedule and gravity both surface in the layout banner and dashboard.
+  revalidatePath("/", "layout");
+  revalidatePath(`/batches/${batchId}`);
 }
 
 /** Log the gravity value Claude read off a check-in photo as a real reading.

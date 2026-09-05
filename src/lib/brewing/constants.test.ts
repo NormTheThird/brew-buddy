@@ -73,13 +73,46 @@ describe("schedule", () => {
   it("computes fermentation day and upcoming actions", () => {
     const now = new Date("2026-08-26");
     expect(fermentationDay(brewed, now)).toBe(3);
-    const actions = nextActions(brewed, now);
+    const actions = nextActions(brewed, [], now);
     expect(actions[0].label).toContain("day 4");
     expect(actions[0].overdue).toBe(false);
   });
 
   it("marks past actions overdue", () => {
-    const actions = nextActions(brewed, new Date("2026-09-10"));
+    const actions = nextActions(brewed, [], new Date("2026-09-10"));
     expect(actions.find((a) => a.label.includes("day 10"))!.overdue).toBe(true);
+  });
+
+  const adj = (over: Partial<import("@/lib/db/schema").BatchTask>) => ({
+    id: "t1",
+    batchId: "b1",
+    userId: "u1",
+    taskKey: null as string | null,
+    label: null as string | null,
+    dueAt: new Date("2026-09-07"),
+    createdAt: new Date(),
+    ...over,
+  });
+
+  it("overrides a derived task's due date", () => {
+    const actions = nextActions(
+      brewed,
+      [adj({ taskKey: "reading-d13" })],
+      new Date("2026-09-05")
+    );
+    const moved = actions.find((a) => a.key === "reading-d13")!;
+    expect(moved.due.toISOString().slice(0, 10)).toBe("2026-09-07");
+    expect(moved.overdue).toBe(false);
+  });
+
+  it("appends a custom task under a stable key", () => {
+    const actions = nextActions(
+      brewed,
+      [adj({ label: "Cold crash at 34°F" })],
+      new Date("2026-09-05")
+    );
+    const custom = actions.find((a) => a.key === "custom:t1")!;
+    expect(custom.label).toBe("Cold crash at 34°F");
+    expect(custom.due.toISOString().slice(0, 10)).toBe("2026-09-07");
   });
 });

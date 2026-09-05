@@ -1,23 +1,39 @@
 "use client";
 
 import { useState } from "react";
-import { abv, apparentAttenuation, applyInstrumentOffset, correctForTemperature } from "@/lib/calc/gravity";
+import { abv, apparentAttenuation, correctForTemperature } from "@/lib/calc/gravity";
 
-/* Client-side gravity calculator — same pure functions the server uses. */
-export function GravityCalc({ og }: { og?: number | null }) {
+/* Client-side gravity calculator — same pure functions the server uses.
+   Offset convention: ADDED to the raw reading (an instrument showing 0.995
+   in calibration-temp water has offset +0.005). When a calibrated
+   instrument exists its offset is prefilled. */
+export function GravityCalc({
+  og,
+  defaultOffset,
+  instrumentName,
+  calibrationTempF,
+}: {
+  og?: number | null;
+  defaultOffset?: number | null;
+  instrumentName?: string | null;
+  calibrationTempF?: number | null;
+}) {
   const [reading, setReading] = useState("");
   const [tempF, setTempF] = useState("");
-  const [offset, setOffset] = useState("0");
+  const [offset, setOffset] = useState(defaultOffset != null ? String(defaultOffset) : "0");
 
   const r = Number(reading);
   const t = Number(tempF);
   const o = Number(offset);
+  const calT = calibrationTempF ?? 60;
   const valid = Number.isFinite(r) && r > 0.9 && r < 1.2;
   const corrected = valid
-    ? applyInstrumentOffset(
-        Number.isFinite(t) && t > 0 ? correctForTemperature(r, t) : r,
-        Number.isFinite(o) ? o : 0
-      )
+    ? (() => {
+        const withOffset = r + (Number.isFinite(o) ? o : 0);
+        return Number.isFinite(t) && t > 0
+          ? correctForTemperature(withOffset, t, calT)
+          : withOffset;
+      })()
     : null;
   const abvVal = corrected != null && og != null ? abv(og, corrected) : null;
   const atten = corrected != null && og != null && og > 1 ? apparentAttenuation(og, corrected) : null;
@@ -61,8 +77,9 @@ export function GravityCalc({ og }: { og?: number | null }) {
         )}
       </div>
       <div style={{ fontSize: 12, color: "var(--text-faint)" }}>
-        Standard cubic correction, 60°F calibration. Offset from a distilled-water test —
-        your SOLIGT is uncalibrated until then.
+        {instrumentName && defaultOffset != null
+          ? `Standard cubic correction, ${calT}°F calibration. Offset ${defaultOffset >= 0 ? "+" : ""}${defaultOffset.toFixed(3)} prefilled from ${instrumentName}'s water test; the offset is added to the raw reading.`
+          : "Standard cubic correction, 60°F calibration. Offset comes from reading RO water at calibration temp; calibrate your hydrometer on its Equipment page to prefill it."}
       </div>
     </div>
   );

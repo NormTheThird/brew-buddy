@@ -1,23 +1,51 @@
 import { logAiUsage, type AiRuntime } from "@/lib/ai/runtime";
-import type { Batch, BatchCheckin, GravityReading, Recipe } from "@/lib/db/schema";
-import { fermentationDay } from "./schedule";
+import type { Batch, BatchCheckin, Equipment, GravityReading, Recipe } from "@/lib/db/schema";
+import { fermentationDay, type NextAction } from "./schedule";
 
 /* "Talk to this batch": Trey sends a note and usually a photo (hydrometer in
    the test jar, krausen through the fermenter wall, a bottle held to the
    light) and Claude answers IN THE CONTEXT of this batch — recipe targets,
-   brew day, readings so far, and the previous exchanges. If the photo shows
-   an instrument reading, Claude also returns it structured so one click can
-   log it as a real gravity reading. */
+   brew day, readings so far, schedule, and the previous exchanges.
 
-export type ProposedReading = {
-  value: number; // raw hydrometer reading as seen, e.g. 1.014
-  tempF?: number;
-  stage?: string; // og | fermentation | fg
-};
+   Claude can also PROPOSE CHANGES: log or fix a gravity reading, move or add
+   a schedule task, correct a batch field. Each proposal renders as a button;
+   nothing is ever applied without a click. */
+
+/** Legacy shape stored in proposedReadingJson by v1 check-in rows. */
+export type ProposedReading = { value: number; tempF?: number; stage?: string };
+
+export type ProposedAction =
+  | { kind: "add_reading"; value: number; tempF?: number; stage?: string; dateISO?: string }
+  | { kind: "update_reading"; readingId: string; value?: number; tempF?: number; stage?: string; dateISO?: string }
+  | { kind: "move_task"; taskKey: string; dueISO: string; label?: string }
+  | { kind: "add_task"; label: string; dueISO: string }
+  | { kind: "update_batch"; field: BatchField; value: string };
+
+export const BATCH_FIELDS = [
+  "og",
+  "ogTempF",
+  "fg",
+  "fgTempF",
+  "brewDate",
+  "bottledDate",
+  "status",
+] as const;
+export type BatchField = (typeof BATCH_FIELDS)[number];
 
 export type BatchChatResult = {
   reply: string;
-  reading?: ProposedReading;
+  actions: ProposedAction[];
+};
+
+export type TaskContext = NextAction & { done: boolean };
+
+export type BatchChatContext = {
+  batch: Batch;
+  recipe?: Recipe;
+  readings: GravityReading[];
+  prior: BatchCheckin[];
+  instrument?: Equipment;
+  tasks: TaskContext[];
 };
 
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"] as const;
@@ -31,12 +59,8 @@ function fmtDate(d: Date | null): string {
   return d ? d.toISOString().slice(0, 10) : "unknown";
 }
 
-function batchContext(
-  batch: Batch,
-  recipe: Recipe | undefined,
-  readings: GravityReading[],
-  prior: BatchCheckin[]
-): string {
+function batchContext(ctx: BatchChatContext): string {
+  const { batch, recipe, readings, prior, instrument, tasks } = ctx;
   const day = fermentationDay(batch);
   const lines: string[] = [
     `Batch #${batch.batchNumber}: ${batch.recipeName}`,
@@ -52,21 +76,37 @@ function batchContext(
     if (recipe.targetIBU) t.push(`target IBU ${recipe.targetIBU}`);
     if (t.length) lines.push(`Recipe: ${t.join(", ")}.`);
   }
+  if (instrument?.calibrationOffset != null) {
+    lines.push(
+      `Hydrometer: ${instrument.name} reads ${Math.abs(instrument.calibrationOffset).toFixed(3)} ` +
+        `${instrument.calibrationOffset >= 0 ? "low" : "high"}; ADD ${instrument.calibrationOffset >= 0 ? "+" : ""}${instrument.calibrationOffset.toFixed(3)} ` +
+        `to every raw reading (calibrated ${fmtDate(instrument.lastCalibratedAt)}, ${instrument.calibrationTempF ?? 60}F scale). ` +
+        `All gravity values below are RAW.`
+    );
+  }
   if (batch.og != null)
     lines.push(
-      `Measured OG: ${batch.og.toFixed(3)}` +
+      `Measured OG (raw): ${batch.og.toFixed(3)}` +
         (batch.ogTempF != null ? ` at ${batch.ogTempF}F` : "") +
         `.`
     );
-  if (batch.fg != null) lines.push(`Measured FG: ${batch.fg.toFixed(3)}.`);
+  if (batch.fg != null) lines.push(`Measured FG (raw): ${batch.fg.toFixed(3)}.`);
   if (batch.pitchTempF != null) lines.push(`Pitched at ${batch.pitchTempF}F.`);
   if (readings.length) {
-    lines.push("Gravity readings so far:");
+    lines.push("Gravity readings so far (raw values, with ids):");
     for (const r of readings) {
       lines.push(
-        `- ${fmtDate(r.takenAt)}: ${r.value.toFixed(3)}` +
+        `- [${r.id}] ${fmtDate(r.takenAt)}: ${r.value.toFixed(3)}` +
           (r.tempF != null ? ` at ${r.tempF}F` : "") +
           (r.stage ? ` (${r.stage})` : "")
+      );
+    }
+  }
+  if (tasks.length) {
+    lines.push("Schedule tasks (with keys):");
+    for (const t of tasks) {
+      lines.push(
+        `- [${t.key}] ${t.label}: due ${fmtDate(t.due)}${t.done ? " (done)" : t.overdue ? " (overdue)" : ""}`
       );
     }
   }
@@ -82,7 +122,8 @@ function batchContext(
 }
 
 function buildPrompt(context: string, note: string, hasPhoto: boolean): string {
-  return `You are a hands-on homebrewing assistant watching over ONE batch. Here is everything known about it:
+  const today = new Date().toISOString().slice(0, 10);
+  return `You are a hands-on homebrewing assistant watching over ONE batch (today is ${today}). Here is everything known about it:
 
 ${context}
 
@@ -91,30 +132,35 @@ The brewer just checked in${hasPhoto ? " with the attached photo" : ""}:
 
 Answer as a knowledgeable brewing friend standing next to the fermenter:
 - ${hasPhoto ? "Describe what the photo actually shows first, then interpret it." : "Interpret what they report."}
-- If a hydrometer or other instrument is visible, read it carefully (read the meniscus low). Apply temperature correction when a sample temperature is known or visible, and say both raw and corrected values.
+- If a hydrometer or other instrument is visible, read it carefully (read the meniscus low). Apply the instrument offset and temperature correction where known, and say both raw and corrected values.
 - Compare against this batch's targets and prior readings: on track, ahead, stalled, or concerning. Attenuation and estimated ABV where meaningful.
-- Say what to do next and when (e.g. "take another reading in 3 days; if it is still 1.014 it is done").
+- Say what to do next and when.
 - Mention anything in the photo that looks off (infection signs, oxidation risk, headspace, temperature) but do not invent problems.
 - Plain text, short paragraphs, no markdown headings, no em dashes. Keep it under ~250 words.
+
+You may also PROPOSE CHANGES to the batch's data when the brewer asks for them or they clearly follow (a reading to log, a date that is wrong, a task to move or add). Proposals are shown as buttons the brewer approves one by one, so propose exactly what they asked for, nothing speculative. Gravity values in proposals are always RAW (as the instrument showed); the app applies corrections itself.
+
+Action kinds:
+- {"kind":"add_reading","value":1.006,"tempF":70,"stage":"og|fermentation|fg","dateISO":"YYYY-MM-DD"} log a new reading (dateISO defaults to today)
+- {"kind":"update_reading","readingId":"<id from the list>","value":1.006,"tempF":70,"stage":"fg","dateISO":"YYYY-MM-DD"} fix an existing reading; include only the fields to change
+- {"kind":"move_task","taskKey":"<key from the list>","dueISO":"YYYY-MM-DD","label":"optional new label"} move a schedule task
+- {"kind":"add_task","label":"Cold crash at 34F","dueISO":"YYYY-MM-DD"} add a task to the schedule
+- {"kind":"update_batch","field":"og|ogTempF|fg|fgTempF|brewDate|bottledDate|status","value":"1.036 or YYYY-MM-DD or planned|fermenting|conditioning|completed"} correct a batch field
 
 Return ONLY a JSON object, no other text. Escape newlines inside strings as \\n:
 {
   "reply": "your answer to the brewer",
-  "reading": { "value": 1.014, "tempF": 68, "stage": "fermentation" } or null
-}
-"reading" is ONLY for a number you actually read off an instrument in the photo (raw, uncorrected). Use stage "og" before/at pitch, "fg" if fermentation looks finished, else "fermentation". Omit tempF unless a thermometer value is visible or stated. If there is no instrument in the photo, or no photo, reading is null.`;
+  "actions": [ ...zero or more action objects... ]
+}`;
 }
 
 export async function askBatchAi(
   rt: AiRuntime,
-  batch: Batch,
-  recipe: Recipe | undefined,
-  readings: GravityReading[],
-  prior: BatchCheckin[],
+  ctx: BatchChatContext,
   note: string,
   photo?: { bytes: Buffer; mime: CheckinImageType }
 ): Promise<BatchChatResult> {
-  const prompt = buildPrompt(batchContext(batch, recipe, readings, prior), note, Boolean(photo));
+  const prompt = buildPrompt(batchContext(ctx), note, Boolean(photo));
   const content: (
     | { type: "text"; text: string }
     | { type: "image"; source: { type: "base64"; media_type: CheckinImageType; data: string } }
@@ -150,7 +196,7 @@ export async function askBatchAi(
   }
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("No JSON found in the model response.");
-  let p: { reply?: unknown; reading?: unknown };
+  let p: { reply?: unknown; actions?: unknown };
   try {
     p = JSON.parse(jsonMatch[0]);
   } catch {
@@ -166,17 +212,89 @@ export async function askBatchAi(
   const reply = typeof p.reply === "string" && p.reply.trim() ? p.reply.trim() : null;
   if (!reply) throw new Error("The model returned no reply text.");
 
-  let reading: ProposedReading | undefined;
-  if (p.reading && typeof p.reading === "object") {
-    const r = p.reading as Record<string, unknown>;
-    const value = typeof r.value === "number" && r.value > 0.9 && r.value < 1.2 ? r.value : null;
-    if (value != null) {
-      reading = {
-        value,
-        tempF: typeof r.tempF === "number" && Number.isFinite(r.tempF) ? r.tempF : undefined,
-        stage: typeof r.stage === "string" && r.stage.trim() ? r.stage.trim() : undefined,
-      };
+  const actions: ProposedAction[] = [];
+  if (Array.isArray(p.actions)) {
+    for (const raw of p.actions) {
+      const a = sanitizeAction(raw);
+      if (a) actions.push(a);
     }
   }
-  return { reply, reading };
+  return { reply, actions: actions.slice(0, 8) };
+}
+
+const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
+const strv = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
+const dateISO = (v: unknown) => {
+  const s = strv(v);
+  return s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : undefined;
+};
+const sg = (v: unknown) => {
+  const n = num(v);
+  return n != null && n > 0.9 && n < 1.2 ? n : undefined;
+};
+
+function sanitizeAction(raw: unknown): ProposedAction | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  switch (r.kind) {
+    case "add_reading": {
+      const value = sg(r.value);
+      if (value == null) return null;
+      return { kind: "add_reading", value, tempF: num(r.tempF), stage: strv(r.stage), dateISO: dateISO(r.dateISO) };
+    }
+    case "update_reading": {
+      const readingId = strv(r.readingId);
+      if (!readingId) return null;
+      const a: ProposedAction = { kind: "update_reading", readingId };
+      a.value = sg(r.value);
+      a.tempF = num(r.tempF);
+      a.stage = strv(r.stage);
+      a.dateISO = dateISO(r.dateISO);
+      if (a.value == null && a.tempF == null && !a.stage && !a.dateISO) return null;
+      return a;
+    }
+    case "move_task": {
+      const taskKey = strv(r.taskKey);
+      const due = dateISO(r.dueISO);
+      if (!taskKey || !due) return null;
+      return { kind: "move_task", taskKey, dueISO: due, label: strv(r.label) };
+    }
+    case "add_task": {
+      const label = strv(r.label);
+      const due = dateISO(r.dueISO);
+      if (!label || !due) return null;
+      return { kind: "add_task", label, dueISO: due };
+    }
+    case "update_batch": {
+      const field = strv(r.field) as BatchField | undefined;
+      const value = strv(r.value) ?? (num(r.value) != null ? String(r.value) : undefined);
+      if (!field || !BATCH_FIELDS.includes(field) || value == null) return null;
+      return { kind: "update_batch", field, value };
+    }
+    default:
+      return null;
+  }
+}
+
+/** One human line per action, for the Apply button row. */
+export function describeAction(a: ProposedAction): string {
+  switch (a.kind) {
+    case "add_reading":
+      return `Log reading ${a.value.toFixed(3)}${a.tempF != null ? ` at ${a.tempF}F` : ""}${a.stage ? ` (${a.stage})` : ""}${a.dateISO ? ` on ${a.dateISO}` : ""}`;
+    case "update_reading": {
+      const parts = [
+        a.value != null ? `value ${a.value.toFixed(3)}` : null,
+        a.tempF != null ? `${a.tempF}F` : null,
+        a.stage ? `stage ${a.stage}` : null,
+        a.dateISO ? `date ${a.dateISO}` : null,
+      ].filter(Boolean);
+      return `Fix reading: ${parts.join(", ")}`;
+    }
+    case "move_task":
+      return `Move "${a.label ?? a.taskKey}" to ${a.dueISO}`;
+    case "add_task":
+      return `Add task "${a.label}" on ${a.dueISO}`;
+    case "update_batch":
+      return `Set ${a.field} to ${a.value}`;
+  }
 }

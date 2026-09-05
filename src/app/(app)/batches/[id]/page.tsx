@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { batches, batchCheckins, batchIngredients, gravityReadings, purchases, stock } from "@/lib/db/schema";
+import { batches, batchCheckins, batchIngredients, equipment, gravityReadings, purchases, stock } from "@/lib/db/schema";
 import { requireUser } from "@/lib/auth/session";
 import {
   addGravityReading,
@@ -13,7 +13,8 @@ import {
   useStockInBatch,
 } from "@/lib/brewing/actions";
 import { isEstimated, batchStatusBadge, methodLabels } from "@/lib/brewing/display";
-import { abv, apparentAttenuation, correctForTemperature } from "@/lib/calc/gravity";
+import { abv, apparentAttenuation, correctedSg } from "@/lib/calc/gravity";
+import { describeAction, type ProposedAction } from "@/lib/brewing/batch-chat";
 import { PageHeader } from "@/components/page-header";
 import { LayersIcon } from "@/components/icons";
 import { DeleteButton } from "@/components/delete-button";
@@ -73,15 +74,36 @@ export default async function BatchDetailPage({
     .where(eq(batchCheckins.batchId, b.id))
     .all()
     .sort((a, c) => a.createdAt.getTime() - c.createdAt.getTime())
-    .map((c) => ({
-      id: c.id,
-      note: c.note,
-      reply: c.reply,
-      when: c.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-      hasPhoto: Boolean(c.photoPath),
-      proposal: c.proposedReadingJson ? JSON.parse(c.proposedReadingJson) : null,
-      logged: Boolean(c.loggedReadingId),
-    }));
+    .map((c) => {
+      const proposed: ProposedAction[] = c.proposedActionsJson
+        ? JSON.parse(c.proposedActionsJson)
+        : [];
+      const applied: number[] = c.appliedActionsJson ? JSON.parse(c.appliedActionsJson) : [];
+      return {
+        id: c.id,
+        note: c.note,
+        reply: c.reply,
+        when: c.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        hasPhoto: Boolean(c.photoPath),
+        actions: proposed.map((a, index) => ({
+          index,
+          text: describeAction(a),
+          applied: applied.includes(index),
+        })),
+        proposal: c.proposedReadingJson ? JSON.parse(c.proposedReadingJson) : null,
+        logged: Boolean(c.loggedReadingId),
+      };
+    });
+
+  // The calibrated hydrometer (newest test wins): its offset plus temperature
+  // correction is applied to every displayed gravity. Raw stays stored.
+  const instrument = db
+    .select()
+    .from(equipment)
+    .where(and(eq(equipment.userId, user.id), eq(equipment.status, "active")))
+    .all()
+    .filter((g) => g.calibrationOffset != null)
+    .sort((x, y) => (y.lastCalibratedAt?.getTime() ?? 0) - (x.lastCalibratedAt?.getTime() ?? 0))[0];
 
   // What the batch cost: each snapshot line looks up its lot's price. A lot
   // only partially used is prorated by amount/lot quantity (same unit). Kit
@@ -164,8 +186,28 @@ export default async function BatchDetailPage({
   ].filter((g) => g.lot);
 
   const badge = batchStatusBadge[b.status];
-  const abvVal = b.og != null && b.fg != null ? abv(b.og, b.fg) : null;
-  const atten = b.og != null && b.fg != null && b.og > 1 ? apparentAttenuation(b.og, b.fg) : null;
+  // Corrected = raw + instrument offset, then temperature. ABV is offset-
+  // immune (constant cancels in OG−FG) but attenuation is not.
+  const ogC = b.og != null ? correctedSg(b.og, b.ogTempF, instrument) : null;
+  const fgC = b.fg != null ? correctedSg(b.fg, b.fgTempF, instrument) : null;
+  const abvVal = ogC != null && fgC != null ? abv(ogC, fgC) : null;
+  const atten = ogC != null && fgC != null && ogC > 1 ? apparentAttenuation(ogC, fgC) : null;
+  // Itemized corrections for the sub-line under OG/FG.
+  const corrSub = (raw: number, tempF: number | null): string | undefined => {
+    const cal = instrument?.calibrationOffset ?? 0;
+    const temp = correctedSg(raw, tempF, instrument) - raw - cal;
+    if (cal === 0 && Math.abs(temp) < 0.0005) return undefined;
+    const parts = [`raw ${raw.toFixed(3)}${tempF != null ? ` at ${tempF}°F` : ""}`];
+    if (cal !== 0) parts.push(`cal ${cal >= 0 ? "+" : ""}${cal.toFixed(3)}`);
+    if (Math.abs(temp) >= 0.0005) parts.push(`temp ${temp >= 0 ? "+" : ""}${temp.toFixed(3)}`);
+    return parts.join(" · ");
+  };
+  // Sanity check from the calibration write-up: attenuation far from the
+  // yeast lot's published number usually means instrument, not beer.
+  const yeastPublished = lots.find((l) => l.type === "yeast" && l.attenuationPercent != null)
+    ?.attenuationPercent;
+  const attenSuspect =
+    atten != null && yeastPublished != null && Math.abs(atten - yeastPublished) > 10;
   const boilOff =
     b.preBoilVolumeGal != null && b.postBoilVolumeGal != null && b.boilMinutes
       ? (b.preBoilVolumeGal - b.postBoilVolumeGal) / (b.boilMinutes / 60)
@@ -218,14 +260,25 @@ export default async function BatchDetailPage({
         <div className="panel">
           <div className="panel-heading">Gravity</div>
           <div className="panel-body">
-            <Row label="OG" sub={b.ogTempF != null ? `sample at ${b.ogTempF}°F, corrected` : undefined}>
-              {b.og != null ? <>{b.og.toFixed(3)} <Chip batch={b} field="og" /></> : "—"}
+            <Row label="OG" sub={b.og != null ? corrSub(b.og, b.ogTempF) : undefined}>
+              {ogC != null && b.og != null ? <>{ogC.toFixed(3)} <Chip batch={b} field="og" /></> : "—"}
             </Row>
-            <Row label="FG" sub={b.fgTempF != null ? `sample at ${b.fgTempF}°F, corrected` : undefined}>
-              {b.fg != null ? <>{b.fg.toFixed(3)} <Chip batch={b} field="fg" /></> : "pending"}
+            <Row label="FG" sub={b.fg != null ? corrSub(b.fg, b.fgTempF) : undefined}>
+              {fgC != null && b.fg != null ? <>{fgC.toFixed(3)} <Chip batch={b} field="fg" /></> : "pending"}
             </Row>
             <Row label="ABV">{abvVal != null ? `${abvVal.toFixed(1)}%` : "needs OG + FG"}</Row>
-            <Row label="Attenuation">{atten != null ? `${atten.toFixed(0)}%` : "—"}</Row>
+            <Row label="Attenuation">
+              {atten != null ? `${atten.toFixed(0)}%` : "—"}
+              {atten != null && yeastPublished != null ? (
+                attenSuspect ? (
+                  <span className="badge" style={{ background: "var(--warning)" }} title={`Yeast lot lists ~${yeastPublished}%. A big gap usually means instrument calibration, not the beer.`}>
+                    VS ~{yeastPublished}% PUBLISHED
+                  </span>
+                ) : (
+                  <span style={{ color: "var(--text-faint)", fontSize: 12 }}>yeast lists ~{yeastPublished}%</span>
+                )
+              ) : null}
+            </Row>
           </div>
         </div>
         <div className="panel">
@@ -366,7 +419,7 @@ export default async function BatchDetailPage({
                         <td>{r.value.toFixed(3)}</td>
                         <td>{r.tempF ?? "—"}</td>
                         <td style={{ color: "var(--text-bright)" }}>
-                          {(r.tempF != null ? correctForTemperature(r.value, r.tempF) : r.value).toFixed(3)}
+                          {correctedSg(r.value, r.tempF, instrument).toFixed(3)}
                         </td>
                         <td>{r.stage ?? "—"}</td>
                         <td style={{ textAlign: "right" }}>
@@ -405,13 +458,21 @@ export default async function BatchDetailPage({
               <button type="submit" className="btn" style={{ height: 38 }}>Add</button>
             </div></form>
             <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 8 }}>
+              {instrument?.calibrationOffset != null
+                ? `Corrected applies ${instrument.name.split(",")[0]}'s ${instrument.calibrationOffset >= 0 ? "+" : ""}${instrument.calibrationOffset.toFixed(3)} offset plus temperature vs ${instrument.calibrationTempF ?? 60}°F. `
+                : "Corrected applies temperature only; calibrate your hydrometer on its Equipment page to include its offset. "}
               Bottling gate (v3): two matching readings before you&apos;re allowed to bottle.
             </div>
           </div>
         </div>
         <div className="panel">
           <div className="panel-heading">Gravity quick calc</div>
-          <GravityCalc og={b.og} />
+          <GravityCalc
+            og={ogC}
+            defaultOffset={instrument?.calibrationOffset}
+            instrumentName={instrument ? instrument.name.split(",")[0] : null}
+            calibrationTempF={instrument?.calibrationTempF}
+          />
         </div>
       </div>
       {b.notes || b.deviations ? (

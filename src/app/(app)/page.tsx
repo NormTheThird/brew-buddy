@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { batches, equipment, stock, recipeItems, recipes, taskCompletions } from "@/lib/db/schema";
+import { batches, batchTasks, equipment, stock, recipeItems, recipes, taskCompletions } from "@/lib/db/schema";
 import { requireUser } from "@/lib/auth/session";
 import { isEstimated, batchStatusBadge, recipeDisplayStatus, statusBadge } from "@/lib/brewing/display";
 import { learnedConstants } from "@/lib/brewing/constants";
 import { isDue, nextActions, fermentationDay } from "@/lib/brewing/schedule";
 import { completeTask, uncompleteTask } from "@/lib/brewing/actions";
 import { checkBrewability } from "@/lib/brewing/brewability";
-import { abv } from "@/lib/calc/gravity";
+import { abv, correctedSg } from "@/lib/calc/gravity";
 import { PageHeader } from "@/components/page-header";
 import { GridIcon } from "@/components/icons";
 
@@ -59,14 +59,33 @@ export default async function DashboardPage() {
           .map((c) => `${c.batchId}|${c.taskKey}`)
       : []
   );
+  const taskAdjustments = activeBatchList.length
+    ? db
+        .select()
+        .from(batchTasks)
+        .where(inArray(batchTasks.batchId, activeBatchList.map((b) => b.id)))
+        .all()
+    : [];
   const actions = activeBatchList
-    .flatMap((b) => nextActions(b).map((a) => ({ ...a, batch: b })))
+    .flatMap((b) =>
+      nextActions(b, taskAdjustments.filter((t) => t.batchId === b.id)).map((a) => ({
+        ...a,
+        batch: b,
+      }))
+    )
     .sort((x, y) => x.due.getTime() - y.due.getTime())
     .slice(0, 5);
   const multiBatch = activeBatchList.length > 1;
   const day = active ? fermentationDay(active) : null;
   const activeBadge = active ? batchStatusBadge[active.status] : null;
-  const activeAbv = active?.og != null && active?.fg != null ? abv(active.og, active.fg) : null;
+  // Show gravities corrected by the calibrated hydrometer, same as the
+  // batch page. gear is already this user's active equipment.
+  const instrument = gear
+    .filter((g) => g.calibrationOffset != null)
+    .sort((x, y) => (y.lastCalibratedAt?.getTime() ?? 0) - (x.lastCalibratedAt?.getTime() ?? 0))[0];
+  const activeOgC = active?.og != null ? correctedSg(active.og, active.ogTempF, instrument) : null;
+  const activeFgC = active?.fg != null ? correctedSg(active.fg, active.fgTempF, instrument) : null;
+  const activeAbv = activeOgC != null && activeFgC != null ? abv(activeOgC, activeFgC) : null;
 
   return (
     <>
@@ -92,13 +111,13 @@ export default async function DashboardPage() {
                 </div>
                 <div style={{ display: "flex", gap: 24, fontSize: 13, flexWrap: "wrap" }}>
                   {day != null && active.status === "fermenting" ? <span>Day {day} of ~14</span> : null}
-                  {active.og != null ? (
+                  {activeOgC != null ? (
                     <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      OG {active.og.toFixed(3)}{" "}
+                      OG {activeOgC.toFixed(3)}{" "}
                       {isEstimated(active, "og") ? <span className="chip-estimate">EST</span> : <span className="chip-measured">M</span>}
                     </span>
                   ) : null}
-                  {active.fg != null ? <span>FG {active.fg.toFixed(3)}</span> : <span>FG pending</span>}
+                  {activeFgC != null ? <span>FG {activeFgC.toFixed(3)}</span> : <span>FG pending</span>}
                   {activeAbv != null ? <span>ABV {activeAbv.toFixed(1)}%</span> : null}
                 </div>
                 {day != null && active.status === "fermenting" ? (

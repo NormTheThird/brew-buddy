@@ -15,7 +15,41 @@ this area again.
 
 ---
 
-## 2026-09-04 — "Talk to this batch": photo check-ins with Claude
+## 2026-09-05 — Instrument calibration, schedule reality, chat that edits
+
+Driven by Trey's SOLIGT calibration doc (RO water at 60F read 0.995) and
+"I need a way to talk to Claude with the batch and change the data."
+
+- **Instrument calibration on equipment**: calibrationOffset (+0.005 style,
+  ADDED to raw readings — this flips applyInstrumentOffset's old subtract
+  convention deliberately, matching Trey's doc; test updated),
+  calibrationTempF, lastCalibratedAt, calibrationNotes. Form section on the
+  equipment page. Raw readings stay stored untouched; correctedSg() in
+  calc/gravity applies offset then temperature at display time, so refining
+  the offset recalculates all history.
+- **Corrected display everywhere it matters**: batch Gravity panel shows
+  corrected OG/FG with itemized sub-line (raw 1.036 at 70°F · cal +0.005 ·
+  temp +0.001), readings table corrected column includes the offset with a
+  footnote naming the instrument, dashboard active-batch card matches,
+  quick calc prefills the offset. Single-instrument assumption: newest
+  calibrated active equipment wins; readings get an instrument FK only if a
+  second hydrometer ever appears. Attenuation row compares against the
+  batch's yeast lot's published attenuationPercent and badges when >10
+  points apart (usually instrument, not beer).
+- **batch_tasks table**: schedule stays DERIVED, but rows here override a
+  derived task's due date (taskKey set) or add custom tasks (taskKey null,
+  key "custom:<id>"). nextActions(batch, adjustments) merges; dashboard and
+  banner pass the rows. Completions keep working via the same keys.
+- **Chat proposals v2**: batch check-ins now return {reply, actions[]} —
+  add_reading / update_reading / move_task / add_task / update_batch
+  (whitelisted fields: og, ogTempF, fg, fgTempF, brewDate, bottledDate,
+  status). Stored in proposedActionsJson; each renders as an Apply button;
+  appliedActionsJson tracks clicked indexes. NOTHING applies without a
+  click. v1 rows (proposedReadingJson) still render. Live-tested: "log my
+  Sep 4 raw 1.006 at 70F, move the confirm reading to Sep 7, add a cold
+  crash task" produced exactly three proposals; applying them put
+  Sep 4 · 1.006 · corrected 1.012 (fg) in the table and both tasks on
+  Next up. ~1.2 cents per exchange.
 
 Trey's ask: "give it a picture for Claude to look at and tell it what's
 going on as it's happening, such as the gravity reading on day 10."

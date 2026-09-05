@@ -106,6 +106,15 @@ export const equipment = sqliteTable("equipment", {
     .notNull()
     .default(false),
   flag: text("flag"), // badge-worthy warning: "not calibrated", "replace"
+  // Instrument calibration (hydrometers etc.). Offset is what gets ADDED to
+  // every raw reading: an instrument showing 0.995 in 60°F RO water has an
+  // offset of +0.005. Raw readings are stored untouched; corrections are
+  // always computed at display time, so refining the offset later
+  // recalculates all history (Trey's calibration doc, 2026-09-04).
+  calibrationOffset: real("calibration_offset"),
+  calibrationTempF: real("calibration_temp_f"), // scale's reference temp, usually 60
+  lastCalibratedAt: integer("last_calibrated_at", { mode: "timestamp" }),
+  calibrationNotes: text("calibration_notes"),
   purchaseId: text("purchase_id").references(() => purchases.id, {
     onDelete: "set null",
   }),
@@ -331,11 +340,39 @@ export const batchCheckins = sqliteTable("batch_checkins", {
   reply: text("reply").notNull(),
   proposedReadingJson: text("proposed_reading_json"),
   loggedReadingId: text("logged_reading_id"),
+  // v2 of proposals: Claude can suggest CHANGES (log/fix a reading, move or
+  // add a schedule task, correct a batch field). Array of ProposedAction;
+  // appliedActionsJson holds the indexes Trey has applied. Nothing runs
+  // without a click. Older rows use proposedReadingJson above.
+  proposedActionsJson: text("proposed_actions_json"),
+  appliedActionsJson: text("applied_actions_json"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
 });
 export type BatchCheckin = typeof batchCheckins.$inferSelect;
+
+// Schedule tasks are DERIVED from batch dates, but reality drifts: a reading
+// happens on day 12, the confirm gets pushed to Sunday, a cold crash gets
+// added. Each row either OVERRIDES a derived task (taskKey set: new due date
+// and optional label) or is a CUSTOM task (taskKey null; key becomes
+// "custom:<id>"). Completions in task_completions point at the same keys.
+export const batchTasks = sqliteTable("batch_tasks", {
+  id: text("id").primaryKey().$defaultFn(uuid),
+  batchId: text("batch_id")
+    .notNull()
+    .references(() => batches.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  taskKey: text("task_key"),
+  label: text("label"),
+  dueAt: integer("due_at", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+export type BatchTask = typeof batchTasks.$inferSelect;
 
 // Every AI recipe lookup is kept: the query and the full suggestions JSON,
 // so past candidates are revisitable without asking (or paying) Claude again.

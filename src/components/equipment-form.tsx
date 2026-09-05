@@ -96,6 +96,34 @@ export function EquipmentForm({
           </select>
         </div>
       ) : null}
+      <div style={{ borderTop: "1px solid var(--border-row)", paddingTop: 12 }}>
+        <div style={{ fontSize: 12, color: "var(--text-bright)", marginBottom: 8 }}>
+          Instrument calibration <span style={{ color: "var(--text-faint)" }}>(hydrometers, thermometers)</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+          <div>
+            <label className="field-label" htmlFor="calibrationOffset">Offset (added to readings)</label>
+            <input id="calibrationOffset" name="calibrationOffset" type="number" step="0.001" className="field" defaultValue={item?.calibrationOffset ?? ""} placeholder="0.005" />
+          </div>
+          <div>
+            <label className="field-label" htmlFor="calibrationTempF">Calibration °F</label>
+            <input id="calibrationTempF" name="calibrationTempF" type="number" step="1" className="field" defaultValue={item?.calibrationTempF ?? ""} placeholder="60" />
+          </div>
+          <div>
+            <label className="field-label" htmlFor="lastCalibratedAt">Tested on</label>
+            <input id="lastCalibratedAt" name="lastCalibratedAt" type="date" className="field" defaultValue={toDateInput(item?.lastCalibratedAt ?? null)} />
+          </div>
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <label className="field-label" htmlFor="calibrationNotes">Calibration notes</label>
+          <input id="calibrationNotes" name="calibrationNotes" className="field" defaultValue={item?.calibrationNotes ?? ""} placeholder="RO water at 60F read 0.995, so add +0.005" />
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 6 }}>
+          Test: float it in RO water at the calibration temp. If it shows 0.995 the
+          offset is +0.005. Raw readings stay stored as read; corrections apply at
+          display time, so refining this later fixes all history.
+        </div>
+      </div>
       <div>
         <label className="field-label" htmlFor="notes">Notes</label>
         <textarea id="notes" name="notes" className="field" rows={3} defaultValue={item?.notes ?? ""} />

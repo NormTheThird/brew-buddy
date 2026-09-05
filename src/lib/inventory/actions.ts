@@ -99,6 +99,11 @@ function equipmentValues(formData: FormData) {
       // No cost field: paid gear arrives via purchases (which carry the
       // money); manually-entered gear is the free stuff.
       notes: str(formData.get("notes")),
+      // Instrument calibration — offset is ADDED to raw readings.
+      calibrationOffset: num(formData.get("calibrationOffset")),
+      calibrationTempF: num(formData.get("calibrationTempF")),
+      lastCalibratedAt: date(formData.get("lastCalibratedAt")),
+      calibrationNotes: str(formData.get("calibrationNotes")),
     },
   } as const;
 }
